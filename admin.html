@@ -2091,8 +2091,8 @@ function recalcSummary() {
 let agentConversation = [];
 let agentIsLoading = false;
 
-// Backend endpoint URL — update this when deploying to production
-const AGENT_API_URL = 'http://localhost:3001/api/adoption-agent';
+// Supabase Edge Function URL — no localhost needed
+const AGENT_API_URL = 'https://apcfnzbiylhgiutcjigg.supabase.co/functions/v1/adoption-agent';
 
 /**
  * Convert basic markdown to HTML for agent responses
@@ -2171,10 +2171,13 @@ async function sendAdoptionAgentQuery() {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
   
   try {
-    // Call backend endpoint
+    // Call Supabase Edge Function
     const response = await fetch(AGENT_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer sb_publishable_fO29UdOY1Wa8_LOgjDj2Pg_iZ7bhKJ3'
+      },
       body: JSON.stringify({
         query: query.substring(0, 2000),
         conversation: agentConversation.slice(-20),
