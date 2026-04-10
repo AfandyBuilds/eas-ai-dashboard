@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EAS AI Adoption Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/db.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -414,9 +418,133 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .tab:hover:not(.active) { color: var(--text-primary); }
 
 .hidden { display: none !important; }
+
+/* Quarter Selector */
+.quarter-selector-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quarter-selector-wrapper label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.quarter-selector {
+  padding: 6px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+  transition: border-color 0.15s;
+}
+.quarter-selector:hover { border-color: var(--accent); }
+.quarter-selector:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
+/* User Profile in Sidebar */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  margin-bottom: 8px;
+}
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+.user-info .user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-info .user-role {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.btn-logout {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.btn-logout:hover { color: var(--danger); }
+
+/* Quarter delta badges */
+.kpi-delta {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+.kpi-delta.up { color: var(--success); }
+.kpi-delta.down { color: var(--danger); }
+
+/* Loading overlay */
+#auth-loading {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 16px;
+}
+#auth-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#auth-loading p {
+  font-size: 14px;
+  color: var(--text-muted);
+}
 </style>
 </head>
 <body>
+
+<!-- Auth Loading Overlay -->
+<div id="auth-loading">
+  <div class="spinner"></div>
+  <p>Loading dashboard...</p>
+</div>
 
 <!-- Mobile Toggle -->
 <button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">
@@ -466,6 +594,16 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   </div>
 
   <div class="sidebar-footer">
+    <div class="user-profile">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-display-name">Loading...</div>
+        <div class="user-role" id="user-display-role"></div>
+      </div>
+      <button class="btn-logout" onclick="EAS_Auth.signOut()" title="Sign Out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
     <button class="upload-btn" onclick="document.getElementById('xlsxUpload').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Upload Excel (.xlsx)
@@ -475,7 +613,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Export to Excel
     </button>
-    <a href="admin.html" class="upload-btn" style="margin-top:8px;text-decoration:none">
+    <a href="admin.html" class="upload-btn" style="margin-top:8px;text-decoration:none" data-role="admin" id="admin-panel-link">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       Admin Panel
     </a>
@@ -489,9 +627,13 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div class="page-header">
       <div>
         <h2>Dashboard</h2>
-        <div class="subtitle">EAS AI Adoption Overview &mdash; SPOC: Omar Ibrahim</div>
+        <div class="subtitle">EAS AI Adoption Overview &mdash; <span id="header-user-context">SPOC: Omar Ibrahim</span></div>
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="quarter-selector-wrapper">
+          <label for="quarter-selector">Quarter</label>
+          <select class="quarter-selector" id="quarter-selector"></select>
+        </div>
         <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
         <button class="btn btn-secondary" onclick="openModal('accomplishment')">+ Add Win</button>
       </div>
@@ -4611,6 +4753,7 @@ const APP_DATA = {
 <script>
 // ======== STATE ========
 let data = JSON.parse(JSON.stringify(APP_DATA));
+let filteredData = null; // Quarter-filtered copy
 let charts = {};
 const practiceColors = {
   'BFSI': '#3b82f6', 'CES': '#10b981', 'ERP': '#f59e0b',
@@ -4624,6 +4767,61 @@ const practiceNames = {
   'GRC': 'GRC',
   'EPCS': 'Enterprise Portfolio & Content (EPCS)'
 };
+
+// ======== QUARTER-AWARE DATA ========
+function getFilteredData() {
+  const q = EAS_DB.getSelectedQuarter();
+  if (!q || q === 'all') return data;
+  
+  if (!filteredData || filteredData._quarter !== q) {
+    filteredData = JSON.parse(JSON.stringify(data));
+    filteredData._quarter = q;
+    filteredData.tasks = EAS_DB.filterByQuarter(data.tasks, q);
+    filteredData.accomplishments = EAS_DB.filterAccomplishmentsByQuarter(data.accomplishments, q);
+    // Recalc summary for filtered data
+    recalcFilteredSummary(filteredData);
+  }
+  return filteredData;
+}
+
+function recalcFilteredSummary(fd) {
+  const practices = ['BFSI','CES','ERP','EPS','EPCS','GRC'];
+  const summaryMap = {};
+  practices.forEach(p => {
+    summaryMap[p] = { tasks: 0, timeWithout: 0, timeWith: 0, timeSaved: 0, quality: 0, qualityCount: 0, completed: 0 };
+  });
+  fd.tasks.forEach(t => {
+    const p = t.practice;
+    if (!summaryMap[p]) return;
+    summaryMap[p].tasks++;
+    summaryMap[p].timeWithout += t.timeWithout || 0;
+    summaryMap[p].timeWith += t.timeWith || 0;
+    summaryMap[p].timeSaved += t.timeSaved || 0;
+    if (t.quality > 0) { summaryMap[p].quality += t.quality; summaryMap[p].qualityCount++; }
+    if (t.status && t.status.toLowerCase() === 'completed') summaryMap[p].completed++;
+  });
+  fd.summary = JSON.parse(JSON.stringify(data.summary));
+  fd.summary.practices.forEach(sp => {
+    const shortKey = practices.find(p => sp.name.includes(p)) || sp.name;
+    const m = summaryMap[shortKey];
+    if (!m) return;
+    sp.tasks = m.tasks;
+    sp.timeWithout = m.timeWithout;
+    sp.timeWith = m.timeWith;
+    sp.timeSaved = m.timeSaved;
+    sp.efficiency = m.timeWithout > 0 ? (m.timeSaved / m.timeWithout) * 100 : 0;
+    sp.quality = m.qualityCount > 0 ? m.quality / m.qualityCount : 0;
+    sp.completed = m.completed;
+  });
+  const t = fd.summary.totals;
+  t.tasks = fd.tasks.length;
+  t.timeWithout = fd.tasks.reduce((s, x) => s + (x.timeWithout || 0), 0);
+  t.timeWith = fd.tasks.reduce((s, x) => s + (x.timeWith || 0), 0);
+  t.timeSaved = fd.tasks.reduce((s, x) => s + (x.timeSaved || 0), 0);
+  t.efficiency = t.timeWithout > 0 ? (t.timeSaved / t.timeWithout) * 100 : 0;
+  const qTasks = fd.tasks.filter(x => x.quality > 0);
+  t.quality = qTasks.length > 0 ? qTasks.reduce((s, x) => s + x.quality, 0) / qTasks.length : 0;
+}
 
 // ======== NAVIGATION ========
 document.querySelectorAll('.nav-item[data-page]').forEach(item => {
@@ -4708,9 +4906,11 @@ function recalcSummary() {
 // ======== DASHBOARD ========
 function renderDashboard() {
   recalcSummary();
-  const t = data.summary.totals;
+  const fd = getFilteredData();
+  const t = fd.summary.totals;
+  const qLabel = EAS_DB.getQuarterLabel(EAS_DB.getSelectedQuarter());
   document.getElementById('kpi-grid').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Total Tasks</div><div class="kpi-value blue">${t.tasks}</div><div class="kpi-sub">${t.completed} completed</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Tasks</div><div class="kpi-value blue">${t.tasks}</div><div class="kpi-sub">${qLabel}</div></div>
     <div class="kpi-card"><div class="kpi-label">Hours Saved</div><div class="kpi-value green">${fmt(t.timeSaved, 0)}</div><div class="kpi-sub">of ${fmt(t.timeWithout, 0)} total hrs</div></div>
     <div class="kpi-card"><div class="kpi-label">Avg Efficiency</div><div class="kpi-value yellow">${fmt(t.efficiency, 1)}%</div><div class="kpi-sub">time reduction</div></div>
     <div class="kpi-card"><div class="kpi-label">Avg Quality</div><div class="kpi-value purple">${fmt(t.quality, 1)}/5</div><div class="kpi-sub">rating</div></div>
@@ -4723,7 +4923,8 @@ function renderDashboard() {
 function renderCharts() {
   Object.values(charts).forEach(c => c.destroy());
   charts = {};
-  const practices = data.summary.practices;
+  const fd = getFilteredData();
+  const practices = fd.summary.practices;
   const labels = practices.map(p => p.name.replace('Solutions','').replace('Financial Services','BFSI').replace('Customer Engagement','CES').replace('Enterprise Portfolio & Content','EPCS').replace('Payments','EPS').trim());
   const colors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
   const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#94a3b8', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } } } };
@@ -4745,7 +4946,7 @@ function renderCharts() {
 
   // AI Tools donut
   const toolCounts = {};
-  data.tasks.forEach(t => { if (t.aiTool) toolCounts[t.aiTool] = (toolCounts[t.aiTool] || 0) + 1; });
+  fd.tasks.forEach(t => { if (t.aiTool) toolCounts[t.aiTool] = (toolCounts[t.aiTool] || 0) + 1; });
   const toolLabels = Object.keys(toolCounts);
   const toolColors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316'];
   charts.tools = new Chart(document.getElementById('chart-tools'), {
@@ -4755,7 +4956,7 @@ function renderCharts() {
 
   // Categories donut
   const catCounts = {};
-  data.tasks.forEach(t => { if (t.category) catCounts[t.category] = (catCounts[t.category] || 0) + 1; });
+  fd.tasks.forEach(t => { if (t.category) catCounts[t.category] = (catCounts[t.category] || 0) + 1; });
   const catLabels = Object.keys(catCounts);
   charts.categories = new Chart(document.getElementById('chart-categories'), {
     type: 'doughnut', data: { labels: catLabels, datasets: [{ data: Object.values(catCounts), backgroundColor: toolColors.slice(0, catLabels.length), borderWidth: 0 }] },
@@ -4764,7 +4965,7 @@ function renderCharts() {
 
   // Weekly trend
   const weekCounts = {};
-  data.tasks.forEach(t => { const w = 'Week ' + t.week; weekCounts[w] = (weekCounts[w] || 0) + 1; });
+  fd.tasks.forEach(t => { const w = 'Week ' + t.week; weekCounts[w] = (weekCounts[w] || 0) + 1; });
   const weekLabels = Object.keys(weekCounts).sort((a,b) => parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1]));
   charts.weekly = new Chart(document.getElementById('chart-weekly'), {
     type: 'line', data: { labels: weekLabels, datasets: [{ data: weekLabels.map(w => weekCounts[w]), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#3b82f6', pointRadius: 5 }] },
@@ -4775,12 +4976,13 @@ function renderCharts() {
 // ======== PRACTICES ========
 function renderPractices() {
   recalcSummary();
+  const fd = getFilteredData();
   const grid = document.getElementById('practice-grid');
   const detail = document.getElementById('practice-detail');
   detail.classList.add('hidden');
   grid.classList.remove('hidden');
 
-  grid.innerHTML = data.summary.practices.map((p, i) => {
+  grid.innerHTML = fd.summary.practices.map((p, i) => {
     const shortName = ['ERP','CES','BFSI','EPS','GRC','EPCS'][i];
     const color = Object.values(practiceColors)[i];
     const effPct = Math.min(p.efficiency, 100);
@@ -4807,8 +5009,9 @@ function showPracticeDetail(practice) {
   document.getElementById('practice-grid').classList.add('hidden');
   const detail = document.getElementById('practice-detail');
   detail.classList.remove('hidden');
-  const tasks = data.tasks.filter(t => t.practice === practice);
-  const info = data.summary.practices.find(p => p.name.includes(practice)) || {};
+  const fd = getFilteredData();
+  const tasks = fd.tasks.filter(t => t.practice === practice);
+  const info = fd.summary.practices.find(p => p.name.includes(practice)) || {};
 
   detail.innerHTML = `
     <button class="btn btn-secondary" onclick="renderPractices()" style="margin-bottom:16px">&larr; Back to Practices</button>
@@ -4838,13 +5041,14 @@ function showPracticeDetail(practice) {
 
 // ======== TASKS ========
 function renderTasks() {
+  const fd = getFilteredData();
   const search = (document.getElementById('task-search').value || '').toLowerCase();
   const fPractice = document.getElementById('task-filter-practice').value;
   const fCategory = document.getElementById('task-filter-category').value;
   const fTool = document.getElementById('task-filter-tool').value;
   const fStatus = document.getElementById('task-filter-status').value;
 
-  let filtered = data.tasks.filter(t => {
+  let filtered = fd.tasks.filter(t => {
     if (fPractice && t.practice !== fPractice) return false;
     if (fCategory && t.category !== fCategory) return false;
     if (fTool && t.aiTool !== fTool) return false;
@@ -4856,7 +5060,7 @@ function renderTasks() {
     return true;
   });
 
-  document.getElementById('task-count-label').textContent = `Showing ${filtered.length} of ${data.tasks.length} tasks`;
+  document.getElementById('task-count-label').textContent = `Showing ${filtered.length} of ${fd.tasks.length} tasks`;
   document.getElementById('tasks-tbody').innerHTML = filtered.map(t => `
     <tr>
       <td><span style="color:${practiceColors[t.practice] || '#94a3b8'};font-weight:600">${t.practice}</span></td>
@@ -4877,10 +5081,11 @@ function renderTasks() {
 
 // ======== ACCOMPLISHMENTS ========
 function renderAccomplishments() {
+  const fd = getFilteredData();
   const search = (document.getElementById('acc-search').value || '').toLowerCase();
   const fPractice = document.getElementById('acc-filter-practice').value;
 
-  let filtered = data.accomplishments.filter(a => {
+  let filtered = fd.accomplishments.filter(a => {
     if (fPractice && a.practice !== fPractice) return false;
     if (search) {
       const hay = [a.title, a.details, a.practice, a.project, a.employees, a.impact].join(' ').toLowerCase();
@@ -5201,16 +5406,68 @@ function populateFilters() {
 }
 
 function updateNavCounts() {
-  document.getElementById('nav-task-count').textContent = data.tasks.length;
-  document.getElementById('nav-acc-count').textContent = data.accomplishments.length;
+  const fd = getFilteredData();
+  document.getElementById('nav-task-count').textContent = fd.tasks.length;
+  document.getElementById('nav-acc-count').textContent = fd.accomplishments.length;
   document.getElementById('nav-copilot-count').textContent = data.copilotUsers.length;
   document.getElementById('nav-project-count').textContent = data.projects.length;
 }
 
 // Boot
-populateFilters();
-updateNavCounts();
-renderDashboard();
+async function boot() {
+  // 1. Auth check
+  const authed = await EAS_Auth.requireAuth();
+  if (!authed) return; // Redirected to login
+  
+  // 2. Load quarters from Supabase
+  await EAS_DB.loadQuarters();
+  EAS_DB.populateQuarterSelector('quarter-selector');
+  
+  // 3. Set up user display
+  EAS_Auth.updateUserDisplay();
+  EAS_Auth.applyRoleVisibility();
+  
+  // Set user avatar initials
+  const name = EAS_Auth.getUserName();
+  const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  
+  // Update header context
+  const role = EAS_Auth.getUserRole();
+  const practice = EAS_Auth.getUserPractice();
+  const headerCtx = document.getElementById('header-user-context');
+  if (headerCtx) {
+    if (role === 'admin') {
+      headerCtx.textContent = 'Administrator — All Practices';
+    } else if (role === 'spoc') {
+      headerCtx.textContent = `SPOC: ${name} — ${practice}`;
+    } else {
+      headerCtx.textContent = `${name} — ${practice}`;
+    }
+  }
+  
+  // 4. Initialize data
+  populateFilters();
+  updateNavCounts();
+  renderDashboard();
+  
+  // 5. Listen for quarter changes
+  window.addEventListener('quarter-changed', () => {
+    filteredData = null; // Clear cache
+    renderDashboard();
+    // Re-render current active page
+    const activePage = document.querySelector('.nav-item.active')?.dataset?.page;
+    if (activePage === 'practices') renderPractices();
+    if (activePage === 'tasks') renderTasks();
+    if (activePage === 'accomplishments') renderAccomplishments();
+    updateNavCounts();
+  });
+  
+  // 6. Hide loading overlay
+  document.getElementById('auth-loading').style.display = 'none';
+}
+
+boot();
 </script>
 </body>
 </html>

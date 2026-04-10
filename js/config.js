@@ -1,6 +1,6 @@
 // ============================================================
 // EAS AI Dashboard — Supabase Configuration
-// Phase 1: Database Migration
+// Phase 1: Database Migration | Phase 2: Auth
 // ============================================================
 
 const SUPABASE_URL = 'https://apcfnzbiylhgiutcjigg.supabase.co';
