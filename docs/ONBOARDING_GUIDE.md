@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 1.1 | **Last Updated:** April 11, 2026
+> **Version:** 2.0 | **Last Updated:** April 10, 2026
 
 ---
 
@@ -15,7 +15,6 @@
 | **Dashboard** | https://omarhelal1234.github.io/eas-ai-dashboard/ |
 | **Login Page** | https://omarhelal1234.github.io/eas-ai-dashboard/login.html |
 | **Signup Page** | https://omarhelal1234.github.io/eas-ai-dashboard/signup.html |
-| **Admin Panel** | https://omarhelal1234.github.io/eas-ai-dashboard/admin.html |
 
 ### Default Credentials
 
@@ -87,17 +86,21 @@ After login, you'll see the main dashboard with:
 
 ### Sidebar Navigation
 
-- **Dashboard** — KPI cards and charts across all practices
+- **Dashboard** — KPI cards, charts, forecasting, adoption rate across all practices
 - **Practices** — Per-practice breakdown with adoption rates
 - **Tasks** — Full task list with filters and search
 - **Accomplishments** — Key AI implementation wins
 - **Copilot Users** — Licensed user management
 - **Projects** — Project portfolio tracking
-- **Admin Panel** — *(Admin only)* Full CRUD management
+- **SPOC Panel** — *(SPOC only)* Practice-specific dashboard with team management
+- **Leaderboard** — Practice + employee rankings with badges
+- **My Tasks** — *(Contributor only)* Personal task log with KPIs
+- **Use Cases** — Searchable AI use case library
 
 ### Header Controls
 
 - **Quarter Selector** — Switch between quarters (e.g., Q2-2026, Q1-2026, All Time)
+- **Theme Toggle** — Switch between dark and light mode (persists via localStorage)
 - **User Profile** — Your name and role displayed in the sidebar
 - **Logout** — Click your profile area to sign out
 
@@ -164,6 +167,24 @@ The quarter selector in the top header filters **all** pages:
 2. Click the **Export** button (if available)
 3. An `.xlsx` file downloads with the filtered data
 
+### PDF Report
+
+1. Navigate to the **Dashboard** page
+2. Click the **Generate PDF** button (admin/SPOC only)
+3. A PDF report downloads with Executive Summary, Practice Breakdown, Top Contributors, and Accomplishments
+
+### Dark/Light Mode
+
+1. Click the **theme toggle** button in the sidebar
+2. The theme switches between dark and light mode
+3. Your preference is saved and persists across sessions and pages
+
+### Leaderboard & Badges
+
+1. Navigate to **Leaderboard** in the sidebar
+2. View practice rankings (weighted scoring) and employee rankings
+3. Badges are earned automatically: First Task, Streak, Time Saver, Efficiency Pro, Quality Champion, Prolific, Centurion
+
 ---
 
 ## 7. For Developers
@@ -183,17 +204,18 @@ cd eas-ai-dashboard
 
 ```
 ./
-├── index.html          # Main dashboard (SPA)
+├── index.html          # Main dashboard (10 role-aware pages)
 ├── login.html          # Authentication page
 ├── signup.html         # Contributor self-registration
-├── admin.html          # Admin panel
+├── admin.html          # Admin panel (legacy — deprecated)
 ├── data.js             # Static data (fallback)
 ├── css/
-│   └── variables.css   # Shared design tokens
+│   ├── variables.css   # Design tokens, dark/light themes
+│   └── dashboard.css   # Component styles, accessibility
 ├── js/
 │   ├── config.js       # Supabase client
-│   ├── auth.js         # Authentication module
-│   ├── db.js           # Database queries
+│   ├── auth.js         # Authentication module (EAS_Auth)
+│   ├── db.js           # Data layer — reads, writes, RPCs, audit
 │   └── utils.js        # Shared utilities
 ├── scripts/
 │   ├── create-schema.mjs   # DB schema creation
@@ -246,8 +268,9 @@ See `.env.example` for the template.
 | Technology | Version | CDN |
 |-----------|---------|-----|
 | Supabase JS | v2 | `cdn.jsdelivr.net/npm/@supabase/supabase-js@2` |
-| Chart.js | 4.x | `cdn.jsdelivr.net/npm/chart.js` |
-| SheetJS | Latest | `cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js` |
+| Chart.js | 4.4.1 | `cdn.jsdelivr.net/npm/chart.js` (deferred) |
+| SheetJS | 0.18.5 | `cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js` (deferred) |
+| jsPDF | 2.5.2 | `cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js` (deferred) |
 | Inter Font | Variable | `fonts.googleapis.com/css2?family=Inter` |
 
 ---
@@ -278,4 +301,4 @@ For issues:
 
 ---
 
-*This guide will be updated as new features are delivered in Phases 3–6.*
+*All 6 implementation phases are complete. This guide reflects the final delivered state of the dashboard.*

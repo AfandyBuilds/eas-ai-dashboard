@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 1.1 | **Date:** April 11, 2026 | **Author:** Omar Ibrahim  
+> **Version:** 2.0 | **Date:** April 10, 2026 | **Author:** Omar Ibrahim  
 > **Department:** Enterprise Application Solutions (EAS) | **Sponsor:** EAS Leadership
 
 ---
@@ -92,21 +92,23 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-03.1 | KPI cards: tasks, hours saved, efficiency, quality | P1 |
-| FR-03.2 | Charts: tasks by practice, time saved, efficiency, tools, categories, trend | P1 |
-| FR-03.3 | Adoption rate widget (active/licensed users) | P2 |
-| FR-03.4 | Practice heatmap (green/yellow/red) | P2 |
-| FR-03.5 | Inactive users widget | P2 |
+| FR-03.1 | KPI cards: tasks, hours saved, efficiency, quality | P1 ✅ |
+| FR-03.2 | Charts: tasks by practice, time saved, efficiency, tools, categories, trend | P1 ✅ |
+| FR-03.3 | Adoption rate widget (active/licensed users) | P2 ✅ |
+| FR-03.4 | Practice heatmap (green/yellow/red) | P2 ✅ |
+| FR-03.5 | Inactive users widget | P2 ✅ |
+| FR-03.6 | Trend forecasting (linear regression, 4-week projection) | P3 ✅ |
+| FR-03.7 | Dark/Light mode toggle with localStorage persistence | P3 ✅ |
 
 ### FR-04: Task Management
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-04.1 | Log new AI tasks with all fields | P1 |
-| FR-04.2 | Filter tasks by practice, category, tool, status | P1 |
-| FR-04.3 | Search tasks by keyword | P1 |
-| FR-04.4 | Edit/delete tasks (role-restricted) | P2 |
-| FR-04.5 | Auto-calculate time saved and efficiency | P1 |
+| FR-04.1 | Log new AI tasks with all fields | P1 ✅ |
+| FR-04.2 | Filter tasks by practice, category, tool, status | P1 ✅ |
+| FR-04.3 | Search tasks by keyword | P1 ✅ |
+| FR-04.4 | Edit/delete tasks (role-restricted) | P2 ✅ |
+| FR-04.5 | Auto-calculate time saved and efficiency | P1 ✅ |
 
 ### FR-05: Practice Tracking
 
@@ -146,37 +148,46 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-09.1 | Program command center with risk radar | P2 |
-| FR-09.2 | User management (CRUD) | P2 |
-| FR-09.3 | Quarter management | P2 |
-| FR-09.4 | Data quality monitor | P2 |
-| FR-09.5 | Audit trail viewer | P3 |
+| FR-09.1 | Program command center with risk radar | P2 ✅ |
+| FR-09.2 | User management (CRUD) | P2 ✅ |
+| FR-09.3 | Quarter management | P2 ✅ |
+| FR-09.4 | Data quality monitor | P2 ✅ |
+| FR-09.5 | Audit trail viewer | P3 ✅ |
 
 ### FR-10: SPOC Panel
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-10.1 | Practice-specific dashboard | P2 |
-| FR-10.2 | Team management with inactive alerts | P2 |
-| FR-10.3 | Nudge system for follow-ups | P3 |
-| FR-10.4 | Use case library | P3 |
+| FR-10.1 | Practice-specific dashboard | P2 ✅ |
+| FR-10.2 | Team management with inactive alerts | P2 ✅ |
+| FR-10.3 | Nudge system for follow-ups | P3 ✅ |
+| FR-10.4 | Use case library | P3 ✅ |
 
 ### FR-11: Contributor View
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-11.1 | Simplified task logging form | P2 |
-| FR-11.2 | Personal stats dashboard | P2 |
-| FR-11.3 | Practice leaderboard | P3 |
+| FR-11.1 | Simplified task logging form | P2 ✅ |
+| FR-11.2 | Personal stats dashboard | P2 ✅ |
+| FR-11.3 | Practice leaderboard | P3 ✅ |
 
 ### FR-12: Reports & Export
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-12.1 | Excel export with multiple sheets | P1 |
-| FR-12.2 | Excel import capability | P1 |
-| FR-12.3 | Quarterly report generation | P3 |
-| FR-12.4 | PDF export | P3 |
+| FR-12.1 | Excel export with multiple sheets | P1 ✅ |
+| FR-12.2 | Excel import capability | P1 (deprecated — replaced by Supabase writes) |
+| FR-12.3 | Quarterly report generation | P3 ✅ |
+| FR-12.4 | PDF export | P3 ✅ |
+
+### FR-13: Accessibility & UX
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-13.1 | WCAG 2.1 AA compliance (skip link, ARIA, focus-visible) | P2 ✅ |
+| FR-13.2 | Keyboard navigation for all interactive elements | P2 ✅ |
+| FR-13.3 | prefers-reduced-motion support | P3 ✅ |
+| FR-13.4 | Dark/Light mode toggle | P3 ✅ |
 
 ---
 
@@ -224,23 +235,32 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | Function | Purpose |
 |----------|--------|
 | `signup_contributor()` | SECURITY DEFINER RPC — creates user + copilot_users row for self-signup |
+| `get_practice_summary()` | Quarter-aware practice aggregation |
+| `get_employee_leaderboard()` | Employee rankings by tasks, hours, efficiency |
+| `get_practice_leaderboard()` | Practice rankings with weighted scoring |
 
 ---
 
 ## 8. Acceptance Criteria
 
-| # | Criteria |
-|---|---------|
-| 1 | Admin can log in and see all 6 practices' data |
-| 2 | Quarter selector filters all dashboard views correctly |
-| 3 | SPOC can log tasks for their practice only |
-| 4 | KPI cards show accurate totals for selected quarter |
-| 5 | Charts render correctly with practice-level data |
-| 6 | Excel export includes all filtered data |
-| 7 | No unauthorized access to other practices' individual data |
-| 8 | Page loads in under 3 seconds on standard connection |
-| 9 | Self-signup creates correct user and copilot records based on copilot access flag |
+| # | Criteria | Status |
+|---|---------|--------|
+| 1 | Admin can log in and see all 6 practices' data | ✅ |
+| 2 | Quarter selector filters all dashboard views correctly | ✅ |
+| 3 | SPOC can log tasks for their practice only | ✅ |
+| 4 | KPI cards show accurate totals for selected quarter | ✅ |
+| 5 | Charts render correctly with practice-level data | ✅ |
+| 6 | Excel export includes all filtered data | ✅ |
+| 7 | No unauthorized access to other practices' individual data | ✅ |
+| 8 | Page loads in under 3 seconds on standard connection | ✅ |
+| 9 | Self-signup creates correct user and copilot records | ✅ |
+| 10 | All CRUD operations write to Supabase with audit logging | ✅ |
+| 11 | Leaderboard shows practice + employee rankings with badges | ✅ |
+| 12 | SPOC panel shows practice-specific team with nudge capability | ✅ |
+| 13 | PDF report generates with Executive Summary and charts | ✅ |
+| 14 | Dark/Light theme toggle persists across sessions and pages | ✅ |
+| 15 | Accessibility: skip link, ARIA labels, keyboard nav, focus-visible | ✅ |
 
 ---
 
-*This BRD will be updated as phases are delivered. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for delivery timeline.*
+*All 6 implementation phases are complete. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for delivery details and commit history.*

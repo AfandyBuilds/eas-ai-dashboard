@@ -2,8 +2,8 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 1.1 | **Date:** April 11, 2026  
-> **Status:** Phase 2 Complete (incl. Contributor Signup)
+> **Version:** 2.0 | **Date:** April 10, 2026  
+> **Status:** All 6 Phases Complete
 
 ---
 
@@ -15,14 +15,14 @@
 │  Admin · SPOC · Contributor                                │
 ├────────────────────────────────────────────────────────────┤
 │           GitHub Pages (Static Hosting)                    │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
-│  │login.html│ │index.html│ │admin.html│ │ spoc.html│ │signup.html│   │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘   │
-│       │             │            │             │            │         │
-│  ┌────┴─────────────┴────────────┴─────────────┴────────────┴─────────┐     │
-│  │                     JavaScript Modules                             │     │
-│  │  config.js │ auth.js │ db.js │ utils.js          │     │
-│  └─────────────────────┬────────────────────────────┘     │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                   │
+│  │login.html│ │index.html│ │signup.html│                   │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘                   │
+│       │             │            │                          │
+│  ┌────┴─────────────┴────────────┴─────────────────────────┐     │
+│  │                     JavaScript Modules                   │     │
+│  │  config.js │ auth.js │ db.js │ utils.js                 │     │
+│  └─────────────────────┬───────────────────────────────────┘     │
 ├────────────────────────┼──────────────────────────────────┤
 │                        │ HTTPS (REST + Realtime)          │
 │                        ▼                                   │
@@ -30,12 +30,12 @@
 │  │              Supabase Cloud                       │     │
 │  │  ┌──────────┐  ┌───────────┐  ┌──────────────┐  │     │
 │  │  │   Auth   │  │ PostgREST │  │  PostgreSQL   │  │     │
-│  │  │  (JWT)   │  │  (API)    │  │  (Database)   │  │     │
+│  │  │  (JWT)   │  │  (API)    │  │  (10 tables)  │  │     │
 │  │  └──────────┘  └───────────┘  └──────────────┘  │     │
-│  │  ┌──────────┐  ┌───────────┐  ┌──────────────┐  │     │
-│  │  │   RLS    │  │  Storage  │  │  Realtime     │  │     │
-│  │  │(Policies)│  │  (future) │  │  (future)     │  │     │
-│  │  └──────────┘  └───────────┘  └──────────────┘  │     │
+│  │  ┌──────────┐  ┌───────────┐                     │     │
+│  │  │   RLS    │  │  6 RPCs   │                     │     │
+│  │  │(Policies)│  │ (server)  │                     │     │
+│  │  └──────────┘  └───────────┘                     │     │
 │  └──────────────────────────────────────────────────┘     │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -48,12 +48,14 @@
 |-------|-----------|-----------|
 | **Hosting** | GitHub Pages | Free, HTTPS, CI-friendly |
 | **Frontend** | Vanilla HTML/CSS/JS | Zero build step, fast load |
-| **Charting** | Chart.js 4.x (CDN) | Lightweight, responsive |
-| **Spreadsheet** | SheetJS (CDN) | Excel import/export |
+| **Charting** | Chart.js 4.4.1 (CDN, deferred) | Lightweight, responsive |
+| **Spreadsheet** | SheetJS 0.18.5 (CDN, deferred) | Excel import/export |
+| **PDF** | jsPDF 2.5.2 (CDN, deferred) | Quarterly report generation |
 | **Auth** | Supabase Auth (JWT) | Managed, email/password |
-| **Database** | Supabase PostgreSQL | Free tier, RLS, REST API |
+| **Database** | Supabase PostgreSQL (10 tables) | Free tier, RLS, REST API |
 | **API** | Supabase PostgREST | Auto-generated from schema |
-| **CSS** | Custom properties + utility classes | Consistent design tokens |
+| **CSS** | Custom properties + dark/light theme | `[data-theme]` toggle, localStorage |
+| **Accessibility** | WCAG 2.1 AA | Skip link, ARIA, focus-visible, reduced motion |
 
 ---
 
@@ -133,14 +135,19 @@ User → signup.html (2-step form)
 
 | Resource | Admin | SPOC | Contributor |
 |----------|-------|------|-------------|
-| Dashboard (all practices) | ✅ | ✅ (read) | ❌ |
+| Dashboard (all practices) | ✅ | ✅ (read) | ✅ (read) |
 | Dashboard (own practice) | ✅ | ✅ | ✅ |
-| Task CRUD (all) | ✅ | ❌ | ❌ |
+| Task CRUD (all) | ✅ | ✔ | ✖ |
 | Task CRUD (own practice) | ✅ | ✅ | Own tasks only |
-| Admin panel | ✅ | ❌ | ❌ |
-| SPOC panel | ✅ | ✅ | ❌ |
-| User management | ✅ | ❌ | ❌ |
-| Export data | ✅ | ✅ | ❌ |
+| SPOC panel (My Practice) | ✅ | ✅ | ✖ |
+| My Tasks (personal) | ✅ | ✅ | ✅ |
+| Leaderboard | ✅ | ✅ | ✅ |
+| Use Case Library | ✅ | ✅ | ✅ |
+| Admin panel | ✅ | ✖ | ✖ |
+| User management | ✅ | ✖ | ✖ |
+| Export data | ✅ | ✅ | ✖ |
+| PDF report | ✅ | ✅ | ✖ |
+| Dark/Light toggle | ✅ | ✅ | ✅ |
 
 ### Row Level Security (RLS)
 
@@ -215,20 +222,23 @@ All database tables have RLS enabled with policies that enforce:
 |------|-------|------|-------------|
 | `login.html` | / (unauthenticated) | All | Supabase Auth login form |
 | `signup.html` | /signup.html | Public | 2-step contributor self-registration |
-| `index.html` | / (authenticated) | All | Main SPA with 6 sections |
-| `admin.html` | /admin.html | Admin | Full CRUD admin panel |
-| `spoc.html` | /spoc.html | SPOC+ | Practice-specific dashboard (Phase 5) |
+| `index.html` | / (authenticated) | All | Main SPA with 10 role-aware sections |
+| `admin.html` | /admin.html | Admin | Legacy CRUD panel (deprecated — merged into index.html) |
 
 ### SPA Navigation (index.html)
 
 ```
 Sidebar Menu
-├── Dashboard     → renderDashboard()
-├── Practices     → renderPractices()
-├── Tasks         → renderTasks()
-├── Accomplishments → renderAccomplishments()
-├── Copilot Users → renderCopilotUsers()
-└── Projects      → renderProjects()
+├── Dashboard         → renderDashboard()       (all roles)
+├── Practices         → renderPractices()       (admin, spoc)
+├── Tasks             → renderTasks()           (admin, spoc)
+├── Accomplishments   → renderAccomplishments() (admin, spoc)
+├── Copilot Users     → renderCopilotUsers()    (admin, spoc)
+├── Projects          → renderProjects()        (admin, spoc)
+├── SPOC Panel        → renderSPOCPanel()       (spoc only)
+├── Leaderboard       → renderLeaderboard()     (all roles)
+├── My Tasks          → renderMyTasks()         (contributor)
+└── Use Cases         → renderUseCases()        (all roles)
 ```
 
 ### JavaScript Module Dependencies
@@ -245,17 +255,26 @@ index.html
 ### CSS Architecture
 
 ```
-css/variables.css (shared tokens + base styles)
-├── :root          → Color, spacing, typography tokens
-├── * reset        → Box-sizing, margin reset
-├── .btn-*         → Button variants
-├── .status-*      → Status badge colors
-├── .toast         → Toast notification component
+css/variables.css (∼188 lines — shared tokens + dark/light themes)
+├── :root              → Dark theme tokens (default)
+├── [data-theme="light"] → Light theme overrides
+├── * reset            → Box-sizing, margin reset
+├── .btn-*             → Button variants
+├── .status-*          → Status badge colors
+├── .toast             → Toast notification component
 └── .hidden, .text-*, .fw-* → Utility classes
 
-index.html <style>    → Page-specific layout, sidebar, cards, charts
-login.html <style>    → Login page specific styles
-admin.html <style>    → Admin panel specific styles
+css/dashboard.css (∼789 lines — component styles)
+├── Sidebar, KPIs, charts, tables, modals
+├── Leaderboard, badges, SPOC panel
+├── .skip-link         → Accessibility skip-to-content
+├── .sr-only           → Screen-reader-only text
+├── focus-visible      → Focus rings on interactive elements
+├── .theme-toggle      → Dark/light mode switch
+└── @media (prefers-reduced-motion) → Disable animations
+
+login.html <style>     → Login page specific styles
+signup.html <style>    → Signup page specific styles
 ```
 
 ---
@@ -267,8 +286,9 @@ admin.html <style>    → Admin panel specific styles
 | Supabase Auth | HTTPS REST | Bi-directional | API Key |
 | Supabase DB (PostgREST) | HTTPS REST | Read/Write | JWT + RLS |
 | GitHub Pages | HTTPS | Serve static | None |
-| SheetJS (CDN) | HTTPS | Client load | None |
-| Chart.js (CDN) | HTTPS | Client load | None |
+| SheetJS (CDN, deferred) | HTTPS | Client load | None |
+| Chart.js (CDN, deferred) | HTTPS | Client load | None |
+| jsPDF (CDN, deferred) | HTTPS | Client load | None |
 
 ---
 
@@ -305,20 +325,23 @@ End User Browser ←──HTTPS──→ Supabase Cloud API
 |---------|-----------|
 | Large dataset initial load | Client-side caching; pagination for >1000 rows |
 | Chart rendering | Lazy-render charts on tab switch; destroy/recreate |
-| CDN dependency | Chart.js and SheetJS loaded from reliable CDNs |
+| CDN dependency | Chart.js, SheetJS, jsPDF loaded from reliable CDNs (deferred) |
 | Supabase rate limits | Batch reads; minimize writes; debounce filters |
-| HTML monolith (5400 lines) | Phase 3: extract to separate modules/templates |
+| Script load time | Chart.js/xlsx/jsPDF deferred; font preconnect; critical CSS inlined |
+| Theme flash | Inline `<head>` script applies `data-theme` before first paint |
 
 ---
 
-## 10. Future Architecture (Phases 3-6)
+## 10. Architecture Evolution
 
-| Phase | Architectural Change |
-|-------|---------------------|
-| Phase 3 | Extract inline CSS to modules; split index.html; connect to Supabase reads |
-| Phase 4 | Admin panel to Supabase Auth; add SPOC panel; Supabase writes |
-| Phase 5 | Add Realtime subscriptions; leaderboard; notification system |
-| Phase 6 | PDF export; advanced analytics; potential migration to Next.js/Vite |
+| Phase | Architectural Change | Status |
+|-------|---------------------|--------|
+| Phase 1 | Supabase schema, migration, RLS, views | ✅ Complete |
+| Phase 2 | Supabase Auth, quarter system, signup | ✅ Complete |
+| Phase 3 | Live Supabase reads, modular CSS, pagination | ✅ Complete |
+| Phase 4 | CRUD writes, audit logging, legacy removal | ✅ Complete |
+| Phase 5 | SPOC panel, leaderboard, badges, nudge system | ✅ Complete |
+| Phase 6 | PDF export, forecasting, accessibility, dark/light mode | ✅ Complete |
 
 ---
 

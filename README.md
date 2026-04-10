@@ -12,30 +12,31 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 
 ## Tech Stack
 
-- **Frontend:** Vanilla HTML/CSS/JS, Chart.js, SheetJS (Excel export)
-- **Backend:** Supabase (PostgreSQL + Auth + RLS)
+- **Frontend:** Vanilla HTML/CSS/JS, Chart.js 4.4.1, SheetJS 0.18.5, jsPDF 2.5.2
+- **Backend:** Supabase (PostgreSQL + Auth + RLS + RPCs)
 - **Hosting:** GitHub Pages (static site)
-- **Design:** Dark theme, Inter font, responsive sidebar navigation
+- **Design:** Dark/Light theme toggle, Inter font, responsive sidebar navigation
+- **Accessibility:** WCAG 2.1 AA compliant
 
 ## Project Structure
 
 ```
 ./
-├── index.html              # Main dashboard (6 pages + inline CRUD)
+├── index.html              # Main dashboard (10 role-aware pages + inline CRUD)
 ├── login.html              # Authentication page
 ├── signup.html             # Contributor self-registration
 ├── admin.html              # Legacy admin panel (deprecated — CRUD merged into dashboard)
 ├── migrate.html            # Browser-based migration tool
 │
 ├── css/
-│   ├── variables.css       # Shared design tokens & base styles
-│   └── dashboard.css       # Dashboard component styles (extracted Phase 3)
+│   ├── variables.css       # Design tokens, dark/light theme definitions
+│   └── dashboard.css       # Dashboard component styles, accessibility, theme toggle
 │
 ├── js/
 │   ├── config.js           # Supabase client configuration
-│   ├── auth.js             # Authentication & session management
-│   ├── db.js               # Full Supabase data layer (read + write + audit)
-│   └── utils.js            # Shared utilities (formatting, sanitize)
+│   ├── auth.js             # Authentication & session management (EAS_Auth)
+│   ├── db.js               # Full Supabase data layer — reads, writes, RPCs, audit (~838 lines)
+│   └── utils.js            # Shared utilities (formatting, sanitize, colors)
 │
 ├── sql/
 │   └── 001_schema.sql      # Complete database schema
@@ -82,10 +83,28 @@ See [docs/ONBOARDING_GUIDE.md](docs/ONBOARDING_GUIDE.md) for full setup instruct
 | Role | Access | Example User |
 |------|--------|-------------|
 | **Admin** | Full CRUD all practices, data dumps, user management | Omar Ibrahim |
-| **SPOC** | Own practice CRUD (tasks, accomplishments, copilot users) | Norah Al Wabel (CES) |
-| **Contributor** | View dashboard, log own tasks & accomplishments | Self-registered users |
+| **SPOC** | Own practice CRUD, team management, nudge system, leaderboard | Norah Al Wabel (CES) |
+| **Contributor** | Personal dashboard, My Tasks, badges, practice leaderboard | Self-registered users |
 
 ## Changelog
+
+### Phase 6 — Polish & Advanced Features
+- **Dark/Light mode**: Theme toggle in sidebar, persists via localStorage, applies across all 3 pages
+- **Trend forecasting**: Linear regression on tasks, hours saved, efficiency, and adoption for next 4 weeks with 2 forecast charts
+- **PDF report generation**: Quarterly report with Executive Summary, Practice Breakdown, Top Contributors, Accomplishments (jsPDF)
+- **Accessibility (WCAG 2.1 AA)**: Skip-to-content link, `<main>` landmark, aria-labels on all interactive elements, focus-visible rings
+- **Keyboard navigation**: All nav items, buttons, and filters fully keyboard accessible
+- **Performance**: Deferred loading of Chart.js, xlsx, jsPDF; font preconnect; optimized script order
+- **prefers-reduced-motion**: Animations disabled when user prefers reduced motion
+
+### Phase 5 — SPOC Panel & Gamification
+- **My Practice** (SPOC): Practice-specific KPIs, team leaderboard, inactive member alerts with nudge button
+- **Leaderboard** (all roles): Practice rankings (weighted scoring) + employee rankings
+- **My Tasks** (contributor): Personal task log, KPIs, achievement badges (7 types)
+- **Use Case Library**: Searchable, filterable catalog of AI use cases from task data
+- **Achievement Badges**: First Task, Streak, Time Saver, Efficiency Pro, Quality Champion, Prolific, Centurion
+- **Nudge System**: SPOCs can nudge inactive team members (14+ days without a task)
+- **Role-aware navigation**: Sidebar items scoped by role using `data-role` attributes
 
 ### Phase 4 — Admin Panel & Writes
 - **Supabase CRUD**: All save/edit/delete operations write directly to Supabase (tasks, accomplishments, copilot users)

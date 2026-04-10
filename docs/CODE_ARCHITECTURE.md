@@ -1,6 +1,6 @@
 # Code Architecture — EAS AI Dashboard
 
-> **Last Updated:** April 12, 2026 | **Phase:** 3 (Live Data & CSS Extraction) Complete
+> **Last Updated:** April 10, 2026 | **Phase:** 6 (All Phases Complete)
 
 ---
 
@@ -39,9 +39,10 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 |----------|--------|-----------|
 | No build step | Vanilla JS | GitHub Pages hosting, simple deployment |
 | Supabase over Firebase | PostgreSQL + built-in Auth | Better SQL support, RLS, free tier |
-| CDN libraries | Chart.js, SheetJS, Supabase JS | No npm build needed for frontend |
-| Dark theme default | CSS custom properties | Enterprise/exec presentation use case |
+| CDN libraries | Chart.js, SheetJS, jsPDF, Supabase JS | No npm build needed for frontend |
+| Dark/Light theme | CSS custom properties + `[data-theme]` toggle | User preference, localStorage persistence |
 | Single-page per HTML file | Multi-page SPA pattern | Works with GitHub Pages routing |
+| WCAG 2.1 AA | Semantic HTML, ARIA, focus-visible | Accessibility compliance |
 
 ---
 
@@ -50,23 +51,24 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 ```
 ./
 │
-├── index.html              # Main app shell — 6 in-page views (~1,200 lines)
+├── index.html              # Main app shell — 10 in-page views (~2,253 lines)
 │                           # Dashboard, Practices, Tasks,
-│                           # Accomplishments, Copilot, Projects
+│                           # Accomplishments, Copilot, Projects,
+│                           # SPOC Panel, Leaderboard, My Tasks, Use Cases
 │
 ├── login.html              # Supabase Auth login (email/password)
 ├── signup.html             # Contributor self-registration (2-step form)
-├── admin.html              # Admin CRUD panel (legacy static auth)
+├── admin.html              # Admin CRUD panel (legacy — deprecated, CRUD merged into index.html)
 ├── migrate.html            # One-time data migration tool
 │
 ├── css/
-│   ├── variables.css       # Design tokens, base reset, shared components
-│   └── dashboard.css       # Dashboard component styles (sidebar, KPIs, charts, tables, modals)
+│   ├── variables.css       # Design tokens, dark/light theme definitions, base reset
+│   └── dashboard.css       # Component styles (sidebar, KPIs, charts, tables, modals, accessibility, theme toggle)
 │
 ├── js/
 │   ├── config.js           # Supabase URL + anon key + client factory
 │   ├── auth.js             # EAS_Auth module: session, roles, guards
-│   ├── db.js               # EAS_DB module: quarters, filtering, queries
+│   ├── db.js               # EAS_DB module: quarters, queries, CRUD writes, RPCs, audit (~838 lines)
 │   └── utils.js            # EAS_Utils: format, sanitize, colors, dates
 │
 ├── sql/
@@ -131,24 +133,34 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 |--------|-------------|----------------|
 | `config.js` | `getSupabaseClient()` | Supabase client singleton |
 | `auth.js` | `EAS_Auth` | Session management, role checks, auth guards, UI visibility |
-| `db.js` | `EAS_DB` | Quarter loading/selection, full Supabase data layer (fetchAllData, per-entity fetches) |
+| `db.js` | `EAS_DB` | Quarter loading/selection, full Supabase data layer (fetchAllData, per-entity fetches, CRUD writes, audit logging, data dumps, leaderboard RPCs) |
 | `utils.js` | `EAS_Utils` | Formatting, XSS sanitization (sanitize, sanitizeObj, sanitizeDataset), practice mappings, chart colors, date parsing |
 
 ### Load Order (Critical)
 
 ```html
+<!-- CSS -->
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/dashboard.css">
+
+<!-- Core JS (sync, order-dependent) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>   <!-- Must be first: creates Supabase client -->
 <script src="js/utils.js"></script>    <!-- Pure utilities, no dependencies -->
 <script src="js/auth.js"></script>     <!-- Depends on config.js -->
 <script src="js/db.js"></script>       <!-- Depends on config.js -->
+
+<!-- CDN Libraries (deferred for performance) -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script defer src="https://cdn.sheetjs.com/.../xlsx.full.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 ```
 
 ---
 
 ## 4. Database Schema
 
-### Tables (9)
+### Tables (10)
 
 | Table | Purpose | Row Count (Phase 1) |
 |-------|---------|---------------------|
@@ -160,7 +172,8 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `copilot_users` | License management | 146 |
 | `projects` | Project portfolio | 22 |
 | `lovs` | Lists of values (dropdowns) | 18 |
-| `activity_log` | Audit trail | 0 |
+| `activity_log` | Audit trail (all CRUD operations) | Dynamic |
+| `data_dumps` | JSON backup snapshots (admin) | Dynamic |
 
 ### Computed Columns
 
@@ -176,6 +189,8 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `get_user_practice()` | SQL | Returns practice of currently authenticated user from `users` |
 | `signup_contributor()` | SECURITY DEFINER | Creates `users` row + `copilot_users` row for new contributor signups |
 | `get_practice_summary()` | SECURITY INVOKER | Quarter-aware practice summary (replaces view for filtered queries) |
+| `get_employee_leaderboard()` | SECURITY INVOKER | Employee rankings by tasks, hours saved, efficiency |
+| `get_practice_leaderboard()` | SECURITY INVOKER | Practice rankings with weighted scoring |
 
 #### `signup_contributor()` Parameters
 
@@ -311,13 +326,28 @@ The db.js transform layer converts snake_case DB columns to camelCase, ensuring 
 
 ### Design Tokens (`css/variables.css`)
 
-All colors, spacing, and component styles are defined as CSS custom properties in `:root`. This enables future theme switching (dark/light) by swapping variable values.
+All colors, spacing, and component styles are defined as CSS custom properties in `:root` (dark theme default). The light theme is defined in `[data-theme="light"]` which overrides all color tokens.
+
+### Theme System
+
+- **Dark theme** (default): `:root` block in `variables.css`
+- **Light theme**: `[data-theme="light"]` block in `variables.css` overrides color tokens
+- **Toggle**: Sidebar button calls `toggleTheme()`, persists to `localStorage('eas-theme')`
+- **Persistence**: All 3 pages (index, login, signup) have an inline `<head>` script that applies the theme before first paint
+- **Charts**: `updateChartTheme()` reads computed CSS and updates Chart.js tick/grid/legend colors
 
 ### Style Scoping
 
-- `variables.css` — Shared globally (imported by all pages)
-- `dashboard.css` — Dashboard-specific component styles (extracted from inline `<style>` in Phase 3)
-- Inline `<style>` blocks — Remaining in login.html and admin.html (to be extracted in Phase 4)
+- `variables.css` (~188 lines) — Design tokens, dark + light theme definitions, base reset, shared components
+- `dashboard.css` (~789 lines) — Component styles (sidebar, KPIs, charts, tables, modals, leaderboard, badges, accessibility, theme toggle)
+- Inline `<style>` blocks — Remaining in login.html, signup.html, admin.html (page-specific layout only)
+
+### Accessibility Styles
+
+- `.skip-link` — Hidden skip-to-content link, visible on focus
+- `.sr-only` — Screen-reader-only text
+- `focus-visible` — Focus rings on all interactive elements (buttons, nav items, inputs, pagination)
+- `@media (prefers-reduced-motion)` — Disables all animations and transitions
 
 ### Color System
 
@@ -354,17 +384,17 @@ Role checks via `EAS_Auth.isAdmin()` control **UI visibility only**. Actual data
 
 ## 9. Known Technical Debt
 
-| # | Issue | Priority | Target Phase |
-|---|-------|----------|--------------|
-| 1 | ~~`index.html` is ~5,400 lines (monolith)~~ Reduced to ~1,200 lines | ~~HIGH~~ DONE | Phase 3 ✅ |
-| 2 | `admin.html` uses hardcoded auth, not Supabase | HIGH | Phase 4 |
-| 3 | ~~Dashboard reads static `APP_DATA`, not Supabase~~ Now reads live from Supabase | ~~HIGH~~ DONE | Phase 3 ✅ |
-| 4 | ~~CSS partially duplicated across HTML files~~ dashboard.css extracted | ~~MEDIUM~~ DONE | Phase 3 ✅ |
+| # | Issue | Priority | Status |
+|---|-------|----------|--------|
+| 1 | ~~`index.html` is ~5,400 lines (monolith)~~ Reduced to ~2,253 lines (10 pages) | ~~HIGH~~ DONE | Phase 3 ✅ |
+| 2 | ~~`admin.html` uses hardcoded auth~~ CRUD merged into index.html; admin.html deprecated | ~~HIGH~~ DONE | Phase 4 ✅ |
+| 3 | ~~Dashboard reads static `APP_DATA`~~ Now reads live from Supabase | ~~HIGH~~ DONE | Phase 3 ✅ |
+| 4 | ~~CSS partially duplicated~~ dashboard.css extracted | ~~MEDIUM~~ DONE | Phase 3 ✅ |
 | 5 | ~~`data.js` summary rows contaminate task data~~ data.js removed | ~~MEDIUM~~ DONE | Phase 3 ✅ |
 | 6 | ~~No pagination on tables~~ Tasks table paginated (25/page) | ~~LOW~~ DONE | Phase 3 ✅ |
-| 7 | No error boundary on boot failure | LOW | Phase 6 |
-| 8 | Save functions (task/accomplishment/copilot) write to in-memory only | HIGH | Phase 4 |
-| 9 | login.html / admin.html CSS still inline | MEDIUM | Phase 4 |
+| 7 | ~~No error boundary on boot failure~~ Loading states and error handling added | ~~LOW~~ DONE | Phase 6 ✅ |
+| 8 | ~~Save functions write to in-memory only~~ All CRUD writes to Supabase | ~~HIGH~~ DONE | Phase 4 ✅ |
+| 9 | login.html / signup.html CSS still inline | LOW | Remaining (cosmetic) |
 
 ---
 
