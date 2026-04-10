@@ -232,6 +232,15 @@ See `.env.example` for the template.
 | RLS Policies | https://supabase.com/dashboard/project/apcfnzbiylhgiutcjigg/auth/policies |
 | API Docs | https://supabase.com/dashboard/project/apcfnzbiylhgiutcjigg/api |
 
+### Supabase Auth Configuration
+
+| Setting | Value | Reason |
+|---------|-------|--------|
+| **Confirm Email** | OFF (auto-confirm) | Internal enterprise tool; avoids bounced emails from Supabase's built-in mailer |
+| **Email Rate Limit** | Default (4/hour) | Supabase free tier limit |
+
+> **Important:** Keep "Confirm Email" disabled. Enabling it causes Supabase to send confirmation emails via their built-in mailer. Since this is an internal @ejada.com tool, bounced test emails can trigger Supabase email privilege restrictions. If email confirmation is ever needed, configure a custom SMTP provider first.
+
 ### Key Technologies
 
 | Technology | Version | CDN |
