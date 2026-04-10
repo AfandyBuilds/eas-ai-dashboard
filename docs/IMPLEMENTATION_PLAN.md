@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 1.2 | **Last Updated:** April 10, 2026
+> **Version:** 1.3 | **Last Updated:** April 11, 2026
 
 ---
 
@@ -13,6 +13,7 @@
 | 1.0 | Mar 20, 2026 | Omar Ibrahim | Initial plan with 6 phases |
 | 1.1 | Apr 5, 2026 | Omar Ibrahim | Phase 1 completed — DB migration |
 | 1.2 | Apr 10, 2026 | Omar Ibrahim | Phase 2 completed — Auth & Quarters; code review & refactoring done |
+| 1.3 | Apr 11, 2026 | Omar Ibrahim | Contributor self-signup feature added (signup.html + signup_contributor RPC) |
 
 ---
 
@@ -80,6 +81,16 @@
 - [x] **Env:** Created `.env.example`, updated `.gitignore`
 - [x] **Docs:** Created CODE_ARCHITECTURE.md, BRD.md, HLD.md, this plan, onboarding guide
 - [x] **README:** Full project overview with structure and links
+
+### Contributor Self-Signup (Apr 11)
+
+- [x] **signup.html:** 2-step registration form (profile info → password creation)
+- [x] **signup_contributor() RPC:** SECURITY DEFINER function — creates `users` row + `copilot_users` row based on copilot access flag
+- [x] **Copilot routing:** Copilot=Yes → Active status (null copilot_access_date); Copilot=No → Pending status ("Not Granted")
+- [x] **Pending signup flow:** localStorage-based handoff for email-confirmation-enabled projects
+- [x] **login.html updated:** Added "Sign up" link + pending-signup completion on first login
+- [x] **Practices dropdown:** Loaded dynamically from Supabase `practices` table
+- [x] **Password strength:** Visual strength indicator with 4 criteria bars
 
 ---
 

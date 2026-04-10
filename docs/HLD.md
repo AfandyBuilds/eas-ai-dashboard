@@ -2,8 +2,8 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 1.0 | **Date:** April 10, 2026  
-> **Status:** Phase 2 Complete
+> **Version:** 1.1 | **Date:** April 11, 2026  
+> **Status:** Phase 2 Complete (incl. Contributor Signup)
 
 ---
 
@@ -15,12 +15,12 @@
 │  Admin · SPOC · Contributor                                │
 ├────────────────────────────────────────────────────────────┤
 │           GitHub Pages (Static Hosting)                    │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐     │
-│  │login.html│ │index.html│ │admin.html│ │ spoc.html│     │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘     │
-│       │             │            │             │           │
-│  ┌────┴─────────────┴────────────┴─────────────┴────┐     │
-│  │              JavaScript Modules                   │     │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
+│  │login.html│ │index.html│ │admin.html│ │ spoc.html│ │signup.html│   │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘   │
+│       │             │            │             │            │         │
+│  ┌────┴─────────────┴────────────┴─────────────┴────────────┴─────────┐     │
+│  │                     JavaScript Modules                             │     │
 │  │  config.js │ auth.js │ db.js │ utils.js          │     │
 │  └─────────────────────┬────────────────────────────┘     │
 ├────────────────────────┼──────────────────────────────────┤
@@ -118,6 +118,15 @@ User → login.html → Supabase Auth → JWT Token → localStorage
                                             │ Valid             │ Invalid
                                             ▼                   ▼
                                      Load Dashboard      Redirect to login.html
+
+
+User → signup.html (2-step form)
+  │
+  ├── Step 1: Profile info (dept, practice, name, email, skill, copilot)
+  ├── Step 2: Password creation
+  ├── supabase.auth.signUp()
+  │     ├── Auto-confirm ON  → signup_contributor() RPC → Dashboard
+  │     └── Auto-confirm OFF → localStorage stash → Confirm email → Login → RPC
 ```
 
 ### Authorization Matrix
@@ -205,6 +214,7 @@ All database tables have RLS enabled with policies that enforce:
 | Page | Route | Role | Description |
 |------|-------|------|-------------|
 | `login.html` | / (unauthenticated) | All | Supabase Auth login form |
+| `signup.html` | /signup.html | Public | 2-step contributor self-registration |
 | `index.html` | / (authenticated) | All | Main SPA with 6 sections |
 | `admin.html` | /admin.html | Admin | Full CRUD admin panel |
 | `spoc.html` | /spoc.html | SPOC+ | Practice-specific dashboard (Phase 5) |

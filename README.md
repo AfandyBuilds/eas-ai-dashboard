@@ -8,6 +8,7 @@ Enterprise AI adoption tracking platform for Ejada Advanced Solutions (EAS), cov
 |------|-----|
 | **Dashboard** | https://omarhelal1234.github.io/eas-ai-dashboard/ |
 | **Login** | https://omarhelal1234.github.io/eas-ai-dashboard/login.html |
+| **Signup** | https://omarhelal1234.github.io/eas-ai-dashboard/signup.html |
 | **Admin Panel** | https://omarhelal1234.github.io/eas-ai-dashboard/admin.html |
 
 ## Tech Stack
@@ -23,6 +24,7 @@ Enterprise AI adoption tracking platform for Ejada Advanced Solutions (EAS), cov
 eas-ai-dashboard/
 ├── index.html              # Main dashboard (6 pages)
 ├── login.html              # Authentication page
+├── signup.html             # Contributor self-registration
 ├── admin.html              # Admin panel (CRUD)
 ├── migrate.html            # Browser-based migration tool
 ├── data.js                 # Static data backup (legacy)
@@ -80,7 +82,7 @@ See [docs/ONBOARDING_GUIDE.md](docs/ONBOARDING_GUIDE.md) for full setup instruct
 |------|--------|-------------|
 | **Admin** | Full access, all practices, user management | Omar Ibrahim |
 | **SPOC** | Own practice CRUD, program-level aggregates | Norah Al Wabel (CES) |
-| **Contributor** | Log own tasks, view personal stats | (Future Phase 5) |
+| **Contributor** | View dashboard, log own tasks (Phase 5) | Self-registered users |
 
 ## License
 

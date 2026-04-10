@@ -1,6 +1,6 @@
 # Code Architecture — EAS AI Dashboard
 
-> **Last Updated:** April 10, 2026 | **Phase:** 2 (Auth + Quarters) Complete
+> **Last Updated:** April 11, 2026 | **Phase:** 2 (Auth + Quarters + Signup) Complete
 
 ---
 
@@ -13,11 +13,11 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   GitHub Pages                       │
-│  ┌─────────┐  ┌──────────┐  ┌──────────┐           │
-│  │login.html│  │index.html│  │admin.html│           │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘           │
+│  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
+│  │login.html│  │index.html│  │admin.html│  │signup.html│  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬─────┘  │
 │       │              │              │                 │
-│  ┌────┴──────────────┴──────────────┴──────────┐     │
+│  ┌────┴──────────────┴──────────────┴────────────────┐     │
 │  │              JS Modules Layer                │     │
 │  │  config.js │ auth.js │ db.js │ utils.js     │     │
 │  └──────────────────────┬──────────────────────┘     │
@@ -55,6 +55,7 @@ eas-ai-dashboard/
 │                           # Accomplishments, Copilot, Projects
 │
 ├── login.html              # Supabase Auth login (email/password)
+├── signup.html             # Contributor self-registration (2-step form)
 ├── admin.html              # Admin CRUD panel (legacy static auth)
 ├── migrate.html            # One-time data migration tool
 ├── data.js                 # Static data.js (backup/legacy)
@@ -166,6 +167,29 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 - `time_saved = time_without_ai - time_with_ai`
 - `efficiency = (time_without - time_with) / time_without`
 
+### Database Functions
+
+| Function | Type | Purpose |
+|----------|------|--------|
+| `get_user_role()` | SQL | Returns role of currently authenticated user from `users` |
+| `get_user_practice()` | SQL | Returns practice of currently authenticated user from `users` |
+| `signup_contributor()` | SECURITY DEFINER | Creates `users` row + `copilot_users` row for new contributor signups |
+
+#### `signup_contributor()` Parameters
+
+| Param | Type | Description |
+|-------|------|------------|
+| `p_auth_id` | uuid | Supabase Auth user ID |
+| `p_name` | text | Full name |
+| `p_email` | text | Ejada email |
+| `p_practice` | text | Practice name |
+| `p_skill` | text | Job title / skill |
+| `p_has_copilot` | boolean | Has Copilot access? |
+
+Returns `jsonb` with `{status, user_id, copilot_id?}`. Copilot logic:
+- `true` → `copilot_users` row with `status = 'Active'`, `copilot_access_date = null`
+- `false` → `copilot_users` row with `status = 'Pending'`, `copilot_access_date = 'Not Granted'`
+
 ### Views
 
 - `practice_summary` — Aggregated stats per practice
@@ -190,9 +214,11 @@ User → login.html
   │     │
   │     ├── ✅ Success → fetch user profile from public.users
   │     │     │
-  │     │     ├── Store profile in localStorage (cache)
-  │     │     ├── Update last_login
-  │     │     └── Redirect → index.html
+  │     │     ├── Profile found → store in localStorage, redirect to index.html
+  │     │     └── Profile NOT found → check localStorage for pending signup
+  │     │           │
+  │     │           ├── Found → call signup_contributor() RPC, then redirect
+  │     │           └── Not found → show "profile not found" error
   │     │
   │     └── ❌ Fail → show error message
   │
@@ -207,6 +233,26 @@ index.html (on load)
   │     │
   │     └── EAS_Auth.applyRoleVisibility()
   │           └── Show/hide elements with data-role attributes
+```
+
+### Signup Flow
+
+```
+User → signup.html
+  │
+  ├── Step 1: Fill profile (dept, practice, name, email, skill, copilot Y/N)
+  │
+  ├── Step 2: Create password
+  │
+  ├── supabase.auth.signUp(email, password)
+  │     │
+  │     ├── Auto-confirm ON → session returned immediately
+  │     │     └── Call signup_contributor() RPC → redirect to dashboard
+  │     │
+  │     └── Auto-confirm OFF → no session
+  │           └── Store profile in localStorage (eas_pending_signup)
+  │           └── Show "check email" screen
+  │           └── On first login → login.html completes RPC call
 ```
 
 ---

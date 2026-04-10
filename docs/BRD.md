@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 1.0 | **Date:** April 10, 2026 | **Author:** Omar Ibrahim  
+> **Version:** 1.1 | **Date:** April 11, 2026 | **Author:** Omar Ibrahim  
 > **Department:** Ejada Advanced Solutions (EAS) | **Sponsor:** EAS Leadership
 
 ---
@@ -73,6 +73,8 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | FR-01.4 | Session persistence across page refreshes | P1 |
 | FR-01.5 | Password change capability | P2 |
 | FR-01.6 | Admin can create/deactivate users | P2 |
+| FR-01.7 | Contributor self-signup with profile info + copilot access flag | P1 ✅ |
+| FR-01.8 | Signup auto-creates users and copilot_users rows via RPC | P1 ✅ |
 
 ### FR-02: Quarter Segregation
 
@@ -217,6 +219,12 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | Users | email, name, role, practice, auth_id | → auth.users |
 | Quarters | id, label, start_date, end_date, is_active, is_locked | — |
 
+### Database Functions
+
+| Function | Purpose |
+|----------|--------|
+| `signup_contributor()` | SECURITY DEFINER RPC — creates user + copilot_users row for self-signup |
+
 ---
 
 ## 8. Acceptance Criteria
@@ -231,6 +239,7 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | 6 | Excel export includes all filtered data |
 | 7 | No unauthorized access to other practices' individual data |
 | 8 | Page loads in under 3 seconds on standard connection |
+| 9 | Self-signup creates correct user and copilot records based on copilot access flag |
 
 ---
 

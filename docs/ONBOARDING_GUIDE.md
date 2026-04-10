@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 1.0 | **Last Updated:** April 10, 2026
+> **Version:** 1.1 | **Last Updated:** April 11, 2026
 
 ---
 
@@ -14,6 +14,7 @@
 |----------|-----|
 | **Dashboard** | https://omarhelal1234.github.io/eas-ai-dashboard/ |
 | **Login Page** | https://omarhelal1234.github.io/eas-ai-dashboard/login.html |
+| **Signup Page** | https://omarhelal1234.github.io/eas-ai-dashboard/signup.html |
 | **Admin Panel** | https://omarhelal1234.github.io/eas-ai-dashboard/admin.html |
 
 ### Default Credentials
@@ -31,7 +32,39 @@
 
 ---
 
-## 2. Login
+## 2. Self-Signup (New Contributors)
+
+If you don’t have an account yet, you can register yourself:
+
+1. Navigate to **https://omarhelal1234.github.io/eas-ai-dashboard/signup.html**  
+   *(or click "Sign up" on the login page)*
+2. **Step 1 — Profile Info:**
+   - Department: EAS (pre-selected)
+   - Practice: Select from dropdown (BFSI, CES, EPCS, EPS, ERP Solutions, GRC)
+   - Full Name
+   - Ejada Email Address
+   - Skill / Job Title
+   - Do you have GitHub Copilot access? (Yes / No)
+3. **Step 2 — Create Password:**
+   - Minimum 8 characters; strength indicator shows progress
+   - Confirm your password
+4. Click **Create Account**
+5. You will be either:
+   - **Auto-logged in** (if auto-confirm is enabled) → redirected to dashboard
+   - **Sent a confirmation email** → click the link, then log in normally
+
+### What happens on signup
+
+| Copilot Access | `copilot_users.status` | `copilot_access_date` |
+|----------------|------------------------|----------------------|
+| Yes | Active | null (to be updated by admin) |
+| No | Pending | "Not Granted" |
+
+Your user profile is created with the **contributor** role.
+
+---
+
+## 3. Login
 
 1. Navigate to **https://omarhelal1234.github.io/eas-ai-dashboard/login.html**
 2. Enter your **Ejada email** and **password**
@@ -48,7 +81,7 @@
 
 ---
 
-## 3. Dashboard Overview
+## 4. Dashboard Overview
 
 After login, you'll see the main dashboard with:
 
@@ -70,7 +103,7 @@ After login, you'll see the main dashboard with:
 
 ---
 
-## 4. Role-Based Access
+## 5. Role-Based Access
 
 ### Admin (Omar Ibrahim)
 
@@ -89,16 +122,17 @@ Practice-focused access:
 - View accomplishments and projects
 - Export practice data
 
-### Contributor (Licensed Users — Future)
+### Contributor (Licensed Users)
 
-Limited access (Phase 5):
-- Log their own AI tasks
-- View personal statistics
-- See practice leaderboard
+Self-registered users with contributor role:
+- View all practices’ summary data
+- Log their own AI tasks (Phase 5)
+- View personal statistics (Phase 5)
+- See practice leaderboard (Phase 5)
 
 ---
 
-## 5. Key Features
+## 6. Key Features
 
 ### Quarter Filtering
 
@@ -132,7 +166,7 @@ The quarter selector in the top header filters **all** pages:
 
 ---
 
-## 6. For Developers
+## 7. For Developers
 
 ### Local Setup
 
@@ -151,6 +185,7 @@ cd eas-ai-dashboard
 eas-ai-dashboard/
 ├── index.html          # Main dashboard (SPA)
 ├── login.html          # Authentication page
+├── signup.html         # Contributor self-registration
 ├── admin.html          # Admin panel
 ├── data.js             # Static data (fallback)
 ├── css/
@@ -206,7 +241,7 @@ See `.env.example` for the template.
 
 ---
 
-## 7. Documentation Index
+## 8. Documentation Index
 
 | Document | Description |
 |----------|-------------|
@@ -219,7 +254,7 @@ See `.env.example` for the template.
 
 ---
 
-## 8. Support
+## 9. Support
 
 | Contact | Role | Email |
 |---------|------|-------|
