@@ -631,6 +631,162 @@ const EAS_DB = (() => {
   }
 
   // ===========================================================
+  // Phase 5: Leaderboard, Badges, Nudge Queries
+  // ===========================================================
+
+  /**
+   * Fetch employee leaderboard ranked by time saved.
+   * @param {string|null} practice — filter to one practice, or null for all
+   * @param {string|null} quarterId — filter to one quarter, or null for all
+   */
+  async function fetchEmployeeLeaderboard(practice = null, quarterId = null) {
+    const p = practice || null;
+    const q = (!quarterId || quarterId === 'all') ? null : quarterId;
+    const { data, error } = await sb.rpc('get_employee_leaderboard', {
+      p_practice: p,
+      p_quarter_id: q
+    });
+    if (error) { console.error('fetchEmployeeLeaderboard error:', error.message); return []; }
+    return (data || []).map(e => ({
+      name:          e.employee_name,
+      email:         e.employee_email,
+      practice:      e.practice,
+      tasks:         Number(e.task_count) || 0,
+      timeSaved:     Number(e.total_time_saved) || 0,
+      timeWithout:   Number(e.total_time_without) || 0,
+      efficiency:    Number(e.avg_efficiency) || 0,
+      quality:       Number(e.avg_quality) || 0,
+      completed:     Number(e.completed_count) || 0,
+      firstTask:     e.first_task_date,
+      lastTask:      e.last_task_date,
+      streakWeeks:   Number(e.streak_weeks) || 0
+    }));
+  }
+
+  /**
+   * Fetch practice leaderboard (cross-practice ranking).
+   */
+  async function fetchPracticeLeaderboard(quarterId = null) {
+    const q = (!quarterId || quarterId === 'all') ? null : quarterId;
+    const { data, error } = await sb.rpc('get_practice_leaderboard', {
+      p_quarter_id: q
+    });
+    if (error) { console.error('fetchPracticeLeaderboard error:', error.message); return []; }
+    return (data || []).map(p => ({
+      practice:           p.practice,
+      tasks:              Number(p.task_count) || 0,
+      employees:          Number(p.employee_count) || 0,
+      timeSaved:          Number(p.total_time_saved) || 0,
+      timeWithout:        Number(p.total_time_without) || 0,
+      efficiency:         Number(p.avg_efficiency) || 0,
+      quality:            Number(p.avg_quality) || 0,
+      completed:          Number(p.completed_count) || 0,
+      accomplishments:    Number(p.accomplishment_count) || 0,
+      copilotUsers:       Number(p.copilot_users) || 0,
+      score:              Number(p.score) || 0
+    }));
+  }
+
+  /**
+   * Compute achievement badges for an employee from their stats.
+   * Returns array of badge objects { id, icon, title, description, earned }.
+   */
+  function computeBadges(employee) {
+    const badges = [];
+    // First Task
+    badges.push({
+      id: 'first-task', icon: '🚀', title: 'First Task',
+      description: 'Logged your first AI task',
+      earned: employee.tasks >= 1
+    });
+    // Streak Master (3+ weeks)
+    badges.push({
+      id: 'streak', icon: '🔥', title: 'Streak Master',
+      description: 'Logged tasks for 3+ weeks',
+      earned: employee.streakWeeks >= 3
+    });
+    // Time Saver (10+ hours)
+    badges.push({
+      id: 'time-saver', icon: '⏱️', title: 'Time Saver',
+      description: 'Saved 10+ hours with AI',
+      earned: employee.timeSaved >= 10
+    });
+    // Efficiency Pro (80%+)
+    badges.push({
+      id: 'efficiency-pro', icon: '⚡', title: 'Efficiency Pro',
+      description: 'Achieved 80%+ efficiency',
+      earned: employee.efficiency >= 80
+    });
+    // Quality Champion (4.5+ avg)
+    badges.push({
+      id: 'quality-champion', icon: '🏆', title: 'Quality Champion',
+      description: 'Maintained 4.5+ quality rating',
+      earned: employee.quality >= 4.5
+    });
+    // Prolific (20+ tasks)
+    badges.push({
+      id: 'prolific', icon: '📊', title: 'Prolific',
+      description: 'Logged 20+ AI tasks',
+      earned: employee.tasks >= 20
+    });
+    // Centurion (50+ hours saved)
+    badges.push({
+      id: 'centurion', icon: '💎', title: 'Centurion',
+      description: 'Saved 50+ hours with AI',
+      earned: employee.timeSaved >= 50
+    });
+    return badges;
+  }
+
+  /**
+   * Fetch inactive team members (copilot users who haven't logged tasks recently).
+   * @param {string} practice — practice to check
+   * @param {number} daysSince — inactivity threshold in days (default 14)
+   */
+  async function fetchInactiveMembers(practice, daysSince = 14) {
+    const { data, error } = await sb
+      .from('copilot_users')
+      .select('id, name, email, practice, has_logged_task, last_task_date, nudged_at, status')
+      .eq('practice', practice)
+      .order('last_task_date', { ascending: true, nullsFirst: true });
+    if (error) { console.error('fetchInactiveMembers error:', error.message); return []; }
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - daysSince);
+    return (data || []).filter(u => {
+      if (!u.has_logged_task) return true; // Never logged
+      if (!u.last_task_date) return true;
+      return new Date(u.last_task_date) < cutoff;
+    }).map(u => ({
+      id:           u.id,
+      name:         u.name,
+      email:        u.email,
+      practice:     u.practice,
+      hasLoggedTask: u.has_logged_task,
+      lastTaskDate: u.last_task_date,
+      nudgedAt:     u.nudged_at,
+      status:       u.status,
+      daysSinceTask: u.last_task_date
+        ? Math.floor((Date.now() - new Date(u.last_task_date).getTime()) / 86400000)
+        : null
+    }));
+  }
+
+  /**
+   * Mark a copilot user as nudged (update nudged_at timestamp).
+   */
+  async function nudgeUser(userId) {
+    const { data, error } = await sb
+      .from('copilot_users')
+      .update({ nudged_at: new Date().toISOString() })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) { console.error('nudgeUser error:', error.message); return null; }
+    await logActivity('NUDGE', 'copilot_users', userId, { action: 'nudge_inactive' });
+    return data;
+  }
+
+  // ===========================================================
   // Public API
   // ===========================================================
 
@@ -656,6 +812,13 @@ const EAS_DB = (() => {
     fetchProjects,
     fetchLovs,
     fetchAllData,
+
+    // Leaderboard & gamification (Phase 5)
+    fetchEmployeeLeaderboard,
+    fetchPracticeLeaderboard,
+    computeBadges,
+    fetchInactiveMembers,
+    nudgeUser,
 
     // Data mutations (write)
     insertTask,

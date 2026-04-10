@@ -565,3 +565,133 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   transition: all 0.2s;
 }
 .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+
+/* ======== PHASE 5: LEADERBOARD & GAMIFICATION ======== */
+
+/* Leaderboard practice ranking cards */
+.leaderboard-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.leaderboard-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.leaderboard-rank {
+  font-size: 24px;
+  min-width: 48px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.leaderboard-info { flex: 1; }
+.leaderboard-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.leaderboard-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.leaderboard-stats span::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  margin-right: 6px;
+  vertical-align: middle;
+  opacity: 0.5;
+}
+.leaderboard-score {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Badge system */
+.badge-icon {
+  cursor: default;
+  font-size: 18px;
+  display: inline-block;
+  margin-right: 2px;
+}
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.badge-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+  border: 1px solid transparent;
+}
+.badge-earned {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+}
+.badge-locked {
+  opacity: 0.35;
+  filter: grayscale(0.6);
+}
+.badge-icon-lg {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+.badge-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+.badge-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.badge-earned .badge-title { color: var(--accent); }
+
+/* Inactive member alert rows */
+#mypractice-inactive-tbody tr td:nth-child(4) {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+/* Use Case Library search bar */
+#uc-search {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  width: 280px;
+  transition: border-color 0.2s;
+}
+#uc-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+#uc-search::placeholder { color: var(--text-muted); }
+
+/* Responsive tweaks for leaderboard */
+@media (max-width: 768px) {
+  .leaderboard-stats { flex-wrap: wrap; gap: 8px; }
+  .leaderboard-score { font-size: 22px; }
+  .badge-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+}

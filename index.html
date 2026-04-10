@@ -41,17 +41,32 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     Dashboard
   </div>
+  <div class="nav-item" data-page="leaderboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8m-4-4v4m-5-8l5-10 5 10M6 13h12"/></svg>
+    Leaderboard
+  </div>
 
-  <div class="nav-section">Practices</div>
-  <div class="nav-item" data-page="practices">
+  <div class="nav-section" data-role="admin,spoc">Practices</div>
+  <div class="nav-item" data-page="mypractice" data-role="spoc">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    My Practice
+  </div>
+  <div class="nav-item" data-page="practices" data-role="admin">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    Practice Tracking
+    All Practices
     <span class="badge">6</span>
   </div>
-  <div class="nav-item" data-page="tasks">
+  <div class="nav-item" data-page="tasks" data-role="admin,spoc">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     All Tasks
     <span class="badge" id="nav-task-count">50</span>
+  </div>
+
+  <div class="nav-section" data-role="contributor">My Work</div>
+  <div class="nav-item" data-page="mytasks" data-role="contributor">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    My Tasks
+    <span class="badge" id="nav-mytask-count">0</span>
   </div>
 
   <div class="nav-section">Management</div>
@@ -60,15 +75,19 @@
     Accomplishments
     <span class="badge" id="nav-acc-count">4</span>
   </div>
-  <div class="nav-item" data-page="copilot">
+  <div class="nav-item" data-page="copilot" data-role="admin,spoc">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     Copilot Access
     <span class="badge" id="nav-copilot-count">152</span>
   </div>
-  <div class="nav-item" data-page="projects">
+  <div class="nav-item" data-page="projects" data-role="admin,spoc">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     Projects
     <span class="badge" id="nav-project-count">25</span>
+  </div>
+  <div class="nav-item" data-page="usecases">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    Use Case Library
   </div>
 
   <div class="sidebar-footer">
@@ -291,6 +310,128 @@
           </table>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- SPOC: My Practice Page -->
+  <div id="page-mypractice" class="page hidden">
+    <div class="page-header">
+      <div>
+        <h2>My Practice</h2>
+        <div class="subtitle" id="mypractice-subtitle">Practice dashboard</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
+    </div>
+    <div class="page-content">
+      <div class="kpi-grid" id="mypractice-kpis"></div>
+      <div class="table-card" style="margin-top:20px">
+        <div class="table-header">
+          <h3>Team Members</h3>
+          <span id="mypractice-team-count" style="font-size:13px;color:var(--text-muted)"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Name</th><th>Tasks</th><th>Hours Saved</th><th>Efficiency</th><th>Last Active</th><th>Badges</th><th>Status</th></tr></thead>
+            <tbody id="mypractice-team-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="table-card" style="margin-top:20px">
+        <div class="table-header">
+          <h3 style="color:var(--warning)">⚠ Inactive Members</h3>
+          <span id="mypractice-inactive-count" style="font-size:13px;color:var(--text-muted)"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Last Task</th><th>Days Inactive</th><th>Last Nudged</th><th>Actions</th></tr></thead>
+            <tbody id="mypractice-inactive-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Page -->
+  <div id="page-leaderboard" class="page hidden">
+    <div class="page-header">
+      <div>
+        <h2>Leaderboard</h2>
+        <div class="subtitle">AI adoption rankings across practices</div>
+      </div>
+    </div>
+    <div class="page-content">
+      <!-- Practice Rankings -->
+      <h3 style="margin-bottom:16px;font-size:16px">🏢 Practice Rankings</h3>
+      <div id="leaderboard-practices" class="leaderboard-grid"></div>
+
+      <!-- Employee Rankings -->
+      <h3 style="margin:24px 0 16px;font-size:16px">👤 Top Contributors</h3>
+      <div class="filters-bar">
+        <select class="filter-select" id="lb-filter-practice" onchange="renderLeaderboard()">
+          <option value="">All Practices</option>
+        </select>
+      </div>
+      <div class="table-card">
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>#</th><th>Employee</th><th>Practice</th><th>Tasks</th><th>Hours Saved</th><th>Efficiency</th><th>Quality</th><th>Badges</th></tr></thead>
+            <tbody id="leaderboard-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contributor: My Tasks Page -->
+  <div id="page-mytasks" class="page hidden">
+    <div class="page-header">
+      <div>
+        <h2>My Tasks</h2>
+        <div class="subtitle" id="mytasks-subtitle">Your AI task submissions</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
+    </div>
+    <div class="page-content">
+      <div class="kpi-grid" id="mytasks-kpis"></div>
+      <div class="table-card" style="margin-top:20px">
+        <div class="table-header">
+          <h3>My Recent Tasks</h3>
+          <span id="mytasks-count-label" style="font-size:13px;color:var(--text-muted)"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Week</th><th>Project</th><th>Task</th><th>Category</th><th>AI Tool</th><th>Without AI</th><th>With AI</th><th>Saved</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="mytasks-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="mytasks-badges" style="margin-top:20px"></div>
+    </div>
+  </div>
+
+  <!-- Use Case Library Page -->
+  <div id="page-usecases" class="page hidden">
+    <div class="page-header">
+      <div>
+        <h2>Use Case Library</h2>
+        <div class="subtitle">Searchable collection of AI use cases across the organization</div>
+      </div>
+    </div>
+    <div class="page-content">
+      <div class="filters-bar">
+        <input type="text" class="search-input" id="uc-search" placeholder="Search use cases..." oninput="renderUseCases()">
+        <select class="filter-select" id="uc-filter-practice" onchange="renderUseCases()">
+          <option value="">All Practices</option>
+        </select>
+        <select class="filter-select" id="uc-filter-category" onchange="renderUseCases()">
+          <option value="">All Categories</option>
+        </select>
+        <select class="filter-select" id="uc-filter-tool" onchange="renderUseCases()">
+          <option value="">All AI Tools</option>
+        </select>
+      </div>
+      <div class="kpi-grid" id="uc-kpis" style="margin-bottom:20px"></div>
+      <div id="uc-list"></div>
     </div>
   </div>
 </div>
@@ -558,6 +699,10 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     if (item.dataset.page === 'accomplishments') renderAccomplishments();
     if (item.dataset.page === 'copilot') renderCopilot();
     if (item.dataset.page === 'projects') renderProjects();
+    if (item.dataset.page === 'mypractice') renderMyPractice();
+    if (item.dataset.page === 'leaderboard') renderLeaderboard();
+    if (item.dataset.page === 'mytasks') renderMyTasks();
+    if (item.dataset.page === 'usecases') renderUseCases();
   });
 });
 
@@ -902,6 +1047,296 @@ function renderProjects() {
       <td>${p.revenueType}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.projectManager}">${p.projectManager}</td>
     </tr>
+  `).join('');
+}
+
+// ======== SPOC: MY PRACTICE ========
+async function renderMyPractice() {
+  const practice = EAS_Auth.getUserPractice();
+  if (!practice) return;
+  const quarterId = EAS_DB.getSelectedQuarter();
+  document.getElementById('mypractice-subtitle').textContent = `${practice} — Team Dashboard`;
+
+  // Fetch team leaderboard + inactive members in parallel
+  const [teamData, inactive] = await Promise.all([
+    EAS_DB.fetchEmployeeLeaderboard(practice, quarterId),
+    EAS_DB.fetchInactiveMembers(practice)
+  ]);
+
+  // KPIs
+  const totalTasks = teamData.reduce((s, e) => s + e.tasks, 0);
+  const totalSaved = teamData.reduce((s, e) => s + e.timeSaved, 0);
+  const avgEff = teamData.length > 0 ? teamData.reduce((s, e) => s + e.efficiency, 0) / teamData.length : 0;
+  document.getElementById('mypractice-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Team Members</div><div class="kpi-value blue">${teamData.length}</div><div class="kpi-sub">active contributors</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Tasks</div><div class="kpi-value green">${totalTasks}</div><div class="kpi-sub">${practice}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Hours Saved</div><div class="kpi-value yellow">${fmt(totalSaved, 0)}</div><div class="kpi-sub">by the team</div></div>
+    <div class="kpi-card"><div class="kpi-label">Avg Efficiency</div><div class="kpi-value purple">${fmt(avgEff, 0)}%</div><div class="kpi-sub">time reduction</div></div>
+    <div class="kpi-card"><div class="kpi-label">Inactive</div><div class="kpi-value" style="color:var(--warning)">${inactive.length}</div><div class="kpi-sub">need attention</div></div>
+  `;
+
+  // Team table
+  document.getElementById('mypractice-team-count').textContent = `${teamData.length} members`;
+  document.getElementById('mypractice-team-tbody').innerHTML = teamData.map((e, i) => {
+    const badges = EAS_DB.computeBadges(e);
+    const earned = badges.filter(b => b.earned);
+    const badgeHtml = earned.length > 0
+      ? earned.map(b => `<span class="badge-icon" title="${b.title}: ${b.description}">${b.icon}</span>`).join('')
+      : '<span style="color:var(--text-muted);font-size:12px">—</span>';
+    const lastActive = e.lastTask ? new Date(e.lastTask).toLocaleDateString() : 'Never';
+    const daysSince = e.lastTask ? Math.floor((Date.now() - new Date(e.lastTask).getTime()) / 86400000) : null;
+    const statusCls = daysSince === null ? 'status-pending' : daysSince > 14 ? 'status-pending' : 'status-completed';
+    const statusTxt = daysSince === null ? 'No tasks' : daysSince > 14 ? 'Inactive' : 'Active';
+    return `<tr>
+      <td><span style="font-weight:600">${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${e.name}</span></td>
+      <td>${e.tasks}</td>
+      <td style="color:var(--success);font-weight:600">${fmt(e.timeSaved, 1)}</td>
+      <td>${fmt(e.efficiency, 0)}%</td>
+      <td style="color:var(--text-muted)">${lastActive}</td>
+      <td>${badgeHtml}</td>
+      <td><span class="status-badge ${statusCls}">${statusTxt}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Inactive members
+  document.getElementById('mypractice-inactive-count').textContent = `${inactive.length} members`;
+  document.getElementById('mypractice-inactive-tbody').innerHTML = inactive.length === 0
+    ? '<tr><td colspan="6" style="text-align:center;color:var(--success);padding:20px">All team members are active!</td></tr>'
+    : inactive.map(u => {
+      const days = u.daysSinceTask !== null ? `${u.daysSinceTask} days` : 'Never logged';
+      const lastNudged = u.nudgedAt ? new Date(u.nudgedAt).toLocaleDateString() : 'Never';
+      return `<tr>
+        <td style="font-weight:600">${u.name}</td>
+        <td style="color:var(--text-muted)">${u.email}</td>
+        <td>${u.lastTaskDate ? new Date(u.lastTaskDate).toLocaleDateString() : 'Never'}</td>
+        <td style="color:var(--warning);font-weight:600">${days}</td>
+        <td style="color:var(--text-muted)">${lastNudged}</td>
+        <td><button class="btn btn-secondary" style="font-size:12px;padding:4px 12px" onclick="nudgeInactive('${u.id}','${u.name}')">Nudge</button></td>
+      </tr>`;
+    }).join('');
+}
+
+async function nudgeInactive(userId, userName) {
+  const result = await EAS_DB.nudgeUser(userId);
+  if (result) {
+    showToast(`Nudge sent to ${userName}`);
+    renderMyPractice(); // Refresh
+  } else {
+    showToast('Failed to nudge user', 'error');
+  }
+}
+
+// ======== LEADERBOARD ========
+async function renderLeaderboard() {
+  const quarterId = EAS_DB.getSelectedQuarter();
+  const fPractice = document.getElementById('lb-filter-practice')?.value || '';
+
+  // Fetch both leaderboards
+  const [practiceBoard, employeeBoard] = await Promise.all([
+    EAS_DB.fetchPracticeLeaderboard(quarterId),
+    EAS_DB.fetchEmployeeLeaderboard(fPractice || null, quarterId)
+  ]);
+
+  // Practice ranking cards
+  const medals = ['🥇', '🥈', '🥉'];
+  document.getElementById('leaderboard-practices').innerHTML = practiceBoard.map((p, i) => {
+    const medal = i < 3 ? medals[i] : `#${i + 1}`;
+    const color = practiceColors[p.practice] || '#94a3b8';
+    return `<div class="leaderboard-card" style="border-left:4px solid ${color}">
+      <div class="leaderboard-rank">${medal}</div>
+      <div class="leaderboard-info">
+        <div class="leaderboard-name" style="color:${color}">${p.practice}</div>
+        <div class="leaderboard-stats">
+          <span>${p.tasks} tasks</span>
+          <span>${fmt(p.timeSaved, 0)} hrs saved</span>
+          <span>${fmt(p.efficiency, 0)}% eff</span>
+          <span>${p.employees} contributors</span>
+        </div>
+      </div>
+      <div class="leaderboard-score">${fmt(p.score, 0)}</div>
+    </div>`;
+  }).join('');
+
+  // Employee ranking table
+  document.getElementById('leaderboard-tbody').innerHTML = employeeBoard.slice(0, 50).map((e, i) => {
+    const badges = EAS_DB.computeBadges(e);
+    const earned = badges.filter(b => b.earned);
+    const badgeHtml = earned.length > 0
+      ? earned.map(b => `<span class="badge-icon" title="${b.title}">${b.icon}</span>`).join('')
+      : '—';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+    return `<tr>
+      <td style="font-weight:700;text-align:center">${medal}</td>
+      <td style="font-weight:600">${e.name}</td>
+      <td><span style="color:${practiceColors[e.practice] || '#94a3b8'}">${e.practice}</span></td>
+      <td>${e.tasks}</td>
+      <td style="color:var(--success);font-weight:600">${fmt(e.timeSaved, 1)}</td>
+      <td>${fmt(e.efficiency, 0)}%</td>
+      <td>${e.quality > 0 ? fmt(e.quality, 1) + '/5' : '—'}</td>
+      <td>${badgeHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ======== CONTRIBUTOR: MY TASKS ========
+function renderMyTasks() {
+  if (!data) return;
+  const profile = EAS_Auth.getUserProfile();
+  const userName = EAS_Auth.getUserName();
+  const userEmail = profile?.email || '';
+  document.getElementById('mytasks-subtitle').textContent = `${userName} — Your AI contributions`;
+
+  // Filter to only this user's tasks (by name or email match)
+  const myTasks = data.tasks.filter(t =>
+    (t.employee && t.employee.toLowerCase() === userName.toLowerCase()) ||
+    (t.employeeEmail && t.employeeEmail.toLowerCase() === userEmail.toLowerCase())
+  );
+
+  // KPIs
+  const totalSaved = myTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+  const totalWithout = myTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+  const eff = totalWithout > 0 ? (totalSaved / totalWithout * 100) : 0;
+  const qualTasks = myTasks.filter(t => t.quality > 0);
+  const avgQual = qualTasks.length > 0 ? qualTasks.reduce((s, t) => s + t.quality, 0) / qualTasks.length : 0;
+
+  document.getElementById('mytasks-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">My Tasks</div><div class="kpi-value blue">${myTasks.length}</div><div class="kpi-sub">logged</div></div>
+    <div class="kpi-card"><div class="kpi-label">Hours Saved</div><div class="kpi-value green">${fmt(totalSaved, 1)}</div><div class="kpi-sub">with AI</div></div>
+    <div class="kpi-card"><div class="kpi-label">Efficiency</div><div class="kpi-value yellow">${fmt(eff, 0)}%</div><div class="kpi-sub">time reduction</div></div>
+    <div class="kpi-card"><div class="kpi-label">Quality</div><div class="kpi-value purple">${fmt(avgQual, 1)}/5</div><div class="kpi-sub">avg rating</div></div>
+  `;
+
+  // Task table
+  document.getElementById('mytasks-count-label').textContent = `${myTasks.length} tasks`;
+  const el = document.getElementById('nav-mytask-count');
+  if (el) el.textContent = myTasks.length;
+
+  document.getElementById('mytasks-tbody').innerHTML = myTasks.length === 0
+    ? '<tr><td colspan="10" style="text-align:center;padding:30px"><div class="empty-state"><h3>No tasks yet</h3><p>Click "+ Log Task" to record your first AI task!</p></div></td></tr>'
+    : myTasks.map(t => `<tr>
+      <td>${t.week}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.project}">${t.project}</td>
+      <td>${t.task}</td>
+      <td>${t.category}</td>
+      <td>${t.aiTool}</td>
+      <td>${fmt(t.timeWithout)}</td>
+      <td>${fmt(t.timeWith)}</td>
+      <td style="color:var(--success);font-weight:600">${fmt(t.timeSaved)}</td>
+      <td>${statusBadge(t.status)}</td>
+      <td class="row-actions">
+        <button class="btn-icon btn-edit" onclick="editTask('${t.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </td>
+    </tr>`).join('');
+
+  // My badges
+  const myStats = {
+    tasks: myTasks.length,
+    timeSaved: totalSaved,
+    timeWithout: totalWithout,
+    efficiency: eff,
+    quality: avgQual,
+    streakWeeks: new Set(myTasks.map(t => t.week)).size
+  };
+  const badges = EAS_DB.computeBadges(myStats);
+  document.getElementById('mytasks-badges').innerHTML = `
+    <h3 style="font-size:16px;margin-bottom:12px">Your Badges</h3>
+    <div class="badge-grid">
+      ${badges.map(b => `
+        <div class="badge-card ${b.earned ? 'badge-earned' : 'badge-locked'}">
+          <div class="badge-icon-lg">${b.icon}</div>
+          <div class="badge-title">${b.title}</div>
+          <div class="badge-desc">${b.description}</div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+// ======== USE CASE LIBRARY ========
+function renderUseCases() {
+  if (!data) return;
+  const search = (document.getElementById('uc-search')?.value || '').toLowerCase();
+  const fPractice = document.getElementById('uc-filter-practice')?.value || '';
+  const fCategory = document.getElementById('uc-filter-category')?.value || '';
+  const fTool = document.getElementById('uc-filter-tool')?.value || '';
+
+  // Build use cases from tasks (unique by task description + category + tool)
+  const ucMap = {};
+  data.tasks.forEach(t => {
+    if (!t.task || !t.category) return;
+    const key = `${t.task}||${t.category}||${t.aiTool}`;
+    if (!ucMap[key]) {
+      ucMap[key] = {
+        task: t.task,
+        category: t.category,
+        aiTool: t.aiTool,
+        practice: t.practice,
+        practices: new Set(),
+        count: 0,
+        totalSaved: 0,
+        totalWithout: 0,
+        avgQuality: 0,
+        qualCount: 0,
+        employees: new Set()
+      };
+    }
+    const uc = ucMap[key];
+    uc.count++;
+    uc.practices.add(t.practice);
+    uc.totalSaved += t.timeSaved || 0;
+    uc.totalWithout += t.timeWithout || 0;
+    if (t.employee) uc.employees.add(t.employee);
+    if (t.quality > 0) { uc.avgQuality += t.quality; uc.qualCount++; }
+  });
+
+  let useCases = Object.values(ucMap).map(uc => ({
+    ...uc,
+    practices: [...uc.practices],
+    employees: [...uc.employees],
+    avgQuality: uc.qualCount > 0 ? uc.avgQuality / uc.qualCount : 0,
+    efficiency: uc.totalWithout > 0 ? (uc.totalSaved / uc.totalWithout * 100) : 0
+  })).sort((a, b) => b.totalSaved - a.totalSaved);
+
+  // Apply filters
+  useCases = useCases.filter(uc => {
+    if (fPractice && !uc.practices.includes(fPractice)) return false;
+    if (fCategory && uc.category !== fCategory) return false;
+    if (fTool && uc.aiTool !== fTool) return false;
+    if (search) {
+      const hay = [uc.task, uc.category, uc.aiTool, ...uc.practices, ...uc.employees].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // KPIs
+  document.getElementById('uc-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Unique Use Cases</div><div class="kpi-value blue">${useCases.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Instances</div><div class="kpi-value green">${useCases.reduce((s, u) => s + u.count, 0)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Hours Saved</div><div class="kpi-value yellow">${fmt(useCases.reduce((s, u) => s + u.totalSaved, 0), 0)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Contributors</div><div class="kpi-value purple">${new Set(useCases.flatMap(u => u.employees)).size}</div></div>
+  `;
+
+  // Use case cards
+  document.getElementById('uc-list').innerHTML = useCases.length === 0
+    ? '<div class="empty-state"><h3>No use cases found</h3><p>Try adjusting your filters.</p></div>'
+    : useCases.map(uc => `
+    <div class="acc-card">
+      <div class="acc-card-header">
+        <div class="acc-card-title">${uc.task}</div>
+        <span class="status-badge status-completed">${uc.count}x used</span>
+      </div>
+      <div class="acc-meta">
+        <div class="acc-meta-item">Category: <span style="color:var(--accent)">${uc.category}</span></div>
+        <div class="acc-meta-item">AI Tool: <span>${uc.aiTool}</span></div>
+        <div class="acc-meta-item">Practices: <span>${uc.practices.map(p => `<span style="color:${practiceColors[p] || '#94a3b8'}">${p}</span>`).join(', ')}</span></div>
+        <div class="acc-meta-item">Contributors: <span>${uc.employees.length}</span></div>
+      </div>
+      <div style="display:flex;gap:24px;margin-top:10px;font-size:13px">
+        <div><span style="color:var(--success);font-weight:600">${fmt(uc.totalSaved, 1)} hrs</span> saved</div>
+        <div><span style="color:var(--warning);font-weight:600">${fmt(uc.efficiency, 0)}%</span> efficiency</div>
+        ${uc.avgQuality > 0 ? `<div><span style="color:var(--purple);font-weight:600">${fmt(uc.avgQuality, 1)}/5</span> quality</div>` : ''}
+      </div>
+    </div>
   `).join('');
 }
 
@@ -1271,7 +1706,7 @@ function populateFilters() {
   const tools = data.lovs.aiTools;
 
   // Task filter dropdowns
-  const practiceSelects = ['task-filter-practice', 'acc-filter-practice', 'copilot-filter-practice', 'project-filter-practice'];
+  const practiceSelects = ['task-filter-practice', 'acc-filter-practice', 'copilot-filter-practice', 'project-filter-practice', 'lb-filter-practice', 'uc-filter-practice'];
   practiceSelects.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1300,6 +1735,12 @@ function populateFilters() {
     tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; el.appendChild(o); });
   });
 
+  // Use Case Library filter dropdowns
+  const ucCatSel = document.getElementById('uc-filter-category');
+  if (ucCatSel) categories.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; ucCatSel.appendChild(o); });
+  const ucToolSel = document.getElementById('uc-filter-tool');
+  if (ucToolSel) tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; ucToolSel.appendChild(o); });
+
   // Project dropdown for task form
   const projSel = document.getElementById('f-project');
   const projNames = [...new Set(data.tasks.map(t => t.project).filter(Boolean))];
@@ -1313,6 +1754,17 @@ function updateNavCounts() {
   document.getElementById('nav-acc-count').textContent = fd.accomplishments.length;
   document.getElementById('nav-copilot-count').textContent = data.copilotUsers.length;
   document.getElementById('nav-project-count').textContent = data.projects.length;
+  // Contributor My Tasks count
+  const mtEl = document.getElementById('nav-mytask-count');
+  if (mtEl) {
+    const userName = EAS_Auth.getUserName();
+    const userEmail = EAS_Auth.getUserProfile()?.email || '';
+    const myCount = data.tasks.filter(t =>
+      (t.employee && t.employee.toLowerCase() === userName.toLowerCase()) ||
+      (t.employeeEmail && t.employeeEmail.toLowerCase() === userEmail.toLowerCase())
+    ).length;
+    mtEl.textContent = myCount;
+  }
 }
 
 // Boot
@@ -1362,7 +1814,15 @@ async function boot() {
   // 5. Initialize UI
   populateFilters();
   updateNavCounts();
-  renderDashboard();
+  
+  // Role-aware default page
+  if (role === 'spoc') {
+    document.querySelector('.nav-item[data-page="mypractice"]')?.click();
+  } else if (role === 'contributor') {
+    document.querySelector('.nav-item[data-page="mytasks"]')?.click();
+  } else {
+    renderDashboard();
+  }
   
   // 6. Listen for quarter changes — re-fetch from Supabase
   window.addEventListener('quarter-changed', async () => {
@@ -1381,10 +1841,21 @@ async function boot() {
     if (activePage === 'practices') renderPractices();
     if (activePage === 'tasks') renderTasks();
     if (activePage === 'accomplishments') renderAccomplishments();
+    if (activePage === 'mypractice') renderMyPractice();
+    if (activePage === 'leaderboard') renderLeaderboard();
+    if (activePage === 'mytasks') renderMyTasks();
+    if (activePage === 'usecases') renderUseCases();
     updateNavCounts();
   });
   
-  // 7. Hide loading overlay
+  // 7. Event listeners for Phase 5 filter dropdowns
+  document.getElementById('lb-filter-practice')?.addEventListener('change', () => renderLeaderboard());
+  document.getElementById('uc-filter-practice')?.addEventListener('change', () => renderUseCases());
+  document.getElementById('uc-filter-category')?.addEventListener('change', () => renderUseCases());
+  document.getElementById('uc-filter-tool')?.addEventListener('change', () => renderUseCases());
+  document.getElementById('uc-search')?.addEventListener('input', EAS_Utils.debounce(() => renderUseCases(), 300));
+  
+  // 8. Hide loading overlay
   document.getElementById('auth-loading').style.display = 'none';
 }
 

@@ -170,34 +170,39 @@
 
 ---
 
-## Phase 5: SPOC Panel & Gamification 🔲
+## Phase 5: SPOC Panel & Gamification ✅
 
-**Status:** Planned | **Target:** May 18–30, 2026
+**Status:** Complete | **Completed:** Phase 5 delivered in index.html
 
 ### Objectives
 
-1. Build dedicated SPOC dashboard (`spoc.html`)
-2. Add leaderboard and achievement badges
-3. Implement nudge/notification system
-4. Build use case library
+1. ✅ Build SPOC "My Practice" page with practice-specific views (inside index.html)
+2. ✅ Add leaderboard (practice + employee rankings) and achievement badges (7 types)
+3. ✅ Implement nudge system (in-app) for inactive users
+4. ✅ Build use case library (searchable, filterable)
+5. ✅ Contributor "My Tasks" page with personal KPIs and badges
 
 ### Tasks
 
-| # | Task | Est. Hours | Priority |
-|---|------|-----------|----------|
-| 5.1 | Create `spoc.html` with practice-specific views | 8h | P2 |
-| 5.2 | SPOC team management with inactive alerts | 6h | P2 |
-| 5.3 | Practice leaderboard (tasks, hours saved) | 6h | P3 |
-| 5.4 | Achievement badges (first task, streak, top saver) | 4h | P3 |
-| 5.5 | Nudge system (email or in-app) for inactive users | 6h | P3 |
-| 5.6 | Use case library (searchable, categorized) | 4h | P3 |
-| 5.7 | Contributor simplified view | 4h | P2 |
+| # | Task | Est. Hours | Priority | Status |
+|---|------|-----------|----------|--------|
+| 5.1 | Role-aware views in `index.html` (SPOC My Practice page) | 8h | P2 | ✅ Done |
+| 5.2 | SPOC team management with inactive alerts | 6h | P2 | ✅ Done |
+| 5.3 | Practice + employee leaderboard (tasks, hours saved, score) | 6h | P3 | ✅ Done |
+| 5.4 | Achievement badges (7: first-task, streak, time-saver, efficiency-pro, quality-champion, prolific, centurion) | 4h | P3 | ✅ Done |
+| 5.5 | Nudge system (in-app) for inactive users | 6h | P3 | ✅ Done |
+| 5.6 | Use case library (searchable, categorized, filterable) | 4h | P3 | ✅ Done |
+| 5.7 | Contributor simplified view (My Tasks + read-only dashboard) | 4h | P2 | ✅ Done |
 
 ### Acceptance Criteria
 
-- [ ] SPOC sees only their practice on login
-- [ ] Leaderboard updates in real-time
-- [ ] Inactive users flagged after 2 weeks
+- [x] SPOC sees "My Practice" as default page with practice-scoped data
+- [x] Leaderboard shows both practice rankings (weighted score) and employee rankings
+- [x] Inactive users flagged after 14 days, nudge button updates `nudged_at`
+- [x] 7 badge types computed client-side with earned/locked visual states
+- [x] Use case library searchable with practice/category/tool filters
+- [x] Contributor sees personal dashboard + My Tasks tab with edit capability
+- [x] Role-aware navigation using `data-role` attributes on sidebar items
 
 ---
 
