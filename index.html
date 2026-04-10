@@ -82,19 +82,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
-    <button class="upload-btn" onclick="document.getElementById('xlsxUpload').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Upload Excel (.xlsx)
-    </button>
-    <input type="file" id="xlsxUpload" accept=".xlsx,.xls" style="display:none" onchange="handleExcelUpload(this)">
-    <button class="upload-btn" style="margin-top:8px" onclick="exportToExcel()">
+    <button class="upload-btn" onclick="exportToExcel()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Export to Excel
     </button>
-    <a href="admin.html" class="upload-btn" style="margin-top:8px;text-decoration:none" data-role="admin" id="admin-panel-link">
+    <button class="upload-btn" style="margin-top:8px" onclick="EAS_DB.createDump('Manual Backup', ['tasks','accomplishments','copilot_users']).then(d => d ? showToast('Data backup created!') : showToast('Backup failed', 'error'))" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Admin Panel
-    </a>
+      Backup Data
+    </button>
   </div>
 </nav>
 
@@ -210,6 +205,7 @@
                 <th>Saved</th>
                 <th>Eff %</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="tasks-tbody"></tbody>
@@ -264,7 +260,7 @@
         </div>
         <div style="overflow-x:auto">
           <table>
-            <thead><tr><th>Practice</th><th>Name</th><th>Email</th><th>Role/Skill</th><th>Status</th></tr></thead>
+            <thead><tr><th>Practice</th><th>Name</th><th>Email</th><th>Role/Skill</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="copilot-tbody"></tbody>
           </table>
         </div>
@@ -506,6 +502,18 @@
   </div>
 </div>
 
+<!-- Confirm Dialog -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="max-width:420px">
+    <h3 id="confirm-title">Confirm Delete</h3>
+    <p id="confirm-message" style="color:var(--text-secondary);margin-bottom:20px"></p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('confirm')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-btn" onclick="">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -574,47 +582,6 @@ function statusBadge(status) {
 function fmt(n, d = 1) { return n ? Number(n).toFixed(d) : '0'; }
 function fmtPct(n) { return n ? (n * 100).toFixed(1) + '%' : '0%'; }
 function fmtInt(n) { return n ? Math.round(n).toLocaleString() : '0'; }
-
-function recalcSummary() {
-  const practices = ['BFSI','CES','ERP','EPS','EPCS','GRC'];
-  const summaryMap = {};
-  practices.forEach(p => {
-    summaryMap[p] = { tasks: 0, timeWithout: 0, timeWith: 0, timeSaved: 0, efficiency: 0, quality: 0, qualityCount: 0, completed: 0 };
-  });
-  data.tasks.forEach(t => {
-    const p = t.practice;
-    if (!summaryMap[p]) return;
-    summaryMap[p].tasks++;
-    summaryMap[p].timeWithout += t.timeWithout || 0;
-    summaryMap[p].timeWith += t.timeWith || 0;
-    summaryMap[p].timeSaved += t.timeSaved || 0;
-    if (t.quality > 0) { summaryMap[p].quality += t.quality; summaryMap[p].qualityCount++; }
-    if (t.status && t.status.toLowerCase() === 'completed') summaryMap[p].completed++;
-  });
-  data.summary.practices.forEach(sp => {
-    const key = sp.name === 'ERP Solutions' ? 'ERP' : sp.name === 'CES' ? 'CES' : sp.name;
-    const shortKey = practices.find(p => sp.name.includes(p)) || sp.name;
-    const m = summaryMap[shortKey];
-    if (!m) return;
-    sp.tasks = m.tasks;
-    sp.timeWithout = m.timeWithout;
-    sp.timeWith = m.timeWith;
-    sp.timeSaved = m.timeSaved;
-    sp.efficiency = m.timeWithout > 0 ? (m.timeSaved / m.timeWithout) * 100 : 0;
-    sp.quality = m.qualityCount > 0 ? m.quality / m.qualityCount : 0;
-    sp.completed = m.completed;
-  });
-  const t = data.summary.totals;
-  t.tasks = data.tasks.length;
-  t.timeWithout = data.tasks.reduce((s, x) => s + (x.timeWithout || 0), 0);
-  t.timeWith = data.tasks.reduce((s, x) => s + (x.timeWith || 0), 0);
-  t.timeSaved = data.tasks.reduce((s, x) => s + (x.timeSaved || 0), 0);
-  t.efficiency = t.timeWithout > 0 ? (t.timeSaved / t.timeWithout) * 100 : 0;
-  const qTasks = data.tasks.filter(x => x.quality > 0);
-  t.quality = qTasks.length > 0 ? qTasks.reduce((s, x) => s + x.quality, 0) / qTasks.length : 0;
-  t.completed = data.tasks.filter(x => x.status && x.status.toLowerCase() === 'completed').length;
-  t.projects = data.projects.length;
-}
 
 // ======== DASHBOARD ========
 function renderDashboard() {
@@ -797,6 +764,10 @@ function renderTasks() {
       <td style="color:var(--success);font-weight:600">${fmt(t.timeSaved)}</td>
       <td>${t.timeWithout > 0 ? fmt((t.timeSaved / t.timeWithout) * 100, 0) + '%' : '-'}</td>
       <td>${statusBadge(t.status)}</td>
+      <td class="row-actions">
+        <button class="btn-icon btn-edit" onclick="editTask('${t.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-icon btn-delete" onclick="deleteTaskConfirm('${t.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      </td>
     </tr>
   `).join('');
 
@@ -839,7 +810,11 @@ function renderAccomplishments() {
     <div class="acc-card">
       <div class="acc-card-header">
         <div class="acc-card-title">${a.title}</div>
-        ${statusBadge(a.status)}
+        <div style="display:flex;gap:8px;align-items:center">
+          ${statusBadge(a.status)}
+          <button class="btn-icon btn-edit" onclick="editAccomplishment('${a.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn-icon btn-delete" onclick="deleteAccomplishmentConfirm('${a.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        </div>
       </div>
       <div class="acc-meta">
         <div class="acc-meta-item">Practice: <span style="color:${practiceColors[a.practice] || '#94a3b8'}">${a.practice}</span></div>
@@ -892,6 +867,10 @@ function renderCopilot() {
       <td style="color:var(--text-muted)">${u.email}</td>
       <td>${u.skill}</td>
       <td>${statusBadge(u.remarks === 'access granted' ? 'Completed' : u.remarks)}</td>
+      <td class="row-actions">
+        <button class="btn-icon btn-edit" onclick="editCopilotUser('${u.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-icon btn-delete" onclick="deleteCopilotUserConfirm('${u.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      </td>
     </tr>
   `).join('');
 }
@@ -928,17 +907,38 @@ function renderProjects() {
 
 // ======== MODALS ========
 function openModal(type) {
+  // Reset editing state when opening via + button (not via editX functions)
+  if (!_editingId) {
+    if (type === 'task') {
+      document.querySelector('#modal-task .modal h3').textContent = 'Log AI Task';
+      document.querySelector('#modal-task .btn-primary').textContent = 'Save Task';
+    } else if (type === 'accomplishment') {
+      document.querySelector('#modal-accomplishment .modal h3').textContent = 'Log Accomplishment';
+      document.querySelector('#modal-accomplishment .btn-primary').textContent = 'Save';
+    } else if (type === 'copilot') {
+      document.querySelector('#modal-copilot .modal h3').textContent = 'Add Copilot User';
+      document.querySelector('#modal-copilot .btn-primary').textContent = 'Save';
+    }
+  }
   document.getElementById('modal-' + type).classList.add('active');
 }
 function closeModal(type) {
   document.getElementById('modal-' + type).classList.remove('active');
+  // Reset edit state on close
+  if ((type === 'task' && _editingType === 'task') ||
+      (type === 'accomplishment' && _editingType === 'accomplishment') ||
+      (type === 'copilot' && _editingType === 'copilot')) {
+    _editingId = null;
+    _editingType = null;
+  }
 }
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
 });
 
-function saveTask() {
+async function saveTask() {
   const practice = document.getElementById('f-practice').value;
+  if (!practice) { showToast('Please select a practice', 'error'); return; }
   const task = {
     practice,
     week: document.getElementById('f-week').value,
@@ -953,27 +953,53 @@ function saveTask() {
     prompt: '',
     timeWithout: parseFloat(document.getElementById('f-time-without').value) || 0,
     timeWith: parseFloat(document.getElementById('f-time-with').value) || 0,
-    timeSaved: 0,
-    efficiency: 0,
     quality: parseFloat(document.getElementById('f-quality').value) || 0,
     status: document.getElementById('f-status').value,
     notes: document.getElementById('f-notes').value
   };
-  task.timeSaved = task.timeWithout - task.timeWith;
-  task.efficiency = task.timeWithout > 0 ? task.timeSaved / task.timeWithout : 0;
-
-  data.tasks.push(task);
   closeModal('task');
-  showToast('Task logged successfully!');
+
+  let result;
+  let isEdit = false;
+  if (_editingId && _editingType === 'task') {
+    isEdit = true;
+    showToast('Updating task...');
+    result = await EAS_DB.updateTask(_editingId, task);
+    _editingId = null; _editingType = null;
+    document.querySelector('#modal-task .modal h3').textContent = 'Log AI Task';
+    document.querySelector('#modal-task .btn-primary').textContent = 'Save Task';
+  } else {
+    showToast('Saving task...');
+    result = await EAS_DB.insertTask(task);
+  }
+  if (!result) { showToast('Failed to save task — check console', 'error'); return; }
+  // Refresh data from Supabase
+  const selectedQuarter = EAS_DB.getSelectedQuarter();
+  data = await EAS_DB.fetchAllData(selectedQuarter);
+  EAS_Utils.sanitizeDataset(data);
+  showToast(isEdit ? 'Task updated!' : 'Task logged successfully!');
   renderDashboard();
+  renderTasks();
   updateNavCounts();
+  // Reset form
+  document.getElementById('f-practice').selectedIndex = 0;
+  document.getElementById('f-week').value = '1';
+  document.getElementById('f-weekstart').value = '';
+  document.getElementById('f-weekend').value = '';
+  document.getElementById('f-employee').value = '';
+  document.getElementById('f-task').value = '';
+  document.getElementById('f-time-without').value = '';
+  document.getElementById('f-time-with').value = '';
+  document.getElementById('f-quality').value = '';
+  document.getElementById('f-notes').value = '';
 }
 
-function saveAccomplishment() {
+async function saveAccomplishment() {
+  const practice = document.getElementById('fa-practice').value;
+  if (!practice) { showToast('Please select a practice', 'error'); return; }
   const acc = {
-    id: String(data.accomplishments.length + 1),
     date: document.getElementById('fa-date').value,
-    practice: document.getElementById('fa-practice').value,
+    practice,
     project: document.getElementById('fa-project').value,
     projectCode: '',
     spoc: document.getElementById('fa-spoc').value,
@@ -992,75 +1018,208 @@ function saveAccomplishment() {
     evidence: '',
     notes: ''
   };
-  data.accomplishments.push(acc);
   closeModal('accomplishment');
-  showToast('Accomplishment added!');
+
+  let result;
+  let isEdit = false;
+  if (_editingId && _editingType === 'accomplishment') {
+    isEdit = true;
+    showToast('Updating accomplishment...');
+    result = await EAS_DB.updateAccomplishment(_editingId, acc);
+    _editingId = null; _editingType = null;
+    document.querySelector('#modal-accomplishment .modal h3').textContent = 'Log Accomplishment';
+    document.querySelector('#modal-accomplishment .btn-primary').textContent = 'Save';
+  } else {
+    showToast('Saving accomplishment...');
+    result = await EAS_DB.insertAccomplishment(acc);
+  }
+  if (!result) { showToast('Failed to save accomplishment — check console', 'error'); return; }
+  const selectedQuarter = EAS_DB.getSelectedQuarter();
+  data = await EAS_DB.fetchAllData(selectedQuarter);
+  EAS_Utils.sanitizeDataset(data);
+  showToast(isEdit ? 'Accomplishment updated!' : 'Accomplishment added!');
+  renderAccomplishments();
   updateNavCounts();
+  // Reset form
+  document.getElementById('fa-date').value = '';
+  document.getElementById('fa-practice').selectedIndex = 0;
+  document.getElementById('fa-project').value = '';
+  document.getElementById('fa-spoc').value = '';
+  document.getElementById('fa-employees').value = '';
+  document.getElementById('fa-title').value = '';
+  document.getElementById('fa-details').value = '';
+  document.getElementById('fa-before').value = '';
+  document.getElementById('fa-after').value = '';
+  document.getElementById('fa-impact').value = '';
+  document.getElementById('fa-gains').value = '';
+  document.getElementById('fa-effort').value = '';
 }
 
-function saveCopilotUser() {
+async function saveCopilotUser() {
+  const practice = document.getElementById('fc-practice').value;
+  if (!practice) { showToast('Please select a practice', 'error'); return; }
   const user = {
-    practice: document.getElementById('fc-practice').value,
+    practice,
     name: document.getElementById('fc-name').value,
     email: document.getElementById('fc-email').value,
     skill: document.getElementById('fc-skill').value,
-    remarks: document.getElementById('fc-status').value
+    remarks: document.getElementById('fc-status').value,
+    status: document.getElementById('fc-status').value
   };
-  data.copilotUsers.push(user);
   closeModal('copilot');
-  showToast('Copilot user added!');
+
+  let result;
+  let isEdit = false;
+  if (_editingId && _editingType === 'copilot') {
+    isEdit = true;
+    showToast('Updating copilot user...');
+    result = await EAS_DB.updateCopilotUser(_editingId, user);
+    _editingId = null; _editingType = null;
+    document.querySelector('#modal-copilot .modal h3').textContent = 'Add Copilot User';
+    document.querySelector('#modal-copilot .btn-primary').textContent = 'Save';
+  } else {
+    showToast('Saving copilot user...');
+    result = await EAS_DB.insertCopilotUser(user);
+  }
+  if (!result) { showToast('Failed to save copilot user — check console', 'error'); return; }
+  const selectedQuarter = EAS_DB.getSelectedQuarter();
+  data = await EAS_DB.fetchAllData(selectedQuarter);
+  EAS_Utils.sanitizeDataset(data);
+  showToast(isEdit ? 'Copilot user updated!' : 'Copilot user added!');
   renderCopilot();
   updateNavCounts();
+  // Reset form
+  document.getElementById('fc-practice').selectedIndex = 0;
+  document.getElementById('fc-name').value = '';
+  document.getElementById('fc-email').value = '';
+  document.getElementById('fc-skill').value = '';
 }
 
-// ======== EXCEL UPLOAD ========
-function handleExcelUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const wb = XLSX.read(e.target.result, { type: 'array' });
-      // Parse tasks from practice sheets
-      const practices = ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
-      let newTasks = [];
-      practices.forEach(sheet => {
-        if (!wb.SheetNames.includes(sheet)) return;
-        const ws = wb.Sheets[sheet];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-        let headerIdx = -1;
-        for (let i = 0; i < rows.length; i++) {
-          if (rows[i] && String(rows[i][0]).trim() === 'Week #') { headerIdx = i; break; }
-        }
-        if (headerIdx < 0) return;
-        for (let i = headerIdx + 1; i < rows.length; i++) {
-          const r = rows[i];
-          if (!r || !r[0] || String(r[0]).trim() === '') continue;
-          newTasks.push({
-            practice: sheet, week: String(r[0] || ''), weekStart: String(r[1] || ''), weekEnd: String(r[2] || ''),
-            project: String(r[3] || ''), projectCode: String(r[4] || ''), employee: String(r[5] || ''),
-            task: String(r[6] || ''), category: String(r[7] || ''), aiTool: String(r[8] || ''),
-            prompt: String(r[9] || ''), timeWithout: parseFloat(r[10]) || 0, timeWith: parseFloat(r[11]) || 0,
-            timeSaved: parseFloat(r[12]) || 0, efficiency: parseFloat(r[13]) || 0,
-            quality: parseFloat(r[14]) || 0, status: String(r[15] || ''), notes: String(r[16] || '')
-          });
-        }
-      });
-      if (newTasks.length > 0) {
-        data.tasks = newTasks;
-        recalcSummary();
-        showToast(`Imported ${newTasks.length} tasks from Excel!`);
-        renderDashboard();
-        updateNavCounts();
-      } else {
-        showToast('No tasks found in uploaded file', 'error');
-      }
-    } catch (err) {
-      showToast('Error reading file: ' + err.message, 'error');
-    }
-    input.value = '';
+// ======== CONFIRM DIALOG ========
+function confirmAction(title, message, callback) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-message').textContent = message;
+  document.getElementById('confirm-btn').onclick = async () => {
+    closeModal('confirm');
+    await callback();
   };
-  reader.readAsArrayBuffer(file);
+  openModal('confirm');
+}
+
+// ======== EDIT / DELETE HANDLERS ========
+let _editingId = null;
+let _editingType = null;
+
+function editTask(id) {
+  const task = data.tasks.find(t => t.id === id);
+  if (!task) return;
+  _editingId = id;
+  _editingType = 'task';
+  // Pre-fill form
+  document.getElementById('f-practice').value = task.practice || '';
+  document.getElementById('f-week').value = task.week || '';
+  document.getElementById('f-weekstart').value = task.weekStart || '';
+  document.getElementById('f-weekend').value = task.weekEnd || '';
+  document.getElementById('f-project').value = task.project || '';
+  document.getElementById('f-employee').value = task.employee || '';
+  document.getElementById('f-task').value = task.task || '';
+  document.getElementById('f-category').value = task.category || '';
+  document.getElementById('f-tool').value = task.aiTool || '';
+  document.getElementById('f-time-without').value = task.timeWithout || '';
+  document.getElementById('f-time-with').value = task.timeWith || '';
+  document.getElementById('f-quality').value = task.quality || '';
+  document.getElementById('f-status').value = task.status || 'Pending';
+  document.getElementById('f-notes').value = task.notes || '';
+  // Update modal title
+  document.querySelector('#modal-task .modal h3').textContent = 'Edit Task';
+  document.querySelector('#modal-task .btn-primary').textContent = 'Update Task';
+  openModal('task');
+}
+
+function deleteTaskConfirm(id) {
+  const task = data.tasks.find(t => t.id === id);
+  confirmAction('Delete Task', `Are you sure you want to delete "${task?.task || 'this task'}"? This cannot be undone.`, async () => {
+    showToast('Deleting task...');
+    const ok = await EAS_DB.deleteTask(id);
+    if (!ok) { showToast('Failed to delete task', 'error'); return; }
+    const selectedQuarter = EAS_DB.getSelectedQuarter();
+    data = await EAS_DB.fetchAllData(selectedQuarter);
+    EAS_Utils.sanitizeDataset(data);
+    showToast('Task deleted');
+    renderDashboard();
+    renderTasks();
+    updateNavCounts();
+  });
+}
+
+function editAccomplishment(id) {
+  const acc = data.accomplishments.find(a => a.id === id);
+  if (!acc) return;
+  _editingId = id;
+  _editingType = 'accomplishment';
+  document.getElementById('fa-date').value = acc.date || '';
+  document.getElementById('fa-practice').value = acc.practice || '';
+  document.getElementById('fa-project').value = acc.project || '';
+  document.getElementById('fa-spoc').value = acc.spoc || '';
+  document.getElementById('fa-employees').value = acc.employees || '';
+  document.getElementById('fa-title').value = acc.title || '';
+  document.getElementById('fa-details').value = acc.details || '';
+  document.getElementById('fa-tool').value = acc.aiTool || '';
+  document.getElementById('fa-category').value = acc.category || '';
+  document.getElementById('fa-before').value = acc.before || '';
+  document.getElementById('fa-after').value = acc.after || '';
+  document.getElementById('fa-impact').value = acc.impact || '';
+  document.getElementById('fa-gains').value = acc.businessGains || '';
+  document.getElementById('fa-effort').value = acc.effortSaved || '';
+  document.getElementById('fa-status').value = acc.status || 'Completed';
+  document.querySelector('#modal-accomplishment .modal h3').textContent = 'Edit Accomplishment';
+  document.querySelector('#modal-accomplishment .btn-primary').textContent = 'Update';
+  openModal('accomplishment');
+}
+
+function deleteAccomplishmentConfirm(id) {
+  const acc = data.accomplishments.find(a => a.id === id);
+  confirmAction('Delete Accomplishment', `Are you sure you want to delete "${acc?.title || 'this accomplishment'}"? This cannot be undone.`, async () => {
+    showToast('Deleting accomplishment...');
+    const ok = await EAS_DB.deleteAccomplishment(id);
+    if (!ok) { showToast('Failed to delete accomplishment', 'error'); return; }
+    const selectedQuarter = EAS_DB.getSelectedQuarter();
+    data = await EAS_DB.fetchAllData(selectedQuarter);
+    EAS_Utils.sanitizeDataset(data);
+    showToast('Accomplishment deleted');
+    renderAccomplishments();
+    updateNavCounts();
+  });
+}
+
+function editCopilotUser(id) {
+  const user = data.copilotUsers.find(u => u.id === id);
+  if (!user) return;
+  _editingId = id;
+  _editingType = 'copilot';
+  document.getElementById('fc-practice').value = user.practice || '';
+  document.getElementById('fc-name').value = user.name || '';
+  document.getElementById('fc-email').value = user.email || '';
+  document.getElementById('fc-skill').value = user.skill || '';
+  document.getElementById('fc-status').value = user.remarks || user.status || 'access granted';
+  document.querySelector('#modal-copilot .modal h3').textContent = 'Edit Copilot User';
+  document.querySelector('#modal-copilot .btn-primary').textContent = 'Update';
+  openModal('copilot');
+}
+
+function deleteCopilotUserConfirm(id) {
+  const user = data.copilotUsers.find(u => u.id === id);
+  confirmAction('Delete Copilot User', `Are you sure you want to remove "${user?.name || 'this user'}" from copilot access? This cannot be undone.`, async () => {
+    showToast('Deleting copilot user...');
+    const ok = await EAS_DB.deleteCopilotUser(id);
+    if (!ok) { showToast('Failed to delete copilot user', 'error'); return; }
+    const selectedQuarter = EAS_DB.getSelectedQuarter();
+    data = await EAS_DB.fetchAllData(selectedQuarter);
+    EAS_Utils.sanitizeDataset(data);
+    showToast('Copilot user removed');
+    renderCopilot();
+    updateNavCounts();
+  });
 }
 
 // ======== EXCEL EXPORT ========

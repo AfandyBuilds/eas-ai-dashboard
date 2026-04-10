@@ -362,6 +362,275 @@ const EAS_DB = (() => {
   }
 
   // ===========================================================
+  // Write Operations — Phase 4: CRUD
+  // ===========================================================
+
+  /**
+   * Insert a new task into Supabase.
+   * Accepts camelCase form data, maps to snake_case DB columns.
+   * time_saved & efficiency are GENERATED columns — never sent.
+   * @returns {object|null} Inserted row (camelCase) or null on error.
+   */
+  async function insertTask(taskData) {
+    const profile = await EAS_Auth.getUserProfile();
+    const quarterId = getSelectedQuarter();
+    const payload = {
+      practice:        taskData.practice,
+      week_number:     taskData.week || null,
+      week_start:      taskData.weekStart || null,
+      week_end:        taskData.weekEnd || null,
+      project:         taskData.project || null,
+      project_code:    taskData.projectCode || null,
+      employee_name:   taskData.employee || null,
+      employee_email:  taskData.employeeEmail || null,
+      task_description: taskData.task || null,
+      category:        taskData.category || null,
+      ai_tool:         taskData.aiTool || null,
+      prompt_used:     taskData.prompt || null,
+      time_without_ai: taskData.timeWithout || 0,
+      time_with_ai:    taskData.timeWith || 0,
+      quality_rating:  taskData.quality || null,
+      status:          taskData.status || 'Pending',
+      notes:           taskData.notes || null,
+      quarter_id:      quarterId !== 'all' ? quarterId : (getActiveQuarter()?.id || null),
+      logged_by:       profile?.id || null
+    };
+    const { data, error } = await sb.from('tasks').insert(payload).select().single();
+    if (error) { console.error('insertTask error:', error.message); return null; }
+    await logActivity('INSERT', 'tasks', data.id, { task: payload.task_description });
+    return data;
+  }
+
+  /**
+   * Update an existing task.
+   * @param {string} id — task UUID
+   * @param {object} taskData — camelCase fields to update
+   */
+  async function updateTask(id, taskData) {
+    const payload = {};
+    if (taskData.practice !== undefined)    payload.practice        = taskData.practice;
+    if (taskData.week !== undefined)        payload.week_number     = taskData.week;
+    if (taskData.weekStart !== undefined)   payload.week_start      = taskData.weekStart;
+    if (taskData.weekEnd !== undefined)     payload.week_end        = taskData.weekEnd;
+    if (taskData.project !== undefined)     payload.project         = taskData.project;
+    if (taskData.projectCode !== undefined) payload.project_code    = taskData.projectCode;
+    if (taskData.employee !== undefined)    payload.employee_name   = taskData.employee;
+    if (taskData.employeeEmail !== undefined) payload.employee_email = taskData.employeeEmail;
+    if (taskData.task !== undefined)        payload.task_description = taskData.task;
+    if (taskData.category !== undefined)    payload.category        = taskData.category;
+    if (taskData.aiTool !== undefined)      payload.ai_tool         = taskData.aiTool;
+    if (taskData.prompt !== undefined)      payload.prompt_used     = taskData.prompt;
+    if (taskData.timeWithout !== undefined) payload.time_without_ai = taskData.timeWithout;
+    if (taskData.timeWith !== undefined)    payload.time_with_ai    = taskData.timeWith;
+    if (taskData.quality !== undefined)     payload.quality_rating  = taskData.quality;
+    if (taskData.status !== undefined)      payload.status          = taskData.status;
+    if (taskData.notes !== undefined)       payload.notes           = taskData.notes;
+
+    const { data, error } = await sb.from('tasks').update(payload).eq('id', id).select().single();
+    if (error) { console.error('updateTask error:', error.message); return null; }
+    await logActivity('UPDATE', 'tasks', id, payload);
+    return data;
+  }
+
+  /**
+   * Delete a task by ID.
+   */
+  async function deleteTask(id) {
+    const { error } = await sb.from('tasks').delete().eq('id', id);
+    if (error) { console.error('deleteTask error:', error.message); return false; }
+    await logActivity('DELETE', 'tasks', id);
+    return true;
+  }
+
+  /**
+   * Insert a new accomplishment.
+   */
+  async function insertAccomplishment(accData) {
+    const profile = await EAS_Auth.getUserProfile();
+    const quarterId = getSelectedQuarter();
+    const payload = {
+      date:             accData.date || null,
+      practice:         accData.practice,
+      project:          accData.project || null,
+      project_code:     accData.projectCode || null,
+      spoc:             accData.spoc || null,
+      employees:        accData.employees || null,
+      title:            accData.title || null,
+      details:          accData.details || null,
+      ai_tool:          accData.aiTool || null,
+      category:         accData.category || null,
+      before_baseline:  accData.before || null,
+      after_result:     accData.after || null,
+      quantified_impact: accData.impact || null,
+      business_gains:   accData.businessGains || null,
+      cost:             accData.cost || 'Free of Cost',
+      effort_saved:     accData.effortSaved || 0,
+      status:           accData.status || 'Completed',
+      evidence:         accData.evidence || null,
+      notes:            accData.notes || null,
+      quarter_id:       quarterId !== 'all' ? quarterId : (getActiveQuarter()?.id || null),
+      logged_by:        profile?.id || null
+    };
+    const { data, error } = await sb.from('accomplishments').insert(payload).select().single();
+    if (error) { console.error('insertAccomplishment error:', error.message); return null; }
+    await logActivity('INSERT', 'accomplishments', data.id, { title: payload.title });
+    return data;
+  }
+
+  /**
+   * Update an existing accomplishment.
+   */
+  async function updateAccomplishment(id, accData) {
+    const payload = {};
+    if (accData.date !== undefined)          payload.date             = accData.date;
+    if (accData.practice !== undefined)      payload.practice         = accData.practice;
+    if (accData.project !== undefined)       payload.project          = accData.project;
+    if (accData.projectCode !== undefined)   payload.project_code     = accData.projectCode;
+    if (accData.spoc !== undefined)          payload.spoc             = accData.spoc;
+    if (accData.employees !== undefined)     payload.employees        = accData.employees;
+    if (accData.title !== undefined)         payload.title            = accData.title;
+    if (accData.details !== undefined)       payload.details          = accData.details;
+    if (accData.aiTool !== undefined)        payload.ai_tool          = accData.aiTool;
+    if (accData.category !== undefined)      payload.category         = accData.category;
+    if (accData.before !== undefined)        payload.before_baseline  = accData.before;
+    if (accData.after !== undefined)         payload.after_result     = accData.after;
+    if (accData.impact !== undefined)        payload.quantified_impact = accData.impact;
+    if (accData.businessGains !== undefined) payload.business_gains   = accData.businessGains;
+    if (accData.cost !== undefined)          payload.cost             = accData.cost;
+    if (accData.effortSaved !== undefined)   payload.effort_saved     = accData.effortSaved;
+    if (accData.status !== undefined)        payload.status           = accData.status;
+    if (accData.evidence !== undefined)      payload.evidence         = accData.evidence;
+    if (accData.notes !== undefined)         payload.notes            = accData.notes;
+
+    const { data, error } = await sb.from('accomplishments').update(payload).eq('id', id).select().single();
+    if (error) { console.error('updateAccomplishment error:', error.message); return null; }
+    await logActivity('UPDATE', 'accomplishments', id, payload);
+    return data;
+  }
+
+  /**
+   * Delete an accomplishment by ID.
+   */
+  async function deleteAccomplishment(id) {
+    const { error } = await sb.from('accomplishments').delete().eq('id', id);
+    if (error) { console.error('deleteAccomplishment error:', error.message); return false; }
+    await logActivity('DELETE', 'accomplishments', id);
+    return true;
+  }
+
+  /**
+   * Insert a new copilot user.
+   */
+  async function insertCopilotUser(userData) {
+    const payload = {
+      practice:    userData.practice,
+      name:        userData.name || null,
+      email:       userData.email || null,
+      role_skill:  userData.skill || null,
+      status:      userData.status || 'active',
+      remarks:     userData.remarks || userData.status || null
+    };
+    const { data, error } = await sb.from('copilot_users').insert(payload).select().single();
+    if (error) { console.error('insertCopilotUser error:', error.message); return null; }
+    await logActivity('INSERT', 'copilot_users', data.id, { name: payload.name, email: payload.email });
+    return data;
+  }
+
+  /**
+   * Update an existing copilot user.
+   */
+  async function updateCopilotUser(id, userData) {
+    const payload = {};
+    if (userData.practice !== undefined) payload.practice   = userData.practice;
+    if (userData.name !== undefined)     payload.name       = userData.name;
+    if (userData.email !== undefined)    payload.email      = userData.email;
+    if (userData.skill !== undefined)    payload.role_skill = userData.skill;
+    if (userData.status !== undefined)   payload.status     = userData.status;
+    if (userData.remarks !== undefined)  payload.remarks    = userData.remarks;
+
+    const { data, error } = await sb.from('copilot_users').update(payload).eq('id', id).select().single();
+    if (error) { console.error('updateCopilotUser error:', error.message); return null; }
+    await logActivity('UPDATE', 'copilot_users', id, payload);
+    return data;
+  }
+
+  /**
+   * Delete a copilot user by ID.
+   */
+  async function deleteCopilotUser(id) {
+    const { error } = await sb.from('copilot_users').delete().eq('id', id);
+    if (error) { console.error('deleteCopilotUser error:', error.message); return false; }
+    await logActivity('DELETE', 'copilot_users', id);
+    return true;
+  }
+
+  // ===========================================================
+  // Audit Logging — Phase 4
+  // ===========================================================
+
+  /**
+   * Log an activity to the activity_log table.
+   * @param {string} action   — INSERT, UPDATE, DELETE
+   * @param {string} entity   — table name (tasks, accomplishments, copilot_users)
+   * @param {string} entityId — UUID of the affected row
+   * @param {object} details  — optional JSON payload with change data
+   */
+  async function logActivity(action, entity, entityId, details = {}) {
+    try {
+      const profile = await EAS_Auth.getUserProfile();
+      await sb.from('activity_log').insert({
+        action,
+        entity_type: entity,
+        entity_id:   entityId || null,
+        details:     details,
+        user_id:     profile?.id || null,
+        user_email:  profile?.email || null
+      });
+    } catch (err) {
+      // Logging should never block the main operation
+      console.warn('logActivity failed:', err.message);
+    }
+  }
+
+  /**
+   * Create a data dump (snapshot) of specified entities.
+   * @param {string} name — descriptive dump name
+   * @param {string[]} entityTypes — ['tasks','accomplishments','copilot_users']
+   * @returns {object|null} — the created dump record
+   */
+  async function createDump(name, entityTypes = ['tasks', 'accomplishments', 'copilot_users']) {
+    const profile = await EAS_Auth.getUserProfile();
+    const dumpData = {};
+    const rowCounts = {};
+
+    for (const entity of entityTypes) {
+      const { data, error } = await sb.from(entity).select('*');
+      if (error) {
+        console.error(`createDump: failed to fetch ${entity}:`, error.message);
+        dumpData[entity] = [];
+        rowCounts[entity] = 0;
+      } else {
+        dumpData[entity] = data || [];
+        rowCounts[entity] = (data || []).length;
+      }
+    }
+
+    const { data: dump, error } = await sb.from('data_dumps').insert({
+      dump_name:    name,
+      dump_type:    'manual',
+      entity_types: entityTypes,
+      data:         dumpData,
+      row_counts:   rowCounts,
+      created_by:   profile?.id || null,
+      notes:        `Created by ${profile?.name || 'unknown'} at ${new Date().toISOString()}`
+    }).select().single();
+
+    if (error) { console.error('createDump error:', error.message); return null; }
+    await logActivity('DUMP', 'data_dumps', dump.id, { name, entityTypes, rowCounts });
+    return dump;
+  }
+
+  // ===========================================================
   // Public API
   // ===========================================================
 
@@ -378,7 +647,7 @@ const EAS_DB = (() => {
     calcDelta,
     formatDelta,
 
-    // Data queries
+    // Data queries (read)
     fetchTasks,
     fetchPracticeSummary,
     fetchQuarterSummary,
@@ -386,6 +655,21 @@ const EAS_DB = (() => {
     fetchCopilotUsers,
     fetchProjects,
     fetchLovs,
-    fetchAllData
+    fetchAllData,
+
+    // Data mutations (write)
+    insertTask,
+    updateTask,
+    deleteTask,
+    insertAccomplishment,
+    updateAccomplishment,
+    deleteAccomplishment,
+    insertCopilotUser,
+    updateCopilotUser,
+    deleteCopilotUser,
+
+    // Audit & dumps
+    logActivity,
+    createDump
   };
 })();

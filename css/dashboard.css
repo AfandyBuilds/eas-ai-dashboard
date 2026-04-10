@@ -525,3 +525,43 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .pagination-bar button.active { background: var(--accent); color: white; border-color: var(--accent); }
 .pagination-bar button:disabled { opacity: 0.4; cursor: not-allowed; }
 .pagination-bar .page-info { font-size: 12px; color: var(--text-muted); margin: 0 8px; }
+
+/* ---- Action Buttons (Phase 4) ---- */
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  white-space: nowrap;
+}
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+.btn-icon:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.08); }
+.btn-icon.btn-edit:hover { border-color: var(--warning); color: var(--warning); background: rgba(245,158,11,0.08); }
+.btn-icon.btn-delete:hover { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.08); }
+
+/* Danger button (confirmation dialog) */
+.btn-danger {
+  padding: 10px 24px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  background: var(--danger);
+  color: white;
+  transition: all 0.2s;
+}
+.btn-danger:hover { background: #dc2626; transform: translateY(-1px); }

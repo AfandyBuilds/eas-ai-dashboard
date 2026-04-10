@@ -9,11 +9,10 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 | **Dashboard** | https://omarhelal1234.github.io/eas-ai-dashboard/ |
 | **Login** | https://omarhelal1234.github.io/eas-ai-dashboard/login.html |
 | **Signup** | https://omarhelal1234.github.io/eas-ai-dashboard/signup.html |
-| **Admin Panel** | https://omarhelal1234.github.io/eas-ai-dashboard/admin.html |
 
 ## Tech Stack
 
-- **Frontend:** Vanilla HTML/CSS/JS, Chart.js, SheetJS (Excel)
+- **Frontend:** Vanilla HTML/CSS/JS, Chart.js, SheetJS (Excel export)
 - **Backend:** Supabase (PostgreSQL + Auth + RLS)
 - **Hosting:** GitHub Pages (static site)
 - **Design:** Dark theme, Inter font, responsive sidebar navigation
@@ -22,10 +21,10 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 
 ```
 ./
-├── index.html              # Main dashboard (6 pages)
+├── index.html              # Main dashboard (6 pages + inline CRUD)
 ├── login.html              # Authentication page
 ├── signup.html             # Contributor self-registration
-├── admin.html              # Admin panel (CRUD)
+├── admin.html              # Legacy admin panel (deprecated — CRUD merged into dashboard)
 ├── migrate.html            # Browser-based migration tool
 │
 ├── css/
@@ -35,7 +34,7 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 ├── js/
 │   ├── config.js           # Supabase client configuration
 │   ├── auth.js             # Authentication & session management
-│   ├── db.js               # Full Supabase data layer (live queries)
+│   ├── db.js               # Full Supabase data layer (read + write + audit)
 │   └── utils.js            # Shared utilities (formatting, sanitize)
 │
 ├── sql/
@@ -82,9 +81,27 @@ See [docs/ONBOARDING_GUIDE.md](docs/ONBOARDING_GUIDE.md) for full setup instruct
 
 | Role | Access | Example User |
 |------|--------|-------------|
-| **Admin** | Full access, all practices, user management | Omar Ibrahim |
-| **SPOC** | Own practice CRUD, program-level aggregates | Norah Al Wabel (CES) |
-| **Contributor** | View dashboard, log own tasks (Phase 5) | Self-registered users |
+| **Admin** | Full CRUD all practices, data dumps, user management | Omar Ibrahim |
+| **SPOC** | Own practice CRUD (tasks, accomplishments, copilot users) | Norah Al Wabel (CES) |
+| **Contributor** | View dashboard, log own tasks & accomplishments | Self-registered users |
+
+## Changelog
+
+### Phase 4 — Admin Panel & Writes
+- **Supabase CRUD**: All save/edit/delete operations write directly to Supabase (tasks, accomplishments, copilot users)
+- **Edit/Delete UI**: Inline edit and delete buttons on task rows, accomplishment cards, and copilot user rows
+- **Audit logging**: All write operations are logged to `activity_log` table with user ID and details
+- **Data dumps**: Admin can create JSON snapshots of data stored in `data_dumps` table
+- **Excel upload removed**: Replaced by direct Supabase writes (Excel export still available)
+- **Admin panel deprecated**: CRUD functionality merged into main dashboard; admin.html is legacy
+- **Confirmation dialogs**: All destructive actions require user confirmation
+- **Form reset**: Edit modals properly reset titles and form fields
+
+### Phase 3 — Live Data & Cleanup
+- Removed ~3,700 lines of static APP_DATA JSON (77% code reduction)
+- Full Supabase data layer with live queries per quarter
+- Extracted CSS to `css/dashboard.css`
+- Added XSS sanitization and pagination (25 rows/page)
 
 ## License
 
