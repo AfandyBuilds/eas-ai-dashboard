@@ -2226,6 +2226,11 @@ async function boot() {
   EAS_Auth.updateUserDisplay();
   EAS_Auth.applyRoleVisibility();
   
+  // 3b. Show AI Adoption Agent chat toggle for admin/spoc
+  if (typeof window._showAdoptionAgentToggle === 'function') {
+    window._showAdoptionAgentToggle();
+  }
+  
   // Set user avatar initials
   const name = EAS_Auth.getUserName();
   const initials = name ? name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() : '??';
@@ -2687,21 +2692,13 @@ boot();
     }
   };
 
-  // Show toggle button only for admin and spoc roles (after boot)
-  function showAgentForAuthorizedRoles() {
+  // Show toggle button only for admin and spoc roles
+  window._showAdoptionAgentToggle = function() {
     const role = EAS_Auth?.getUserRole?.();
     if (role === 'admin' || role === 'spoc') {
       document.getElementById('adoption-agent-toggle')?.classList.add('visible');
     }
-  }
-
-  // Wait for boot to complete, then show button
-  const origBoot = window.boot || null;
-  if (document.readyState === 'complete') {
-    setTimeout(showAgentForAuthorizedRoles, 500);
-  } else {
-    window.addEventListener('load', () => setTimeout(showAgentForAuthorizedRoles, 500));
-  }
+  };
 
   // Also listen for click
   document.getElementById('adoption-agent-toggle')?.addEventListener('click', window.toggleAdoptionAgent);
