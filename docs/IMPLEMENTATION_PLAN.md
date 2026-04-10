@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 1.3 | **Last Updated:** April 11, 2026
+> **Version:** 1.4 | **Last Updated:** April 12, 2026
 
 ---
 
@@ -14,6 +14,7 @@
 | 1.1 | Apr 5, 2026 | Omar Ibrahim | Phase 1 completed — DB migration |
 | 1.2 | Apr 10, 2026 | Omar Ibrahim | Phase 2 completed — Auth & Quarters; code review & refactoring done |
 | 1.3 | Apr 11, 2026 | Omar Ibrahim | Contributor self-signup feature added (signup.html + signup_contributor RPC) |
+| 1.4 | Apr 12, 2026 | Omar Ibrahim | Phase 3 completed — live Supabase data, CSS extraction, pagination, sanitization |
 
 ---
 
@@ -23,7 +24,7 @@
 |-------|------|--------|----------|-----------------|
 | 1 | Database Migration | ✅ Complete | Mar 20–25 | Supabase schema, data, views, RLS |
 | 2 | Auth & Quarter System | ✅ Complete | Apr 1–10 | Login, roles, quarter filtering |
-| 3 | Live Data & CSS Extraction | 🔲 Planned | Apr 14–28 | Supabase reads, modular CSS, split HTML |
+| 3 | Live Data & CSS Extraction | ✅ Complete | Apr 12 | Supabase reads, modular CSS, pagination |
 | 4 | Admin Panel & Writes | 🔲 Planned | May 1–15 | Supabase Auth for admin, CRUD writes |
 | 5 | SPOC Panel & Gamification | 🔲 Planned | May 18–30 | SPOC dashboard, leaderboard |
 | 6 | Polish & Advanced Features | 🔲 Planned | Jun 1–15 | PDF export, analytics, performance |
@@ -94,46 +95,44 @@
 
 ---
 
-## Phase 3: Live Data & CSS Extraction 🔲
+## Phase 3: Live Data & CSS Extraction ✅
 
-**Status:** Planned | **Target:** Apr 14–28, 2026
+**Status:** Complete | **Completed:** April 12, 2026
 
-### Objectives
+### Deliverables
 
-1. Replace static `APP_DATA` reads with Supabase queries
-2. Extract inline CSS from HTML files into modular stylesheets
-3. Split `index.html` monolith into manageable sections
-4. Integrate `EAS_Utils.sanitize()` into all `innerHTML` calls
+- [x] Removed ~3,700 lines of static `APP_DATA` JSON from index.html
+- [x] Deleted legacy `data.js` file
+- [x] Created `get_practice_summary(p_quarter_id)` Supabase RPC function (quarter-aware)
+- [x] Rewrote `js/db.js` with full Supabase data layer:
+  - `fetchAllData(quarterId)` — parallel fetches all 6 data types
+  - `fetchTasks()`, `fetchAccomplishments()`, `fetchCopilotUsers()`, `fetchProjects()`, `fetchLovs()`, `fetchPracticeSummary()`
+  - snake_case → camelCase transform layer (preserves render function compatibility)
+- [x] Rewired `boot()` to fetch live data from Supabase before rendering
+- [x] Quarter-change handler re-fetches all data from server (no client-side cache)
+- [x] Removed client-side quarter filtering (`getFilteredData()` now returns server-filtered data)
+- [x] Removed `recalcFilteredSummary()` (server provides pre-computed summaries)
+- [x] Extracted 525-line inline CSS to `css/dashboard.css`
+- [x] Added `EAS_Utils.sanitizeDataset()` for XSS prevention on all fetched data
+- [x] Added pagination to tasks table (25 rows/page with navigation)
+- [x] Added null guards to all render functions
+- [x] index.html reduced from ~5,474 lines to ~1,235 lines (77% reduction)
 
-### Tasks
+### Size Impact
 
-| # | Task | Est. Hours | Priority |
-|---|------|-----------|----------|
-| 3.1 | Replace dashboard data reads with Supabase `fetchPracticeSummary()` | 8h | P1 |
-| 3.2 | Replace task list reads with Supabase `fetchTasks()` | 6h | P1 |
-| 3.3 | Replace accomplishment reads with Supabase queries | 4h | P1 |
-| 3.4 | Replace copilot user reads with Supabase queries | 4h | P1 |
-| 3.5 | Replace project reads with Supabase queries | 3h | P1 |
-| 3.6 | Extract `index.html` inline CSS to `css/dashboard.css` | 6h | P2 |
-| 3.7 | Extract `login.html` inline CSS to `css/login.css` | 2h | P2 |
-| 3.8 | Extract `admin.html` inline CSS to `css/admin.css` | 3h | P2 |
-| 3.9 | Add `sanitize()` to all innerHTML assignments | 4h | P1 |
-| 3.10 | Add loading states and error handling for API calls | 4h | P2 |
-| 3.11 | Add table pagination (tasks, copilot users) | 4h | P2 |
-| 3.12 | Replace `EAS_Utils` usage for duplicate functions in index.html | 3h | P2 |
+| File | Before | After | Change |
+|------|--------|-------|--------|
+| `index.html` | 5,474 lines | 1,235 lines | -77% |
+| `js/db.js` | 205 lines | 392 lines | +91% (full data layer) |
+| `js/utils.js` | 161 lines | 182 lines | +13% (sanitizeDataset) |
+| `css/dashboard.css` | — | 380 lines | New file |
+| `data.js` | 3,717 lines | — | Deleted |
 
-### Acceptance Criteria
+### New Supabase Function
 
-- [ ] Dashboard loads data from Supabase, not APP_DATA
-- [ ] Quarter switching queries Supabase or filters cached data
-- [ ] No inline `<style>` blocks in HTML files (except minimal critical CSS)
-- [ ] All user-facing text rendered via sanitize()
-- [ ] Tables paginate at 50 rows
-
-### Dependencies
-
-- Supabase database operational (Phase 1 ✅)
-- Auth system working (Phase 2 ✅)
+| Function | Type | Purpose |
+|----------|------|--------|
+| `get_practice_summary(p_quarter_id text)` | SECURITY INVOKER | Returns practice-level aggregated stats, optionally filtered by quarter |
 
 ---
 

@@ -27,15 +27,15 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 ├── signup.html             # Contributor self-registration
 ├── admin.html              # Admin panel (CRUD)
 ├── migrate.html            # Browser-based migration tool
-├── data.js                 # Static data backup (legacy)
 │
 ├── css/
-│   └── variables.css       # Shared design tokens & base styles
+│   ├── variables.css       # Shared design tokens & base styles
+│   └── dashboard.css       # Dashboard component styles (extracted Phase 3)
 │
 ├── js/
 │   ├── config.js           # Supabase client configuration
 │   ├── auth.js             # Authentication & session management
-│   ├── db.js               # Quarter-aware data layer
+│   ├── db.js               # Full Supabase data layer (live queries)
 │   └── utils.js            # Shared utilities (formatting, sanitize)
 │
 ├── sql/

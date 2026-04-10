@@ -66,6 +66,26 @@ const EAS_Utils = (() => {
   }
 
   /**
+   * Deep-sanitize the full dashboard dataset from fetchAllData().
+   * Escapes all user-controlled strings to prevent XSS via innerHTML.
+   */
+  function sanitizeDataset(dataset) {
+    if (!dataset) return dataset;
+    if (dataset.tasks) dataset.tasks = dataset.tasks.map(sanitizeObj);
+    if (dataset.accomplishments) dataset.accomplishments = dataset.accomplishments.map(sanitizeObj);
+    if (dataset.copilotUsers) dataset.copilotUsers = dataset.copilotUsers.map(sanitizeObj);
+    if (dataset.projects) dataset.projects = dataset.projects.map(sanitizeObj);
+    if (dataset.summary && dataset.summary.practices) {
+      dataset.summary.practices = dataset.summary.practices.map(sanitizeObj);
+    }
+    if (dataset.lovs) {
+      if (dataset.lovs.taskCategories) dataset.lovs.taskCategories = dataset.lovs.taskCategories.map(s => sanitize(s));
+      if (dataset.lovs.aiTools) dataset.lovs.aiTools = dataset.lovs.aiTools.map(s => sanitize(s));
+    }
+    return dataset;
+  }
+
+  /**
    * Map practice name aliases to canonical names.
    * data.js uses abbreviations; Supabase uses full names.
    */
@@ -150,6 +170,7 @@ const EAS_Utils = (() => {
     showToast,
     sanitize,
     sanitizeObj,
+    sanitizeDataset,
     mapPracticeToShort,
     mapPracticeToLong,
     practiceColors,

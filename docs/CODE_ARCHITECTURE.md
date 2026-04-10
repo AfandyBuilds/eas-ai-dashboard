@@ -1,6 +1,6 @@
 # Code Architecture — EAS AI Dashboard
 
-> **Last Updated:** April 11, 2026 | **Phase:** 2 (Auth + Quarters + Signup) Complete
+> **Last Updated:** April 12, 2026 | **Phase:** 3 (Live Data & CSS Extraction) Complete
 
 ---
 
@@ -50,7 +50,7 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 ```
 ./
 │
-├── index.html              # Main app shell — 6 in-page views
+├── index.html              # Main app shell — 6 in-page views (~1,200 lines)
 │                           # Dashboard, Practices, Tasks,
 │                           # Accomplishments, Copilot, Projects
 │
@@ -58,11 +58,10 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 ├── signup.html             # Contributor self-registration (2-step form)
 ├── admin.html              # Admin CRUD panel (legacy static auth)
 ├── migrate.html            # One-time data migration tool
-├── data.js                 # Static data.js (backup/legacy)
 │
 ├── css/
-│   └── variables.css       # Design tokens, base reset, shared components
-│                           # :root variables, buttons, badges, toasts
+│   ├── variables.css       # Design tokens, base reset, shared components
+│   └── dashboard.css       # Dashboard component styles (sidebar, KPIs, charts, tables, modals)
 │
 ├── js/
 │   ├── config.js           # Supabase URL + anon key + client factory
@@ -132,8 +131,8 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 |--------|-------------|----------------|
 | `config.js` | `getSupabaseClient()` | Supabase client singleton |
 | `auth.js` | `EAS_Auth` | Session management, role checks, auth guards, UI visibility |
-| `db.js` | `EAS_DB` | Quarter loading/selection, client-side data filtering, Supabase queries |
-| `utils.js` | `EAS_Utils` | Formatting, XSS sanitization, practice mappings, chart colors, date parsing |
+| `db.js` | `EAS_DB` | Quarter loading/selection, full Supabase data layer (fetchAllData, per-entity fetches) |
+| `utils.js` | `EAS_Utils` | Formatting, XSS sanitization (sanitize, sanitizeObj, sanitizeDataset), practice mappings, chart colors, date parsing |
 
 ### Load Order (Critical)
 
@@ -176,6 +175,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `get_user_role()` | SQL | Returns role of currently authenticated user from `users` |
 | `get_user_practice()` | SQL | Returns practice of currently authenticated user from `users` |
 | `signup_contributor()` | SECURITY DEFINER | Creates `users` row + `copilot_users` row for new contributor signups |
+| `get_practice_summary()` | SECURITY INVOKER | Quarter-aware practice summary (replaces view for filtered queries) |
 
 #### `signup_contributor()` Parameters
 
@@ -259,17 +259,51 @@ User → signup.html
 
 ---
 
-## 6. Data Flow (Current: Hybrid)
+## 6. Data Flow (Phase 3: Full Supabase)
 
-Currently in a **transitional hybrid state**:
-- **Auth + Quarters** → Read from Supabase
-- **Tasks, Accomplishments, etc.** → Read from inline `APP_DATA` (static)
-
-### Phase 3 Target: Full Supabase
+All dashboard data is now fetched live from Supabase:
 
 ```
-index.html → EAS_DB.fetchTasks(quarter) → Supabase API → RLS → PostgreSQL
+boot() → EAS_DB.fetchAllData(quarterId)
+       │
+       ├─ fetchPracticeSummary() via RPC get_practice_summary()
+       ├─ fetchTasks()            via tasks table (quarter-filtered)
+       ├─ fetchAccomplishments()  via accomplishments table (quarter-filtered)
+       ├─ fetchCopilotUsers()     via copilot_users table (all quarters)
+       ├─ fetchProjects()         via projects table (all quarters)
+       └─ fetchLovs()             via lovs table
+       │
+       ▼
+  EAS_Utils.sanitizeDataset(data)  →  XSS-safe data object
+       │
+       ▼
+  renderDashboard() / renderTasks() / etc.
 ```
+
+### Quarter Switching
+
+When the user changes the quarter selector:
+1. `quarter-changed` event fires
+2. `EAS_DB.fetchAllData(newQuarter)` re-fetches all data
+3. Data is sanitized and stored in `data` variable
+4. All visible pages re-render
+
+### Data Shape
+
+The `fetchAllData()` function returns an object matching the legacy APP_DATA structure:
+
+```js
+{
+  summary: { practices: [...], totals: {...} },
+  tasks: [...],
+  accomplishments: [...],
+  copilotUsers: [...],
+  projects: [...],
+  lovs: { taskCategories: [...], aiTools: [...] }
+}
+```
+
+The db.js transform layer converts snake_case DB columns to camelCase, ensuring render functions work unchanged.
 
 ---
 
@@ -282,7 +316,8 @@ All colors, spacing, and component styles are defined as CSS custom properties i
 ### Style Scoping
 
 - `variables.css` — Shared globally (imported by all pages)
-- Inline `<style>` blocks — Page-specific styles (remaining in each HTML file)
+- `dashboard.css` — Dashboard-specific component styles (extracted from inline `<style>` in Phase 3)
+- Inline `<style>` blocks — Remaining in login.html and admin.html (to be extracted in Phase 4)
 
 ### Color System
 
@@ -321,13 +356,15 @@ Role checks via `EAS_Auth.isAdmin()` control **UI visibility only**. Actual data
 
 | # | Issue | Priority | Target Phase |
 |---|-------|----------|--------------|
-| 1 | `index.html` is ~5,400 lines (monolith) | HIGH | Phase 3 |
+| 1 | ~~`index.html` is ~5,400 lines (monolith)~~ Reduced to ~1,200 lines | ~~HIGH~~ DONE | Phase 3 ✅ |
 | 2 | `admin.html` uses hardcoded auth, not Supabase | HIGH | Phase 4 |
-| 3 | Dashboard reads static `APP_DATA`, not Supabase | HIGH | Phase 3 |
-| 4 | CSS partially duplicated across HTML files | MEDIUM | Phase 3 |
-| 5 | `data.js` summary rows contaminate task data | MEDIUM | Phase 3 |
-| 6 | No pagination on tables | LOW | Phase 4 |
+| 3 | ~~Dashboard reads static `APP_DATA`, not Supabase~~ Now reads live from Supabase | ~~HIGH~~ DONE | Phase 3 ✅ |
+| 4 | ~~CSS partially duplicated across HTML files~~ dashboard.css extracted | ~~MEDIUM~~ DONE | Phase 3 ✅ |
+| 5 | ~~`data.js` summary rows contaminate task data~~ data.js removed | ~~MEDIUM~~ DONE | Phase 3 ✅ |
+| 6 | ~~No pagination on tables~~ Tasks table paginated (25/page) | ~~LOW~~ DONE | Phase 3 ✅ |
 | 7 | No error boundary on boot failure | LOW | Phase 6 |
+| 8 | Save functions (task/accomplishment/copilot) write to in-memory only | HIGH | Phase 4 |
+| 9 | login.html / admin.html CSS still inline | MEDIUM | Phase 4 |
 
 ---
 
