@@ -3,13 +3,13 @@
 # EAS AI Adoption Dashboard
 
 > **Version:** 1.1 | **Date:** April 11, 2026 | **Author:** Omar Ibrahim  
-> **Department:** Ejada Advanced Solutions (EAS) | **Sponsor:** EAS Leadership
+> **Department:** Enterprise Application Solutions (EAS) | **Sponsor:** EAS Leadership
 
 ---
 
 ## 1. Executive Summary
 
-The EAS AI Adoption Dashboard is a web-based platform to track, measure, and drive AI tool adoption across Ejada's EAS department. It replaces manual Excel-based tracking with a real-time, multi-role dashboard that provides visibility into AI usage, productivity gains, and adoption gaps across 6 practices and 120+ licensed users.
+The EAS AI Adoption Dashboard is a web-based platform to track, measure, and drive AI tool adoption across Ejada’s Enterprise Application Solutions (EAS) department. It replaces manual Excel-based tracking with a real-time, multi-role dashboard that provides visibility into AI usage, productivity gains, and adoption gaps across 6 practices and 120+ licensed users.
 
 ### Business Objectives
 

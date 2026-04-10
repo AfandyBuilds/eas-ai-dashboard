@@ -6,7 +6,7 @@
 
 ## 1. System Overview
 
-The EAS AI Dashboard is a **static-first web application** hosted on GitHub Pages with a Supabase (PostgreSQL) backend. It tracks AI tool adoption across 6 practices in Ejada's EAS department.
+The EAS AI Dashboard is a **static-first web application** hosted on GitHub Pages with a Supabase (PostgreSQL) backend. It tracks AI tool adoption across 6 practices in Ejada’s Enterprise Application Solutions (EAS) department.
 
 ### Architecture Pattern
 

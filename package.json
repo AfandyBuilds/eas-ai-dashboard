@@ -1,7 +1,7 @@
 {
   "name": "eas-ai-dashboard",
   "version": "1.0.0",
-  "description": "A web-based dashboard for tracking AI adoption across Ejada's EAS department.",
+  "description": "A web-based dashboard for tracking AI adoption across Ejada's Enterprise Application Solutions (EAS) department.",
   "main": "data.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

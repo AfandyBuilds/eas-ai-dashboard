@@ -1,6 +1,6 @@
 # EAS AI Adoption Dashboard
 
-Enterprise AI adoption tracking platform for Ejada Advanced Solutions (EAS), covering 6 practices and 120+ licensed users across GitHub Copilot, Claude, ChatGPT, and other AI tools.
+Enterprise AI adoption tracking platform for Enterprise Application Solutions (EAS), covering 6 practices and 120+ licensed users across GitHub Copilot, Claude, ChatGPT, and other AI tools.
 
 ## Live URLs
 
@@ -86,4 +86,4 @@ See [docs/ONBOARDING_GUIDE.md](docs/ONBOARDING_GUIDE.md) for full setup instruct
 
 ## License
 
-Internal — Ejada Advanced Solutions © 2026
+Internal — Enterprise Application Solutions © 2026
