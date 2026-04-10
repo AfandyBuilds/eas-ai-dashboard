@@ -21,8 +21,8 @@
 | User | Email | Password | Role | Practice |
 |------|-------|----------|------|----------|
 | Omar Ibrahim | oibrahim@ejada.com | *(contact admin)* | Admin | BFSI |
-| Norah Al Wabel | nalwabel@ejada.com | EAS@2026! | SPOC | CES |
-| Reham Ibrahim | ribrahim@ejada.com | EAS@2026! | SPOC | ERP |
+| Norah Al Wabel | norah.alwabel@ejada.com | EAS@2026! | SPOC | CES |
+| Reham Ibrahim | reham.ibrahim@ejada.com | EAS@2026! | SPOC | ERP |
 | Yousef Milhem | ymilhem@ejada.com | EAS@2026! | SPOC | EPS |
 | Mohamed Essam | messam@ejada.com | EAS@2026! | SPOC | GRC |
 | Ahmed Shaheen | ashaheen@ejada.com | EAS@2026! | SPOC | EPCS |

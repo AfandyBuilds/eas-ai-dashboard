@@ -210,12 +210,12 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 
 | Entity | Key Fields | Relationships |
 |--------|-----------|---------------|
-| Tasks | practice, employee, category, ai_tool, times, quality | → quarter, practice |
-| Accomplishments | practice, title, impact, gains | → quarter, practice |
-| Copilot Users | name, email, practice, status | → practice |
-| Projects | name, customer, value, dates | → practice |
-| Users | email, role, practice | → auth.users |
-| Quarters | id, dates, targets, is_active | — |
+| Tasks | practice, employee_name, category, ai_tool, time_*, quality_rating | → quarter_id |
+| Accomplishments | practice, title, ai_tool, quantified_impact, business_gains | → quarter_id |
+| Copilot Users | name, email, practice, status, has_logged_task | — |
+| Projects | project_name, project_code, customer, contract_value, practice | — |
+| Users | email, name, role, practice, auth_id | → auth.users |
+| Quarters | id, label, start_date, end_date, is_active, is_locked | — |
 
 ---
 

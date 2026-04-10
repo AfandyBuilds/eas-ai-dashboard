@@ -152,12 +152,13 @@ All database tables have RLS enabled with policies that enforce:
 │  quarters   │       │   practices  │       │    users      │
 │─────────────│       │──────────────│       │───────────────│
 │ id (PK)     │──┐    │ id (PK)      │──┐    │ id (PK)       │
-│ name        │  │    │ name         │  │    │ auth_id (FK)  │
-│ start_date  │  │    │ short_name   │  │    │ email         │
-│ end_date    │  │    │ head         │  │    │ full_name     │
-│ is_active   │  │    │ spoc         │  │    │ role          │
-│ targets     │  │    │ description  │  │    │ practice_id   │
-└─────────────┘  │    └──────────────┘  │    └───────────────┘
+│ label       │  │    │ name         │  │    │ auth_id (FK)  │
+│ start_date  │  │    │ head         │  │    │ email         │
+│ end_date    │  │    │ spoc         │  │    │ name          │
+│ is_active   │  │    └──────────────┘  │    │ role          │
+│ is_locked   │  │                      │    │ practice      │
+│ targets     │  │                      │    │ is_active     │
+└─────────────┘  │                      │    └───────────────┘
                  │                      │
       ┌──────────┴──────────┐           │
       │                     │           │
@@ -165,12 +166,12 @@ All database tables have RLS enabled with policies that enforce:
 │   tasks     │  │accomplishments  │   │
 │─────────────│  │─────────────────│   │
 │ id (PK)     │  │ id (PK)         │   │
-│ quarter_id  │  │ quarter_id (FK) │   │
-│ practice_id │  │ practice_id (FK)│   │
-│ employee    │  │ title           │   │
-│ category    │  │ description     │   │
-│ ai_tool     │  │ impact          │   │
-│ time_*      │  │ gains           │   │
+│ quarter_id  │  │ quarter_id      │   │
+│ practice    │  │ practice        │   │
+│ employee_*  │  │ title           │   │
+│ category    │  │ ai_tool         │   │
+│ ai_tool     │  │ impact/gains    │   │
+│ time_*      │  │ status          │   │
 │ quality_*   │  └─────────────────┘   │
 └─────────────┘                        │
                                        │
@@ -178,11 +179,12 @@ All database tables have RLS enabled with policies that enforce:
 │copilot_users │    │    projects      │
 │──────────────│    │──────────────────│
 │ id (PK)      │    │ id (PK)          │
-│ practice_id  │────│ practice_id (FK) │
-│ name         │    │ name             │
-│ email        │    │ customer         │
-│ status       │    │ value            │
-│ has_logged   │    │ dates            │
+│ practice     │────│ practice         │
+│ name         │    │ project_name     │
+│ email        │    │ project_code     │
+│ status       │    │ customer         │
+│ has_logged_  │    │ contract_value   │
+│  task        │    │ start/end_date   │
 └──────────────┘    └──────────────────┘
 ```
 
