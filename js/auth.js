@@ -22,15 +22,19 @@ const EAS_Auth = (() => {
     return user;
   }
 
-  /** Get user profile from public.users table (cached) */
+  /** Get user profile from public.users table (cached with 5-min TTL) */
   async function getUserProfile(forceRefresh = false) {
     if (_userProfile && !forceRefresh) return _userProfile;
 
-    // Try localStorage cache first
+    // Try localStorage cache with TTL check
     const cached = localStorage.getItem('eas_user_profile');
-    if (cached && !forceRefresh) {
-      _userProfile = JSON.parse(cached);
-      return _userProfile;
+    const cachedAt = localStorage.getItem('eas_user_profile_ts');
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+    if (cached && cachedAt && !forceRefresh) {
+      if (Date.now() - parseInt(cachedAt) < CACHE_TTL) {
+        _userProfile = JSON.parse(cached);
+        return _userProfile;
+      }
     }
 
     const user = await getUser();
@@ -42,10 +46,14 @@ const EAS_Auth = (() => {
       .eq('auth_id', user.id)
       .single();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      console.error('getUserProfile error:', error?.message);
+      return null;
+    }
 
     _userProfile = data;
     localStorage.setItem('eas_user_profile', JSON.stringify(data));
+    localStorage.setItem('eas_user_profile_ts', String(Date.now()));
     return data;
   }
 
@@ -53,6 +61,7 @@ const EAS_Auth = (() => {
   async function signOut() {
     await sb.auth.signOut();
     localStorage.removeItem('eas_user_profile');
+    localStorage.removeItem('eas_user_profile_ts');
     localStorage.removeItem('eas_selected_quarter');
     _currentUser = null;
     _userProfile = null;

@@ -205,37 +205,35 @@ ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
 -- Helper function: get current user's role
 CREATE OR REPLACE FUNCTION get_user_role()
 RETURNS TEXT AS $$
-  SELECT role FROM users WHERE auth_id = auth.uid() LIMIT 1;
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+  SELECT role FROM public.users WHERE auth_id = auth.uid() LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER STABLE
+   SET search_path = public;
 
 -- Helper function: get current user's practice
 CREATE OR REPLACE FUNCTION get_user_practice()
 RETURNS TEXT AS $$
-  SELECT practice FROM users WHERE auth_id = auth.uid() LIMIT 1;
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+  SELECT practice FROM public.users WHERE auth_id = auth.uid() LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER STABLE
+   SET search_path = public;
 
--- ---- PRACTICES: everyone can read ----
-CREATE POLICY "practices_read" ON practices FOR SELECT USING (true);
+-- ---- PRACTICES: authenticated users can read ----
+CREATE POLICY "practices_read" ON practices FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "practices_admin_write" ON practices FOR ALL USING (get_user_role() = 'admin');
 
--- ---- QUARTERS: everyone can read, admin can write ----
-CREATE POLICY "quarters_read" ON quarters FOR SELECT USING (true);
+-- ---- QUARTERS: authenticated users can read, admin can write ----
+CREATE POLICY "quarters_read" ON quarters FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "quarters_admin_write" ON quarters FOR ALL USING (get_user_role() = 'admin');
 
 -- ---- USERS: admin full access, all authenticated can read ----
 CREATE POLICY "users_admin_all" ON users FOR ALL USING (get_user_role() = 'admin');
 CREATE POLICY "users_read_all_authenticated" ON users FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "users_read_own" ON users FOR SELECT USING (auth_id = auth.uid());
 
 -- ---- TASKS ----
 -- Admin: full access
 CREATE POLICY "tasks_admin_all" ON tasks FOR ALL USING (get_user_role() = 'admin');
 -- All authenticated users can read all tasks (dashboard, leaderboard, charts)
 CREATE POLICY "tasks_read_all_authenticated" ON tasks FOR SELECT USING (auth.uid() IS NOT NULL);
--- SPOC: full access to own practice
-CREATE POLICY "tasks_spoc_read" ON tasks FOR SELECT USING (
-  get_user_role() = 'spoc' AND practice = get_user_practice()
-);
+-- SPOC: write access to own practice
 CREATE POLICY "tasks_spoc_write" ON tasks FOR INSERT WITH CHECK (
   get_user_role() = 'spoc' AND practice = get_user_practice()
 );
@@ -245,10 +243,7 @@ CREATE POLICY "tasks_spoc_update" ON tasks FOR UPDATE USING (
 CREATE POLICY "tasks_spoc_delete" ON tasks FOR DELETE USING (
   get_user_role() = 'spoc' AND practice = get_user_practice()
 );
--- Contributor: read own tasks, insert for own practice
-CREATE POLICY "tasks_contributor_read" ON tasks FOR SELECT USING (
-  get_user_role() = 'contributor' AND employee_email = (SELECT email FROM users WHERE auth_id = auth.uid())
-);
+-- Contributor: insert for own practice
 CREATE POLICY "tasks_contributor_insert" ON tasks FOR INSERT WITH CHECK (
   get_user_role() = 'contributor' AND practice = get_user_practice()
 );
@@ -257,9 +252,6 @@ CREATE POLICY "tasks_contributor_insert" ON tasks FOR INSERT WITH CHECK (
 CREATE POLICY "acc_admin_all" ON accomplishments FOR ALL USING (get_user_role() = 'admin');
 -- All authenticated users can read all accomplishments
 CREATE POLICY "acc_read_all_authenticated" ON accomplishments FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "acc_spoc_read" ON accomplishments FOR SELECT USING (
-  get_user_role() = 'spoc' AND practice = get_user_practice()
-);
 CREATE POLICY "acc_spoc_write" ON accomplishments FOR INSERT WITH CHECK (
   get_user_role() = 'spoc' AND practice = get_user_practice()
 );
@@ -269,29 +261,20 @@ CREATE POLICY "acc_spoc_update" ON accomplishments FOR UPDATE USING (
 CREATE POLICY "acc_spoc_delete" ON accomplishments FOR DELETE USING (
   get_user_role() = 'spoc' AND practice = get_user_practice()
 );
-CREATE POLICY "acc_contributor_read" ON accomplishments FOR SELECT USING (
-  get_user_role() = 'contributor' AND practice = get_user_practice()
-);
 
 -- ---- COPILOT USERS ----
 CREATE POLICY "copilot_admin_all" ON copilot_users FOR ALL USING (get_user_role() = 'admin');
 -- All authenticated users can read all copilot users
 CREATE POLICY "copilot_read_all_authenticated" ON copilot_users FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "copilot_spoc_read" ON copilot_users FOR SELECT USING (
-  get_user_role() = 'spoc' AND practice = get_user_practice()
-);
 CREATE POLICY "copilot_spoc_write" ON copilot_users FOR INSERT WITH CHECK (
   get_user_role() = 'spoc' AND practice = get_user_practice()
 );
 CREATE POLICY "copilot_spoc_update" ON copilot_users FOR UPDATE USING (
   get_user_role() = 'spoc' AND practice = get_user_practice()
 );
-CREATE POLICY "copilot_contributor_read" ON copilot_users FOR SELECT USING (
-  get_user_role() = 'contributor' AND practice = get_user_practice()
-);
 
 -- ---- PROJECTS ----
-CREATE POLICY "projects_read" ON projects FOR SELECT USING (true);
+CREATE POLICY "projects_read" ON projects FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "projects_admin_write" ON projects FOR ALL USING (get_user_role() = 'admin');
 CREATE POLICY "projects_spoc_write" ON projects FOR INSERT WITH CHECK (
   get_user_role() = 'spoc' AND practice = get_user_practice()
@@ -300,14 +283,14 @@ CREATE POLICY "projects_spoc_update" ON projects FOR UPDATE USING (
   get_user_role() = 'spoc' AND practice = get_user_practice()
 );
 
--- ---- LOVS: everyone reads, admin writes ----
-CREATE POLICY "lovs_read" ON lovs FOR SELECT USING (true);
+-- ---- LOVS: authenticated users read, admin writes ----
+CREATE POLICY "lovs_read" ON lovs FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "lovs_admin_write" ON lovs FOR ALL USING (get_user_role() = 'admin');
 
--- ---- ACTIVITY LOG: admin reads all, others read own ----
+-- ---- ACTIVITY LOG: admin reads all, others read own, authenticated can insert ----
 CREATE POLICY "activity_admin_read" ON activity_log FOR ALL USING (get_user_role() = 'admin');
 CREATE POLICY "activity_user_read" ON activity_log FOR SELECT USING (user_id = (SELECT id FROM users WHERE auth_id = auth.uid()));
-CREATE POLICY "activity_insert" ON activity_log FOR INSERT WITH CHECK (true);
+CREATE POLICY "activity_insert" ON activity_log FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- ===================== SEED BASE DATA =====================
 

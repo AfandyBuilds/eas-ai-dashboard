@@ -222,17 +222,7 @@ td {
   color: var(--text-secondary);
 }
 tr:hover td { background: var(--bg-translucent); }
-.status-badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.status-completed { background: rgba(16,185,129,0.15); color: var(--success); }
-.status-inprogress { background: rgba(59,130,246,0.15); color: var(--accent); }
-.status-pending { background: rgba(245,158,11,0.15); color: var(--warning); }
-.status-testing { background: rgba(139,92,246,0.15); color: var(--purple); }
+/* .status-badge + variants: defined in variables.css (shared) */
 
 /* Practice Cards */
 .practice-grid {
@@ -258,25 +248,8 @@ tr:hover td { background: var(--bg-translucent); }
 .progress-bar { height: 6px; background: var(--bg-translucent-hover); border-radius: 3px; margin-top: 14px; overflow: hidden; }
 .progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
 
-/* Buttons */
-.btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.btn-primary { background: var(--accent); color: white; }
-.btn-primary:hover { background: var(--accent-hover); }
-.btn-secondary { background: var(--bg-card-hover); color: var(--text-primary); border: 1px solid var(--border); }
-.btn-secondary:hover { border-color: var(--text-muted); }
+/* .btn base + .btn-primary/secondary: defined in variables.css (shared) */
 .btn-success { background: var(--success); color: white; }
-.btn-danger { background: var(--danger); color: white; }
 
 /* Modal */
 .modal-overlay {
@@ -363,29 +336,7 @@ tr:hover td { background: var(--bg-translucent); }
 .acc-impact { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 8px; padding: 12px; margin-top: 12px; }
 .acc-impact-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--success); margin-bottom: 6px; }
 
-/* Toast */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  z-index: 2000;
-  transform: translateY(100px);
-  opacity: 0;
-  transition: all 0.3s ease;
-}
-.toast.show { transform: translateY(0); opacity: 1; }
-.toast-success { background: var(--success); color: white; }
-.toast-error { background: var(--danger); color: white; }
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+/* .toast + scrollbar: defined in variables.css (shared) */
 
 /* Mobile */
 .mobile-toggle { display: none; position: fixed; top: 16px; left: 16px; z-index: 200; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 8px; cursor: pointer; color: var(--text-primary); }
@@ -411,8 +362,7 @@ tr:hover td { background: var(--bg-translucent); }
 .tab { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
 .tab.active { background: var(--accent); color: white; }
 .tab:hover:not(.active) { color: var(--text-primary); }
-
-.hidden { display: none !important; }
+/* .hidden: defined in variables.css (shared) */
 
 /* Quarter Selector */
 .quarter-selector-wrapper {

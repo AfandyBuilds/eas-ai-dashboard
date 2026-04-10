@@ -71,9 +71,16 @@ body {
 }
 
 /* ============================================================
-   Scrollbar
+   Scrollbar (WebKit + Firefox)
    ============================================================ */
 
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari) */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }

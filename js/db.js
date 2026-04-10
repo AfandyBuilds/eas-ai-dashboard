@@ -172,7 +172,7 @@ const EAS_DB = (() => {
    * Returns array matching APP_DATA.tasks shape.
    */
   async function fetchTasks(quarterId) {
-    let query = sb.from('tasks').select('*').order('week_start', { ascending: false });
+    let query = sb.from('tasks').select('*').order('week_start', { ascending: false }).limit(1000);
     if (quarterId && quarterId !== 'all') {
       query = query.eq('quarter_id', quarterId);
     }
@@ -211,7 +211,7 @@ const EAS_DB = (() => {
    * Returns array matching APP_DATA.accomplishments shape.
    */
   async function fetchAccomplishments(quarterId) {
-    let query = sb.from('accomplishments').select('*').order('date', { ascending: false });
+    let query = sb.from('accomplishments').select('*').order('date', { ascending: false }).limit(500);
     if (quarterId && quarterId !== 'all') {
       query = query.eq('quarter_id', quarterId);
     }
@@ -254,7 +254,8 @@ const EAS_DB = (() => {
       .from('copilot_users')
       .select('*')
       .order('practice', { ascending: true })
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .limit(1000);
     if (error) {
       console.error('fetchCopilotUsers error:', error.message);
       return [];
@@ -634,7 +635,7 @@ const EAS_DB = (() => {
     const rowCounts = {};
 
     for (const entity of entityTypes) {
-      const { data, error } = await sb.from(entity).select('*');
+      const { data, error } = await sb.from(entity).select('*').limit(5000);
       if (error) {
         console.error(`createDump: failed to fetch ${entity}:`, error.message);
         dumpData[entity] = [];

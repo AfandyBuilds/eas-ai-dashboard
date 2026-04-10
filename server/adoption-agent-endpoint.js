@@ -1,15 +1,16 @@
 /**
- * EAS AI Adoption Agent — Backend Endpoint
+ * ============================================================
+ * DEPRECATED — This file is no longer used in production.
+ * ============================================================
  * 
- * This endpoint processes queries from the chat widget and returns insights
- * using Claude AI with real-time Supabase data context.
+ * The AI Adoption Agent now runs as a Supabase Edge Function:
+ *   https://apcfnzbiylhgiutcjigg.supabase.co/functions/v1/adoption-agent
  * 
- * Deploy to: Node.js/Express server (or Vercel/Netlify Functions)
+ * Both index.html and admin.html call the Edge Function directly.
+ * This Express server is kept for local development/testing only.
  * 
- * Installation:
- * 1. npm install express cors dotenv @anthropic-ai/sdk @supabase/supabase-js
- * 2. Create .env file with ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY
- * 3. node adoption-agent-endpoint.js
+ * To test locally: cd server && npm install && npm start
+ * ============================================================
  */
 
 const express = require('express');

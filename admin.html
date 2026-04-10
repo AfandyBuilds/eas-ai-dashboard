@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EAS AI Admin Panel</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha384-cwS6YdhLI7XS60eoDiC+egV0qHp8zI+Cms46R0nbn8JrmoAzV9uFL60etMZhAnSu" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -922,37 +926,42 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Data -->
-<script src="data.js"></script>
+<!-- Data: loaded from Supabase via js/config.js -->
 <script>
-// ============ AUTH ============
-const ADMIN_USER = 'omarhelal';
-const ADMIN_PASS = 'EAS2026';
+// ============ AUTH (Supabase-based) ============
 let isAuthenticated = false;
 
-function attemptLogin() {
-  const u = document.getElementById('login-user').value.trim();
-  const p = document.getElementById('login-pass').value;
-  if (u === ADMIN_USER && p === ADMIN_PASS) {
-    isAuthenticated = true;
-    sessionStorage.setItem('admin_auth', '1');
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-app').classList.add('active');
-    initAdmin();
-  } else {
+async function attemptLogin() {
+  const email = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  if (!email || !password) return;
+
+  const sb = getSupabaseClient();
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
     document.getElementById('login-error').classList.add('show');
     document.getElementById('login-pass').value = '';
     setTimeout(() => document.getElementById('login-error').classList.remove('show'), 3000);
+    return;
   }
+
+  // Check role — admin only for admin panel
+  const profile = await EAS_Auth.getUserProfile(true);
+  if (!profile || profile.role !== 'admin') {
+    await EAS_Auth.signOut();
+    document.getElementById('login-error').classList.add('show');
+    setTimeout(() => document.getElementById('login-error').classList.remove('show'), 3000);
+    return;
+  }
+
+  isAuthenticated = true;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-app').classList.add('active');
+  initAdmin();
 }
 
 function logout() {
-  sessionStorage.removeItem('admin_auth');
-  isAuthenticated = false;
-  document.getElementById('admin-app').classList.remove('active');
-  document.getElementById('login-screen').style.display = '';
-  document.getElementById('login-user').value = '';
-  document.getElementById('login-pass').value = '';
+  EAS_Auth.signOut(); // clears session + redirects to login.html
 }
 
 function goToDashboard() {
@@ -963,13 +972,19 @@ function goToDashboard() {
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') attemptLogin(); });
 document.getElementById('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pass').focus(); });
 
-// Session persistence
-if (sessionStorage.getItem('admin_auth') === '1') {
-  isAuthenticated = true;
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('admin-app').classList.add('active');
-  setTimeout(initAdmin, 0);
-}
+// Session persistence via Supabase
+(async () => {
+  const session = await EAS_Auth.getSession();
+  if (session) {
+    const profile = await EAS_Auth.getUserProfile();
+    if (profile && profile.role === 'admin') {
+      isAuthenticated = true;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-app').classList.add('active');
+      setTimeout(initAdmin, 0);
+    }
+  }
+})();
 
 // ============ DATA LAYER ============
 let data;
@@ -2095,10 +2110,10 @@ let agentIsLoading = false;
 const AGENT_API_URL = 'https://apcfnzbiylhgiutcjigg.supabase.co/functions/v1/adoption-agent';
 
 /**
- * Convert basic markdown to HTML for agent responses
+ * Convert basic markdown to HTML for agent responses (sanitized)
  */
 function markdownToHtml(text) {
-  return text
+  const raw = text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -2110,6 +2125,7 @@ function markdownToHtml(text) {
     .replace(/`([^`]+)`/g, '<code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;font-size:12px;">$1</code>')
     .replace(/\n{2,}/g, '<br><br>')
     .replace(/\n/g, '<br>');
+  return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(raw) : raw;
 }
 
 function toggleAdoptionAgent() {
@@ -2176,7 +2192,7 @@ async function sendAdoptionAgentQuery() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer sb_publishable_fO29UdOY1Wa8_LOgjDj2Pg_iZ7bhKJ3'
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
       },
       body: JSON.stringify({
         query: query.substring(0, 2000),
