@@ -36,7 +36,7 @@ Each agent is a specialized Claude-powered role. A **Supervisor Agent** orchestr
 
 - **Python 3.11+**
 - **Claude Agent SDK** (`claude-agent-sdk`) — official Anthropic SDK
-- **Claude model:** `claude-sonnet-4-6` (default) / `claude-opus-4-6` for Supervisor
+- **Claude model:** `claude-sonnet-4-20250514` (default for all agents, including Supervisor)
 - **Orchestration:** Custom supervisor loop (no external framework) — keeps the runtime lightweight and transparent
 
 ## Quick Start

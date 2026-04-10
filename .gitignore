@@ -16,4 +16,13 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Legacy / dead folders
 eas-ai-dashboard/
+server/api/

@@ -1,6 +1,10 @@
 # AI Adoption Agent Backend
 
-Node.js/Express endpoint for the embedded AI Adoption Agent chat widget in your admin portal.
+> **⚠️ DEPRECATED** — This local Express server has been replaced by a Supabase Edge Function
+> deployed at `https://apcfnzbiylhgiutcjigg.supabase.co/functions/v1/adoption-agent`.
+> Both `admin.html` and `index.html` now call the Edge Function directly.
+> This folder is kept for reference only. See `SETUP_GUIDE.md` and `QUICK_START.md`
+> for the original setup instructions (no longer needed).
 
 ## Quick Start
 

@@ -5,7 +5,6 @@
 
 const EAS_Auth = (() => {
   const sb = getSupabaseClient();
-  let _currentUser = null;
   let _userProfile = null;
 
   // ---- Session Management ----
@@ -63,7 +62,6 @@ const EAS_Auth = (() => {
     localStorage.removeItem('eas_user_profile');
     localStorage.removeItem('eas_user_profile_ts');
     localStorage.removeItem('eas_selected_quarter');
-    _currentUser = null;
     _userProfile = null;
     window.location.href = 'login.html';
   }
@@ -154,6 +152,7 @@ const EAS_Auth = (() => {
       if (event === 'SIGNED_OUT') {
         _userProfile = null;
         localStorage.removeItem('eas_user_profile');
+        localStorage.removeItem('eas_user_profile_ts');
       }
       if (callback) callback(event, session);
     });

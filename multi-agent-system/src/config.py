@@ -20,8 +20,8 @@ SQL_DIR: Path = REPO_ROOT / "sql"
 CR_WORKSPACE: Path = REPO_ROOT / "docs" / "cr"
 
 # --- Models ---------------------------------------------------------------
-DEFAULT_MODEL = "claude-sonnet-4-6"
-SUPERVISOR_MODEL = "claude-opus-4-6"  # Supervisor gets the smarter model
+DEFAULT_MODEL = "claude-sonnet-4-20250514"
+SUPERVISOR_MODEL = "claude-sonnet-4-20250514"  # Same model; swap to opus for heavier reasoning if needed
 
 
 # --- Agent definitions ---------------------------------------------------

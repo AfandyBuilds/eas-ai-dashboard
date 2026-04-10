@@ -31,6 +31,8 @@ class BaseAgent:
     def __init__(self, spec: AgentSpec, cwd: str | None = None) -> None:
         self.spec = spec
         self.cwd = cwd or os.getcwd()
+        # chat is accepted but not yet wired — reserved for ChatLog integration
+        # (see chat_log.py and examples/demo_chat.py for the design intent)
 
     # ------------------------------------------------------------------
     # SDK integration
