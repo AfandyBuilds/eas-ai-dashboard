@@ -1805,12 +1805,15 @@ function updateApprovalTierDisplay() {
   } else if (savedHours >= 15) {
     tierDisplay.textContent = '👤 → Will route to Admin/Omar only';
     tierDisplay.style.color = 'var(--purple)';
-  } else if (savedHours >= 2) {
+  } else if (savedHours > 0) {
     tierDisplay.textContent = '🤖 → Will route to AI validator first';
     tierDisplay.style.color = 'var(--info)';
+  } else if (savedHours === 0) {
+    tierDisplay.textContent = '✓ Zero hours saved - still valid';
+    tierDisplay.style.color = 'var(--success)';
   } else {
-    tierDisplay.textContent = '⚠️ → Min 2 hours saved required';
-    tierDisplay.style.color = 'var(--warning)';
+    tierDisplay.textContent = '⚠️ Negative time saved';
+    tierDisplay.style.color = 'var(--error)';
   }
 }
 

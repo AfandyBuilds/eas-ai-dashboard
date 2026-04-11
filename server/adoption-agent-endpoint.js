@@ -332,7 +332,7 @@ app.post('/api/ai/validate-submission', async (req, res) => {
     }
 
     // Define validation rules based on project requirements
-    // Min 2 hrs saved, mentions AI tool, mentions metrics, quality assessment
+    // Mentions AI tool, mentions metrics, quality assessment
     const validationRules = `Check the following submission for quality:
     
 Saved Hours: ${savedHours}
@@ -341,12 +341,12 @@ What (Accomplishment): "${whatText || ''}"
 AI Tool Used: "${aiTool || ''}"
 Category: "${category || ''}"
 
-Validate against these STRICT rules:
-1. **Min 2 hours saved**: ${savedHours >= 2 ? '✓ PASS' : '✗ FAIL'} (provided: ${savedHours}h)
-2. **Mentions AI tool**: Check if "${aiTool || ''}" is a real AI tool (ChatGPT, Copilot, Claude, etc.)
-3. **Meaningful explanation (50+ words total)**: Check combined length of why+what texts
-4. **Mentions quantifiable metrics**: Check if "why" or "what" mentions numbers, percentages, time, or specific outcomes
-5. **Quality assessment**: Overall coherence and professional tone
+Validate against these rules:
+1. **Mentions AI tool**: Check if "${aiTool || ''}" is a real AI tool (ChatGPT, Copilot, Claude, etc.)
+2. **Meaningful explanation (50+ words total)**: Check combined length of why+what texts
+3. **Mentions quantifiable metrics**: Check if "why" or "what" mentions numbers, percentages, time, or specific outcomes
+4. **Quality assessment**: Overall coherence and professional tone
+5. **Saved hours**: Any amount saved counts (provided: ${savedHours}h)
 
 Respond in JSON format:
 {
@@ -368,8 +368,8 @@ Respond in JSON format:
     const content = validation.choices[0].message.content;
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {
-      isValid: savedHours >= 2,
-      overallScore: savedHours >= 2 ? 70 : 40,
+      isValid: true,
+      overallScore: 70,
       reason: 'Could not parse AI response',
     };
 
