@@ -10,6 +10,7 @@ This changelog is **append-only**. Every task, regardless of origin, must add an
 
 ## [Unreleased]
 
+- 2026-04-12 (copilot) — Fix RLS policies on `submission_approvals` and `practice_spoc`: policies were comparing `auth.uid()` against `users.id` instead of `users.auth_id`, causing zero rows returned for all roles. Replaced with `get_user_role()`/`get_user_practice()` helper functions that correctly use `auth_id`. Added authenticated-read SELECT policy. (fix)
 - 2026-04-12 (copilot) — Fix approvals navigation errors by adding `getUserId` to auth and scoping the Approvals nav item to admin/SPOC roles (fix)
 
 - 2026-04-11 (claude) — **Fix:** added root redirect stubs (`index.html`, `login.html`, `signup.html`, `admin.html`, `employee-status.html`, `migrate.html`) after the `src/pages/` move broke the GitHub Pages root URL (which started serving `README.md` instead of the dashboard). Each stub is a tiny HTML page that forwards via `window.location.replace` + `<meta refresh>` to the canonical file under `src/pages/`, preserving query strings and hashes. Existing bookmarks and OAuth redirects continue to work. (fix)
