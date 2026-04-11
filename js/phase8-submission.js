@@ -5,7 +5,10 @@
  * ============================================================
  */
 
+console.log('📦 Phase8 module loading...');
+
 window.Phase8 = (() => {
+  console.log('✅ Phase8 IIFE initializing...');
   // Supabase Edge Functions - deployed live for all employees
   const API_BASE = 'https://apcfnzbiylhgiutcjigg.supabase.co/functions/v1';
 
@@ -500,14 +503,13 @@ window.Phase8 = (() => {
 
   // ========== PUBLIC API ==========
 
-  return {
+  const api = {
     // Initialization
     initEmployeeAutocomplete,
     initSavedHoursCalculation,
 
     // AI Features
     getAISuggestions,
-    selectSuggestion,
     validateSubmission,
 
     // Submission & Approval
@@ -524,4 +526,9 @@ window.Phase8 = (() => {
       console.log('Phase8 submission context set to:', type);
     },
   };
+
+  console.log('✅ Phase8 module fully initialized with API:', Object.keys(api));
+  return api;
 })();
+
+console.log('✅ Phase8 globally available:', typeof Phase8);
