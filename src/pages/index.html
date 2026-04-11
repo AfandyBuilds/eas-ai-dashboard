@@ -2534,8 +2534,7 @@ function renderUseCases() {
     ? '<div class="empty-state"><h3>No use cases found</h3><p>Try adjusting your filters.</p></div>'
     : allUseCases.map(uc => uc.isApproved ? renderApprovedCard(uc) : renderCommunityCard(uc)).join('');
 
-  document.getElementById('uc-list').innerHTML = allCards
-  `).join('');
+  document.getElementById('uc-list').innerHTML = allCards;
 }
 
 // ======== GUIDE ME PAGE ========
