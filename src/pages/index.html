@@ -2370,7 +2370,7 @@ function renderUseCases() {
   const fCategory = document.getElementById('uc-filter-category')?.value || '';
   const fTool = document.getElementById('uc-filter-tool')?.value || '';
   const fType = document.getElementById('uc-filter-type')?.value || '';
---- 1. Build AI Innovation Approved use cases from DB ---
+  // --- 1. Build AI Innovation Approved use cases from DB ---
   const approvedUCs = (data.approvedUseCases || []).map(uc => ({
     task: uc.name,
     description: uc.description,
