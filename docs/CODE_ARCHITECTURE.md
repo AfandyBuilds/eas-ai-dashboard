@@ -53,8 +53,15 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 ```
 ./
 │
+├── index.html              # Redirect stub → src/pages/index.html
+├── login.html              # Redirect stub → src/pages/login.html
+├── signup.html             # Redirect stub → src/pages/signup.html
+├── admin.html              # Redirect stub → src/pages/admin.html
+├── employee-status.html    # Redirect stub → src/pages/employee-status.html
+├── migrate.html            # Redirect stub → src/pages/migrate.html
+│
 ├── src/
-│   └── pages/              # All HTML entry points (moved 2026-04-11)
+│   └── pages/              # Canonical HTML entry points (moved 2026-04-11)
 │       ├── index.html              # Main app shell — 10 in-page views (~2,253 lines)
 │       │                           # Dashboard, Practices, Tasks,
 │       │                           # Accomplishments, Copilot, Projects,

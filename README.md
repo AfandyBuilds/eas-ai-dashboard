@@ -6,9 +6,11 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 
 | Page | URL |
 |------|-----|
-| **Dashboard** | https://omarhelal1234.github.io/eas-ai-dashboard/src/pages/index.html |
-| **Login** | https://omarhelal1234.github.io/eas-ai-dashboard/src/pages/login.html |
-| **Signup** | https://omarhelal1234.github.io/eas-ai-dashboard/src/pages/signup.html |
+| **Dashboard** | https://omarhelal1234.github.io/eas-ai-dashboard/ |
+| **Login** | https://omarhelal1234.github.io/eas-ai-dashboard/login.html |
+| **Signup** | https://omarhelal1234.github.io/eas-ai-dashboard/signup.html |
+
+> The root URLs above are thin redirect stubs that forward to the canonical pages under `src/pages/`. Existing bookmarks and OAuth redirect URIs continue to work unchanged.
 
 ## Tech Stack
 
