@@ -195,8 +195,8 @@ const Phase8 = (() => {
       _currentSubmission.currentText = currentText;
       _currentSubmission.suggestions = result.suggestions || [];
 
-      showSuggestionModal(_currentSubmission.suggestions, fieldType);
-      showToast('Generated ' + result.suggestions.length + ' suggestions', 'success');
+      showSuggestionsDropdown(_currentSubmission.suggestions, fieldType);
+      showToast('💡 ' + result.suggestions.length + ' suggestions ready - click one to apply', 'success');
       return result.suggestions;
     } catch (err) {
       console.error('AI suggestions error:', err);
@@ -205,57 +205,132 @@ const Phase8 = (() => {
     }
   }
 
-  function showSuggestionModal(suggestions, fieldType) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.style.zIndex = '2000';
-    modal.innerHTML = `
-      <div class="modal" style="max-width:500px">
-        <h3>AI-Generated Suggestions (${fieldType === 'why' ? 'Why' : 'What'})</h3>
-        <div style="max-height:400px;overflow-y:auto;margin:16px 0">
-          ${suggestions.map((s, i) => `
-            <div class="suggestion-card" style="padding:12px;border:1px solid var(--border);margin-bottom:8px;border-radius:4px;cursor:pointer;hover:background:var(--hover-bg)" onclick="Phase8.selectSuggestion(${i})">
-              <div style="font-size:14px">${s}</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:8px">Click to use this suggestion</div>
-            </div>
-          `).join('')}
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-  }
+  function showSuggestionsDropdown(suggestions, fieldType) {
+    // Remove any existing suggestions dropdown
+    const existing = document.getElementById('ai-suggestions-dropdown');
+    if (existing) existing.remove();
 
-  function selectSuggestion(index) {
-    const suggestion = _currentSubmission.suggestions[index];
-    if (!suggestion) return;
-
-    _currentSubmission.selectedSuggestion = suggestion;
-    
-    // Find the active input and update it
-    const fieldType = _currentSubmission.fieldType;
-    let inputId = null;
-    
+    // Find the input field that was being edited
+    let inputElement = null;
     if (_currentSubmission.type === 'task') {
-      inputId = fieldType === 'why' ? 'f-notes' : 'f-task';
+      inputElement = fieldType === 'why' 
+        ? document.getElementById('f-notes') 
+        : document.getElementById('f-task');
     } else if (_currentSubmission.type === 'accomplishment') {
-      inputId = fieldType === 'why' ? 'fa-details' : 'fa-title';
+      inputElement = fieldType === 'why' 
+        ? document.getElementById('fa-details') 
+        : document.getElementById('fa-title');
     }
 
-    if (inputId) {
-      const input = document.getElementById(inputId);
-      if (input) input.value = suggestion;
-    }
+    if (!inputElement) return;
 
-    // Close modal
-    document.querySelectorAll('.modal-overlay').forEach(m => {
-      if (m.querySelector('.modal h3')?.textContent.includes('AI-Generated')) m.remove();
+    // Create dropdown container
+    const dropdown = document.createElement('div');
+    dropdown.id = 'ai-suggestions-dropdown';
+    dropdown.style.cssText = `
+      position: absolute;
+      top: ${inputElement.offsetTop + inputElement.offsetHeight + 5}px;
+      left: ${inputElement.offsetLeft}px;
+      width: ${inputElement.offsetWidth}px;
+      background: var(--surface);
+      border: 2px solid var(--primary);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1001;
+      max-height: 300px;
+      overflow-y: auto;
+      backdrop-filter: blur(10px);
+    `;
+
+    // Add header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      padding: 10px 12px;
+      background: linear-gradient(135deg, var(--primary), var(--info));
+      color: white;
+      font-weight: 600;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+    `;
+    header.textContent = '✨ AI Suggestions - Click to apply';
+    dropdown.appendChild(header);
+
+    // Add suggestion items
+    suggestions.forEach((suggestion, index) => {
+      const item = document.createElement('div');
+      item.style.cssText = `
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.2s;
+        font-size: 13px;
+        line-height: 1.4;
+      `;
+      item.innerHTML = `
+        <div style="display: flex; gap: 8px">
+          <span style="color: var(--primary); font-weight: 600; min-width: 20px">${index + 1}.</span>
+          <span>${suggestion}</span>
+        </div>
+      `;
+      
+      item.onmouseover = () => {
+        item.style.background = 'var(--hover-bg)';
+      };
+      item.onmouseout = () => {
+        item.style.background = 'transparent';
+      };
+      
+      item.onclick = () => {
+        inputElement.value = suggestion;
+        inputElement.focus();
+        dropdown.remove();
+        showToast('✅ Suggestion applied!', 'success');
+        // Trigger change event for dependents
+        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      
+      dropdown.appendChild(item);
     });
 
-    showToast('Suggestion applied!', 'success');
+    // Add dismiss button
+    const footer = document.createElement('div');
+    footer.style.cssText = `
+      padding: 8px 12px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      background: var(--hover-bg);
+    `;
+    const dismissBtn = document.createElement('button');
+    dismissBtn.textContent = '✕ Dismiss';
+    dismissBtn.style.cssText = `
+      background: transparent;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 4px 8px;
+    `;
+    dismissBtn.onclick = () => dropdown.remove();
+    footer.appendChild(dismissBtn);
+    dropdown.appendChild(footer);
+
+    // Find parent container and position dropdown
+    const parentContainer = inputElement.parentElement;
+    if (parentContainer) {
+      parentContainer.style.position = 'relative';
+      parentContainer.appendChild(dropdown);
+    }
+
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', function closeDropdown(e) {
+        if (!dropdown.contains(e.target) && e.target !== inputElement) {
+          dropdown.remove();
+          document.removeEventListener('click', closeDropdown);
+        }
+      });
+    }, 100);
   }
 
   // ========== AI VALIDATION ==========
