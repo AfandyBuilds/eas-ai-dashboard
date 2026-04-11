@@ -1,0 +1,21 @@
+Shape: (109, 35)
+Columns: ['S.No.', 'Department', 'Unit', 'Use Case Asset ID', 'Asset Name', 'Asset description', 'Asset Identification date', 'SDLC Phase', 'Asset Category', 'Asset Subcategory', 'Efforts with out AI ', 'Efforts with AI', 'Business Benefits / Impact', 'No. of Adoptions', 'Implementation Guidelines', 'Strategic Takeaways', 'Owners / SPOC', 'Remarks / Additonal Comments / Support needed / Dependancy', 'Selected Use Case', 'Current Status', 'Tools / Platform Used', 'Department SPOC', 'Validation Feedback', 'Validation Detail', 'Validation Notes', 'Reality / Doability', 'Suggestion for How to apply', 'No. of Hours Saved with each Implementation *', 'No. of Planned Implementaiton', 'Timelines for Planned Implementaiton *', 'No. of Projects who will use ', 'old Validation Feedback', 'Why this case updated', 'Status', 'Calculated Hours Saved']
+
+Unique Departments: ['ADI', 'Cloud Eng. & Observ', 'Cybersecurity', 'DCX', 'EAS', 'ECC-PMO']
+Dept value counts:
+Department
+EAS                    40
+DCX                    23
+ADI                    22
+Cloud Eng. & Observ    17
+Cybersecurity           4
+ECC-PMO                 2
+
+Unique Validation Feedback: ['Accepted Idea', 'More Elaboration Needed', 'Not Accepted Idea']
+
+
+EAS rows: 40
+EAS Accepted rows: 40
+
+Wrote 40 total EAS records to eas_use_cases.json
+Wrote 40 accepted EAS records to eas_accepted_use_cases.json

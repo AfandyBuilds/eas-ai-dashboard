@@ -1,0 +1,34 @@
+0: Yes
+1: Unnamed: 1
+2: Implemented
+3: Accepted Idea
+4: Unnamed: 4
+5: Accepted – Ready for Pilot
+6: Unnamed: 6
+7: Productivity
+
+Total rows: 27
+
+
+=== First 3 rows as dict ===
+
+Row 0:
+  Yes: No
+  Implemented: In Progress
+  Accepted Idea: More Elaboration Needed
+  Accepted – Ready for Pilot: Accepted – Ready for Implementation
+  Productivity: Financial
+
+Row 1:
+  Implemented: Planned
+  Accepted Idea: Not Accepted Idea 
+  Accepted – Ready for Pilot: Accepted – Ready for Scale
+
+Row 2:
+  Accepted – Ready for Pilot: Accepted – Reusable Across Towers
+
+Column "Accepted – Ready for Pilot" has EAS values: ['Not Accepted – No Feasible Data Path', 'Not Accepted – No Feasible Owner', 'Not Accepted – Technically Infeasible']
+
+Filtered by column "Accepted – Ready for Pilot" => 3 EAS rows
+
+Wrote 3 EAS records to scripts/eas_use_cases.json
