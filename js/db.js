@@ -841,18 +841,97 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Create a submission approval workflow entry
+   * Get SPOC for a practice
    */
-  async function createSubmissionApproval(submissionType, submissionId, savedHours, aiValidationResult = null) {
+  async function getSpocForPractice(practice) {
+    const { data, error } = await sb
+      .from('practice_spoc')
+      .select('spoc_id, spoc_name, spoc_email')
+      .eq('practice', practice)
+      .eq('is_active', true)
+      .single();
+    if (error) { console.error('getSpocForPractice error:', error.message); return null; }
+    return data;
+  }
+
+  /**
+   * Determine approval routing based on business rules
+   * - If saved_hours >= 15: Always goes to admin (Omar Ibrahim)
+   * - If AI validation fails: Goes to SPOC for that practice
+   * - Otherwise: AI validation first, then SPOC approval if AI passes
+   */
+  async function determineApprovalRouting(practice, savedHours, aiValidationFailed) {
+    let approvalStatus = 'pending';
+    let approvalLayer = 'ai';
+    let spocId = null;
+    let adminId = null;
+
+    // Always go to admin if saved_hours >= 15
+    if (savedHours >= 15) {
+      approvalStatus = 'admin_review';
+      approvalLayer = 'admin';
+      // Get admin user (Omar Ibrahim for now - hardcoded for BFSI admin)
+      const { data: adminData } = await sb
+        .from('users')
+        .select('id')
+        .eq('role', 'admin')
+        .limit(1)
+        .single();
+      adminId = adminData?.id || null;
+    } 
+    // If AI validation failed, go to SPOC
+    else if (aiValidationFailed) {
+      approvalStatus = 'spoc_review';
+      approvalLayer = 'spoc';
+      const spocData = await getSpocForPractice(practice);
+      if (spocData?.spoc_id) {
+        spocId = spocData.spoc_id;
+      } else {
+        // Fallback to admin if SPOC not found
+        const { data: adminData } = await sb
+          .from('users')
+          .select('id')
+          .eq('role', 'admin')
+          .limit(1)
+          .single();
+        adminId = adminData?.id || null;
+        approvalLayer = 'admin';
+        approvalStatus = 'admin_review';
+      }
+    } 
+    // Default: AI review first
+    else {
+      approvalStatus = 'ai_review';
+      approvalLayer = 'ai';
+    }
+
+    return { approvalStatus, approvalLayer, spocId, adminId };
+  }
+
+  /**
+   * Create a submission approval workflow entry with proper routing
+   */
+  async function createSubmissionApproval(submissionType, submissionId, savedHours, aiValidationResult = null, practice = null, aiValidationFailed = false) {
     const profile = await EAS_Auth.getUserProfile();
+    
+    // Determine routing
+    const routing = await determineApprovalRouting(practice, savedHours, aiValidationFailed);
+    
     const payload = {
       submission_type: submissionType,
       submission_id: submissionId,
-      approval_status: savedHours >= 15 ? 'pending' : 'ai_review',
-      approval_layer: savedHours >= 15 ? 'admin' : 'ai',
+      approval_status: routing.approvalStatus,
+      approval_layer: routing.approvalLayer,
       saved_hours: savedHours,
-      ai_validation_result: aiValidationResult || null
+      practice: practice,
+      submitted_by: profile?.id,
+      submitted_by_email: profile?.email,
+      ai_validation_result: aiValidationResult || null,
+      ai_validation_failed: aiValidationFailed,
+      spoc_id: routing.spocId,
+      admin_id: routing.adminId
     };
+    
     const { data, error } = await sb.from('submission_approvals').insert(payload).select().single();
     if (error) { console.error('createSubmissionApproval error:', error.message); return null; }
     return data;
@@ -896,13 +975,20 @@ const EAS_DB = (() => {
     const task = await insertTask(taskData);
     if (!task) return null;
 
-    // Create approval workflow
+    // Create approval workflow with proper routing
     const savedHours = (taskData.timeWithout || 0) - (taskData.timeWith || 0);
-    const approval = await createSubmissionApproval('task', task.id, savedHours);
+    const practice = taskData.practice;
+    const aiValidationFailed = taskData.aiValidationFailed || false;
     
-    // Update task with approval ID
+    const approval = await createSubmissionApproval('task', task.id, savedHours, null, practice, aiValidationFailed);
+    
+    // Update task with approval ID and status
     if (approval) {
-      await sb.from('tasks').update({ approval_id: approval.id }).eq('id', task.id);
+      await sb.from('tasks').update({ 
+        approval_id: approval.id,
+        approval_status: approval.approval_status,
+        submitted_for_approval: true
+      }).eq('id', task.id);
     }
 
     return { task, approval };
@@ -916,16 +1002,162 @@ const EAS_DB = (() => {
     const acc = await insertAccomplishment(accData);
     if (!acc) return null;
 
-    // Create approval workflow
+    // Create approval workflow with proper routing
     const savedHours = accData.effortSaved || 0;
-    const approval = await createSubmissionApproval('accomplishment', acc.id, savedHours);
+    const practice = accData.practice;
+    const aiValidationFailed = accData.aiValidationFailed || false;
     
-    // Update accomplishment with approval ID
+    const approval = await createSubmissionApproval('accomplishment', acc.id, savedHours, null, practice, aiValidationFailed);
+    
+    // Update accomplishment with approval ID and status
     if (approval) {
-      await sb.from('accomplishments').update({ approval_id: approval.id }).eq('id', acc.id);
+      await sb.from('accomplishments').update({ 
+        approval_id: approval.id,
+        approval_status: approval.approval_status,
+        submitted_for_approval: true
+      }).eq('id', acc.id);
     }
 
     return { acc, approval };
+  }
+
+  /**
+   * Fetch pending approvals for admin/SPOC
+   */
+  async function fetchPendingApprovals(userRole, userPractice, userId) {
+    let query = sb
+      .from('submission_approvals')
+      .select('*')
+      .order('submitted_at', { ascending: false });
+
+    if (userRole === 'admin') {
+      // Admin sees all pending approvals
+      query = query.in('approval_status', ['pending', 'admin_review', 'ai_review', 'spoc_review']);
+    } else if (userRole === 'spoc') {
+      // SPOC sees approvals pending for their practice
+      query = query
+        .eq('approval_status', 'spoc_review')
+        .eq('spoc_id', userId);
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('fetchPendingApprovals error:', error.message); return []; }
+    return data || [];
+  }
+
+  /**
+   * Fetch completed approvals (approved/rejected) for dashboard
+   */
+  async function fetchApprovalHistory(userRole, userPractice, limit = 50) {
+    const query = sb
+      .from('submission_approvals')
+      .select('*')
+      .in('approval_status', ['approved', 'rejected'])
+      .order('approved_at', { ascending: false })
+      .limit(limit);
+
+    if (userRole === 'spoc') {
+      query.eq('practice', userPractice);
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('fetchApprovalHistory error:', error.message); return []; }
+    return data || [];
+  }
+
+  /**
+   * Approve a task/accomplishment
+   */
+  async function approveSubmission(approvalId, approvalNotes = '') {
+    const profile = await EAS_Auth.getUserProfile();
+    const payload = {
+      approval_status: 'approved',
+      approved_by: profile?.id,
+      approved_by_name: profile?.name,
+      approved_by_email: profile?.email,
+      approved_at: new Date().toISOString(),
+      admin_approval_notes: approvalNotes || null,
+      admin_reviewed_at: new Date().toISOString()
+    };
+
+    const { data: approval, error } = await sb
+      .from('submission_approvals')
+      .update(payload)
+      .eq('id', approvalId)
+      .select()
+      .single();
+    
+    if (error) { console.error('approveSubmission error:', error.message); return null; }
+
+    // Update the actual task/accomplishment
+    if (approval) {
+      const table = approval.submission_type === 'task' ? 'tasks' : 'accomplishments';
+      await sb.from(table).update({
+        approval_status: 'approved',
+        approved_by: profile?.id,
+        approved_by_name: profile?.name
+      }).eq('id', approval.submission_id);
+
+      await logActivity('APPROVE', `submission_approvals`, approvalId, { 
+        submission_type: approval.submission_type,
+        submission_id: approval.submission_id,
+        saved_hours: approval.saved_hours
+      });
+    }
+
+    return approval;
+  }
+
+  /**
+   * Reject a task/accomplishment
+   */
+  async function rejectSubmission(approvalId, rejectionReason) {
+    const profile = await EAS_Auth.getUserProfile();
+    const payload = {
+      approval_status: 'rejected',
+      rejection_reason: rejectionReason || 'No reason provided',
+      admin_approved: false,
+      admin_reviewed_at: new Date().toISOString()
+    };
+
+    const { data: approval, error } = await sb
+      .from('submission_approvals')
+      .update(payload)
+      .eq('id', approvalId)
+      .select()
+      .single();
+    
+    if (error) { console.error('rejectSubmission error:', error.message); return null; }
+
+    // Update the actual task/accomplishment
+    if (approval) {
+      const table = approval.submission_type === 'task' ? 'tasks' : 'accomplishments';
+      await sb.from(table).update({
+        approval_status: 'rejected'
+      }).eq('id', approval.submission_id);
+
+      await logActivity('REJECT', `submission_approvals`, approvalId, { 
+        submission_type: approval.submission_type,
+        submission_id: approval.submission_id,
+        reason: rejectionReason
+      });
+    }
+
+    return approval;
+  }
+
+  /**
+   * Fetch employee's task approval status
+   */
+  async function fetchEmployeeTaskApprovals(employeeEmail) {
+    const { data, error } = await sb
+      .from('employee_task_approvals')
+      .select('*')
+      .eq('employee_email', employeeEmail)
+      .order('submitted_at', { ascending: false });
+    
+    if (error) { console.error('fetchEmployeeTaskApprovals error:', error.message); return []; }
+    return data || [];
   }
 
   // ===========================================================
@@ -978,9 +1210,16 @@ const EAS_DB = (() => {
     submitAccomplishmentWithApproval,
 
     // Approval workflow (Phase 8)
+    getSpocForPractice,
+    determineApprovalRouting,
     createSubmissionApproval,
     fetchSubmissionApproval,
     updateSubmissionApproval,
+    fetchPendingApprovals,
+    fetchApprovalHistory,
+    approveSubmission,
+    rejectSubmission,
+    fetchEmployeeTaskApprovals,
 
     // Audit & dumps
     logActivity,

@@ -550,6 +550,11 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       Projects
       <span class="badge" id="admin-proj-count">0</span>
     </div>
+    <div class="nav-item" data-page="manage-approvals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 12 15 15 10"/></svg>
+      Approvals
+      <span class="badge" id="admin-approval-count">0</span>
+    </div>
 
     <div class="nav-section">Configuration</div>
     <div class="nav-item" data-page="manage-practices">
@@ -704,6 +709,57 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <table>
               <thead><tr><th>#</th><th>Practice</th><th>Project Name</th><th>Code</th><th>Customer</th><th>Value (SAR)</th><th>PM</th><th style="width:100px">Actions</th></tr></thead>
               <tbody id="admin-proj-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manage Approvals Page -->
+    <div id="page-manage-approvals" class="page hidden">
+      <div class="page-header">
+        <div>
+          <h2>Task Approvals</h2>
+          <div class="subtitle">Review and approve submitted tasks</div>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="filters-bar">
+          <select class="filter-select" id="approval-filter-status" onchange="renderApprovals()">
+            <option value="">All Status</option>
+            <option value="pending">Pending Admin</option>
+            <option value="ai_review">AI Review</option>
+            <option value="spoc_review">SPOC Review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <select class="filter-select" id="approval-filter-practice" onchange="renderApprovals()"><option value="">All Practices</option></select>
+          <input type="text" class="search-input" id="approval-search" placeholder="Search by employee or task..." oninput="renderApprovals()" style="flex:1">
+        </div>
+        
+        <!-- Pending Approvals Section -->
+        <div class="table-card" style="margin-bottom: 32px;">
+          <div class="table-header-bar">
+            <h3>⏳ Pending Approvals</h3>
+            <span class="badge" id="pending-approval-count">0</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Employee</th><th>Practice</th><th>Task</th><th>Time Saved (hrs)</th><th>Status</th><th>Submitted</th><th style="width:150px">Action</th></tr></thead>
+              <tbody id="pending-approvals-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Approval History Section -->
+        <div class="table-card">
+          <div class="table-header-bar">
+            <h3>📋 Approval History</h3>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Employee</th><th>Practice</th><th>Task</th><th>Time Saved (hrs)</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr></thead>
+              <tbody id="approval-history-tbody"></tbody>
             </table>
           </div>
         </div>
@@ -1025,6 +1081,7 @@ function renderCurrentPage(page) {
     case 'manage-accomplishments': renderAdminAccomplishments(); break;
     case 'manage-copilot': renderAdminCopilot(); break;
     case 'manage-projects': renderAdminProjects(); break;
+    case 'manage-approvals': renderApprovals(); break;
     case 'manage-practices': renderAdminPractices(); break;
     case 'manage-lovs': renderLOVs(); break;
     case 'manage-data': renderDataMgmt(); break;
@@ -1558,6 +1615,144 @@ function deleteProject(idx) {
     renderAdminProjects();
     showToast('Project deleted', 'warning');
   });
+}
+
+// ============ APPROVALS ============
+async function renderApprovals() {
+  const profile = await EAS_Auth.getUserProfile();
+  const userRole = profile?.role || 'contributor';
+  const userPractice = profile?.practice || '';
+  const userId = profile?.id;
+
+  // Fetch pending approvals
+  const pendingApprovals = await EAS_DB.fetchPendingApprovals(userRole, userPractice, userId);
+  
+  // Fetch approval history
+  const approvalHistory = await EAS_DB.fetchApprovalHistory(userRole, userPractice, 50);
+
+  // Populate practices filter
+  const practiceSelect = document.getElementById('approval-filter-practice');
+  if (practiceSelect && data.practices && practiceSelect.options.length === 1) {
+    data.practices.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name;
+      opt.textContent = p.name;
+      practiceSelect.appendChild(opt);
+    });
+  }
+
+  // Render pending approvals
+  renderPendingApprovals(pendingApprovals);
+  
+  // Render approval history
+  renderApprovalHistory(approvalHistory);
+
+  // Update badges
+  document.getElementById('admin-approval-count').textContent = pendingApprovals?.length || 0;
+  document.getElementById('pending-approval-count').textContent = pendingApprovals?.length || 0;
+}
+
+function renderPendingApprovals(approvals = []) {
+  const statusFilter = document.getElementById('approval-filter-status').value;
+  const practiceFilter = document.getElementById('approval-filter-practice').value;
+  const search = (document.getElementById('approval-search').value || '').toLowerCase();
+
+  let filtered = approvals || [];
+  if (statusFilter) filtered = filtered.filter(a => a.approval_status === statusFilter);
+  if (practiceFilter) filtered = filtered.filter(a => a.practice === practiceFilter);
+  if (search) {
+    filtered = filtered.filter(a =>
+      (a.submitted_by_email || '').toLowerCase().includes(search) ||
+      (a.practice || '').toLowerCase().includes(search)
+    );
+  }
+
+  let html = '';
+  filtered.forEach(approval => {
+    const statusLabel = {
+      'pending': '⏳ Pending Admin',
+      'ai_review': '🤖 AI Review',
+      'spoc_review': '👤 SPOC Review',
+      'admin_review': '⏳ Admin Review'
+    }[approval.approval_status] || approval.approval_status;
+
+    const submittedTime = approval.submitted_at ? new Date(approval.submitted_at).toLocaleDateString() : 'N/A';
+
+    html += `<tr>
+      <td>${approval.submitted_by_email || 'N/A'}</td>
+      <td>${approval.practice || 'N/A'}</td>
+      <td>${truncate(approval.submission_id ? 'Task #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
+      <td style="color:var(--success);font-weight:600">${approval.saved_hours?.toFixed(1) || 0}h</td>
+      <td><span style="background:var(--info);color:white;padding:4px 12px;border-radius:20px;font-size:11px">${statusLabel}</span></td>
+      <td style="font-size:12px;color:var(--text-muted)">${submittedTime}</td>
+      <td>
+        <button class="btn btn-primary btn-sm" onclick="openApprovalDetailModal('${approval.id}')" style="padding:6px 12px;font-size:11px">Review</button>
+        <button class="btn btn-success btn-sm" onclick="approveApproval('${approval.id}')" style="padding:6px 12px;font-size:11px;background:var(--success)">✓ Approve</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectApprovalModal('${approval.id}')" style="padding:6px 12px;font-size:11px">✕ Reject</button>
+      </td>
+    </tr>`;
+  });
+
+  if (!html) {
+    html = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No pending approvals</td></tr>';
+  }
+  document.getElementById('pending-approvals-tbody').innerHTML = html;
+}
+
+function renderApprovalHistory(approvals = []) {
+  let html = '';
+  (approvals || []).slice(0, 50).forEach(approval => {
+    const statusLabel = approval.approval_status === 'approved' ? '✅ Approved' : '❌ Rejected';
+    const approvedTime = approval.approved_at ? new Date(approval.approved_at).toLocaleDateString() : 'N/A';
+
+    html += `<tr>
+      <td>${approval.submitted_by_email || 'N/A'}</td>
+      <td>${approval.practice || 'N/A'}</td>
+      <td>${truncate(approval.submission_id ? 'Task #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
+      <td style="color:var(--success);font-weight:600">${approval.saved_hours?.toFixed(1) || 0}h</td>
+      <td><span style="color:${approval.approval_status === 'approved' ? 'var(--success)' : 'var(--danger)'};font-weight:600">${statusLabel}</span></td>
+      <td>${approval.approved_by_name || approval.admin_approved ? 'Admin' : 'SPOC'}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${approvedTime}</td>
+    </tr>`;
+  });
+
+  if (!html) {
+    html = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No approval history</td></tr>';
+  }
+  document.getElementById('approval-history-tbody').innerHTML = html;
+}
+
+async function approveApproval(approvalId) {
+  confirmAction('Approve this task submission?', async () => {
+    const approval = await EAS_DB.approveSubmission(approvalId, '');
+    if (approval) {
+      showToast('✅ Task approved successfully', 'success');
+      renderApprovals();
+    } else {
+      showToast('❌ Failed to approve task', 'error');
+    }
+  });
+}
+
+function rejectApprovalModal(approvalId) {
+  const reason = prompt('Enter rejection reason:', '');
+  if (reason !== null) {
+    rejectApprovalWithReason(approvalId, reason);
+  }
+}
+
+async function rejectApprovalWithReason(approvalId, reason) {
+  const approval = await EAS_DB.rejectSubmission(approvalId, reason);
+  if (approval) {
+    showToast('❌ Task rejected', 'warning');
+    renderApprovals();
+  } else {
+    showToast('Failed to reject task', 'error');
+  }
+}
+
+function openApprovalDetailModal(approvalId) {
+  alert('Approval Detail: ' + approvalId + '\n\nFull detail modal to be implemented.');
 }
 
 // ============ PRACTICES ============
