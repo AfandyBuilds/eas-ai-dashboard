@@ -169,12 +169,18 @@ const EAS_DB = (() => {
 
   /**
    * Fetch tasks from Supabase (quarter-filtered).
+   * @param {string} quarterId - quarter filter
+   * @param {object} opts - { approvedOnly: true } to only return approved tasks
    * Returns array matching APP_DATA.tasks shape.
    */
-  async function fetchTasks(quarterId) {
+  async function fetchTasks(quarterId, opts = {}) {
     let query = sb.from('tasks').select('*').order('week_start', { ascending: false }).limit(1000);
     if (quarterId && quarterId !== 'all') {
       query = query.eq('quarter_id', quarterId);
+    }
+    // By default, only return approved tasks for counting/display
+    if (opts.approvedOnly) {
+      query = query.eq('approval_status', 'approved');
     }
     const { data, error } = await query;
     if (error) {
@@ -201,6 +207,8 @@ const EAS_DB = (() => {
       efficiency:  Number(t.efficiency) || 0,
       quality:     Number(t.quality_rating) || 0,
       status:      t.status,
+      approvalStatus: t.approval_status || 'pending',
+      submittedForApproval: t.submitted_for_approval || false,
       notes:       t.notes,
       quarterId:   t.quarter_id
     }));
@@ -208,12 +216,17 @@ const EAS_DB = (() => {
 
   /**
    * Fetch accomplishments (quarter-filtered).
+   * @param {string} quarterId - quarter filter
+   * @param {object} opts - { approvedOnly: true } to only return approved accomplishments
    * Returns array matching APP_DATA.accomplishments shape.
    */
-  async function fetchAccomplishments(quarterId) {
+  async function fetchAccomplishments(quarterId, opts = {}) {
     let query = sb.from('accomplishments').select('*').order('date', { ascending: false }).limit(500);
     if (quarterId && quarterId !== 'all') {
       query = query.eq('quarter_id', quarterId);
+    }
+    if (opts.approvedOnly) {
+      query = query.eq('approval_status', 'approved');
     }
     const { data, error } = await query;
     if (error) {
@@ -239,6 +252,8 @@ const EAS_DB = (() => {
       cost:          a.cost,
       effortSaved:   Number(a.effort_saved) || 0,
       status:        a.status,
+      approvalStatus: a.approval_status || 'pending',
+      submittedForApproval: a.submitted_for_approval || false,
       evidence:      a.evidence,
       notes:         a.notes,
       quarterId:     a.quarter_id
@@ -306,6 +321,52 @@ const EAS_DB = (() => {
   }
 
   /**
+   * Fetch AI Innovation approved use cases from the use_cases table.
+   * These are reference use cases approved by the AI Innovation committee.
+   * Returns array of use case objects.
+   */
+  async function fetchApprovedUseCases() {
+    const { data, error } = await sb
+      .from('use_cases')
+      .select('*')
+      .eq('is_approved_reference', true)
+      .eq('is_active', true)
+      .order('practice', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) {
+      console.error('fetchApprovedUseCases error:', error.message);
+      return [];
+    }
+    return (data || []).map(uc => ({
+      id:                     uc.id,
+      assetId:                uc.asset_id,
+      name:                   uc.name,
+      description:            uc.description,
+      practice:               uc.practice,
+      sdlcPhase:              uc.sdlc_phase,
+      category:               uc.category,
+      subcategory:            uc.subcategory,
+      aiTools:                uc.ai_tools,
+      effortsWithoutAi:       uc.efforts_without_ai,
+      effortsWithAi:          uc.efforts_with_ai,
+      hoursSavedPerImpl:      uc.hours_saved_per_impl,
+      businessBenefits:       uc.business_benefits,
+      implementationGuidelines: uc.implementation_guidelines,
+      strategicTakeaways:     uc.strategic_takeaways,
+      suggestionHowToApply:   uc.suggestion_how_to_apply,
+      validationFeedback:     uc.validation_feedback,
+      validationDetail:       uc.validation_detail,
+      validationNotes:        uc.validation_notes,
+      realityDoability:       uc.reality_doability,
+      ownerSpoc:              uc.owner_spoc,
+      currentStatus:          uc.current_status,
+      noOfAdoptions:          uc.no_of_adoptions,
+      selectedUseCase:        uc.selected_use_case,
+      isApprovedReference:    true
+    }));
+  }
+
+  /**
    * Fetch LOV values (lists of values for dropdowns).
    * Returns object: { taskCategories: [], aiTools: [] }
    */
@@ -353,13 +414,16 @@ const EAS_DB = (() => {
    */
   async function fetchAllData(quarterId) {
     // Parallel fetch for speed
-    const [practices, tasks, accomplishments, copilotUsers, projects, lovs] = await Promise.all([
+    // Tasks and accomplishments include ALL statuses (UI shows approval badges)
+    // But practice summary RPC already filters to approved-only server-side
+    const [practices, tasks, accomplishments, copilotUsers, projects, lovs, approvedUseCases] = await Promise.all([
       fetchPracticeSummary(quarterId),
       fetchTasks(quarterId),
       fetchAccomplishments(quarterId),
       fetchCopilotUsers(),
       fetchProjects(),
-      fetchLovs()
+      fetchLovs(),
+      fetchApprovedUseCases()
     ]);
 
     // Compute totals from practice summaries
@@ -388,7 +452,8 @@ const EAS_DB = (() => {
       accomplishments,
       copilotUsers,
       projects,
-      lovs
+      lovs,
+      approvedUseCases
     };
   }
 
@@ -434,6 +499,7 @@ const EAS_DB = (() => {
 
   /**
    * Update an existing task.
+   * Resets approval_status to 'pending' so the task requires re-approval.
    * @param {string} id — task UUID
    * @param {object} taskData — camelCase fields to update
    */
@@ -457,9 +523,34 @@ const EAS_DB = (() => {
     if (taskData.status !== undefined)      payload.status          = taskData.status;
     if (taskData.notes !== undefined)       payload.notes           = taskData.notes;
 
+    // Reset approval status — edits require re-approval
+    // Admin bypass: if calling user is admin and explicitly sets approval
+    const profile = await EAS_Auth.getUserProfile();
+    const isAdmin = profile?.role === 'admin';
+    if (!isAdmin) {
+      payload.approval_status = 'pending';
+      payload.submitted_for_approval = true;
+      payload.approved_by = null;
+      payload.approved_by_name = null;
+    }
+
     const { data, error } = await sb.from('tasks').update(payload).eq('id', id).select().single();
     if (error) { console.error('updateTask error:', error.message); return null; }
     await logActivity('UPDATE', 'tasks', id, payload);
+
+    // Create new approval workflow for the update (unless admin)
+    if (!isAdmin && data) {
+      const savedHours = (data.time_without_ai || 0) - (data.time_with_ai || 0);
+      const approval = await createSubmissionApproval('task', data.id, savedHours, null, data.practice, false);
+      if (approval) {
+        await sb.from('tasks').update({
+          approval_id: approval.id,
+          approval_status: approval.approval_status,
+          submitted_for_approval: true
+        }).eq('id', data.id);
+      }
+    }
+
     return data;
   }
 
@@ -510,6 +601,7 @@ const EAS_DB = (() => {
 
   /**
    * Update an existing accomplishment.
+   * Resets approval_status to 'pending' so the accomplishment requires re-approval.
    */
   async function updateAccomplishment(id, accData) {
     const payload = {};
@@ -533,9 +625,33 @@ const EAS_DB = (() => {
     if (accData.evidence !== undefined)      payload.evidence         = accData.evidence;
     if (accData.notes !== undefined)         payload.notes            = accData.notes;
 
+    // Reset approval status — edits require re-approval
+    const profile = await EAS_Auth.getUserProfile();
+    const isAdmin = profile?.role === 'admin';
+    if (!isAdmin) {
+      payload.approval_status = 'pending';
+      payload.submitted_for_approval = true;
+      payload.approved_by = null;
+      payload.approved_by_name = null;
+    }
+
     const { data, error } = await sb.from('accomplishments').update(payload).eq('id', id).select().single();
     if (error) { console.error('updateAccomplishment error:', error.message); return null; }
     await logActivity('UPDATE', 'accomplishments', id, payload);
+
+    // Create new approval workflow for the update (unless admin)
+    if (!isAdmin && data) {
+      const savedHours = data.effort_saved || 0;
+      const approval = await createSubmissionApproval('accomplishment', data.id, savedHours, null, data.practice, false);
+      if (approval) {
+        await sb.from('accomplishments').update({
+          approval_id: approval.id,
+          approval_status: approval.approval_status,
+          submitted_for_approval: true
+        }).eq('id', data.id);
+      }
+    }
+
     return data;
   }
 
@@ -1217,6 +1333,7 @@ const EAS_DB = (() => {
     fetchCopilotUsersByPractice,
     fetchProjects,
     fetchLovs,
+    fetchApprovedUseCases,
     fetchAllData,
 
     // Leaderboard & gamification (Phase 5)

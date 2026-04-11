@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 2.3 | **Last Updated:** April 11, 2026
+> **Version:** 2.4 | **Last Updated:** April 12, 2026
 
 ---
 
@@ -22,6 +22,7 @@
 | 2.1 | Apr 10, 2026 | Omar Ibrahim | Post-launch: contributor data visibility fix, page quarter selectors, auto week number |
 | 2.2 | Apr 11, 2026 | Omar Ibrahim | Phase 7 — Export Center: Excel/PDF/PPT with role-based access and per-page export |
 | 2.3 | Apr 11, 2026 | Omar Ibrahim | Phase 8 Complete — AI-Assisted Approval Workflow: AI suggestions, validation, multi-layer routing |
+| 2.4 | Apr 12, 2026 | Omar Ibrahim | Approval gating: approved-only metrics/exports and re-approval on edits |
 
 ---
 

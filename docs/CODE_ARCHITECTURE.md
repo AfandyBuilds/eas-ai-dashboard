@@ -79,13 +79,14 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 ├── js/
 │   ├── config.js           # Supabase URL + anon key + client factory
 │   ├── auth.js             # EAS_Auth module: session, roles, guards
-│   ├── db.js               # EAS_DB module: quarters, queries, CRUD writes, RPCs, audit
+│   ├── db.js               # EAS_DB module: quarters, queries, CRUD writes, RPCs, audit, approved use cases
 │   ├── phase8-submission.js # Phase 8 IIFE: AI suggestions, validation, approval workflow
 │   └── utils.js            # EAS_Utils: format, sanitize, colors, dates
 │
 ├── sql/
 │   ├── 001_schema.sql      # Full Supabase schema (core tables, views, RLS, triggers)
-│   └── 002_approval_workflow.sql # Phase 8 approval workflow schema
+│   ├── 002_approval_workflow.sql # Phase 8 approval workflow schema
+│   └── 003_use_cases.sql    # AI Innovation approved use cases seed data (40 EAS use cases)
 │
 ├── scripts/                # Node.js admin/migration scripts
 │   ├── create-auth-users.mjs   # One-time auth user creation
@@ -238,10 +239,10 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 |----------|------|--------|
 | `get_user_role()` | SQL | Returns role of currently authenticated user from `users` |
 | `get_user_practice()` | SQL | Returns practice of currently authenticated user from `users` |
-| `signup_contributor()` | SECURITY DEFINER | Creates `users` row + `copilot_users` row for new contributor signups |
-| `get_practice_summary()` | SECURITY INVOKER | Quarter-aware practice summary (replaces view for filtered queries) |
-| `get_employee_leaderboard()` | SECURITY INVOKER | Employee rankings by tasks, hours saved, efficiency |
-| `get_practice_leaderboard()` | SECURITY INVOKER | Practice rankings with weighted scoring |
+| `signup_contributor()` | SECURITY DEFINER | Creates `users` row + `copilot_users` row for new signups (role forced to `contributor`) |
+| `get_practice_summary()` | SECURITY INVOKER | Quarter-aware practice summary (approved-only tasks) |
+| `get_employee_leaderboard()` | SECURITY INVOKER | Employee rankings by approved tasks, hours saved, efficiency |
+| `get_practice_leaderboard()` | SECURITY INVOKER | Practice rankings with weighted scoring (approved-only tasks/accomplishments) |
 
 #### `signup_contributor()` Parameters
 
@@ -260,8 +261,8 @@ Returns `jsonb` with `{status, user_id, copilot_id?}`. Copilot logic:
 
 ### Views
 
-- `practice_summary` — Aggregated stats per practice
-- `quarter_summary` — Aggregated stats per quarter
+- `practice_summary` — Aggregated stats per practice (approved-only tasks)
+- `quarter_summary` — Aggregated stats per quarter (approved-only tasks)
 
 ### Row-Level Security
 

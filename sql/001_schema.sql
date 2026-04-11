@@ -374,6 +374,7 @@ LEFT JOIN (
     ROUND(AVG(NULLIF(quality_rating, 0))::numeric, 2) AS avg_quality,
     COUNT(*) FILTER (WHERE LOWER(status) = 'completed') AS completed_count
   FROM tasks
+  WHERE approval_status = 'approved'
   GROUP BY practice
 ) t ON t.practice = p.name
 LEFT JOIN (
@@ -417,5 +418,6 @@ LEFT JOIN (
     ROUND(AVG(NULLIF(quality_rating, 0))::numeric, 2) AS avg_quality,
     COUNT(*) FILTER (WHERE LOWER(status) = 'completed') AS completed_count
   FROM tasks
+  WHERE approval_status = 'approved'
   GROUP BY quarter_id
 ) t ON t.quarter_id = q.id;

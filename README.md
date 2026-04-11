@@ -117,6 +117,7 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 - **Admin Approvals Tab:** Manage pending submissions, approvals, rejections
 - **Employee Status Page:** Track personal task approval progress
 - **Approval Analytics:** Dashboard KPIs showing approval metrics and time savings
+- **Approval Gating:** KPIs, charts, exports, and forecasts use approved-only tasks/accomplishments; pending items show approval badges
 
 See [docs/phase8/PHASE_8_IMPLEMENTATION.md](docs/phase8/PHASE_8_IMPLEMENTATION.md) and [docs/approval/APPROVAL_WORKFLOW.md](docs/approval/APPROVAL_WORKFLOW.md) for complete details.
 
@@ -151,6 +152,8 @@ See [docs/ONBOARDING_GUIDE.md](docs/ONBOARDING_GUIDE.md) for full setup instruct
 | **Admin** | Full CRUD all practices, data dumps, user management | Omar Ibrahim |
 | **SPOC** | Own practice CRUD, team management, nudge system, leaderboard | Norah Al Wabel (CES) |
 | **Contributor** | Personal dashboard, My Tasks, badges, practice leaderboard | Self-registered users |
+
+> Note: Self-signup always registers users as **Contributor**. Admins assign SPOC/Admin roles.
 
 ## Changelog
 

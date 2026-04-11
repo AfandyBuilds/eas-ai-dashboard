@@ -159,6 +159,11 @@ All database tables have RLS enabled with policies that enforce:
 - **Write (users):** Users can only update their own `last_login` field
 - **Admin override:** Admin role users have full read/write on all tables
 
+### Approval Gating
+
+- **Analytics and KPIs** (dashboard, forecasts, exports) use **approved-only** tasks/accomplishments.
+- **Pending submissions** remain visible in lists with approval badges but are excluded from calculations.
+
 ---
 
 ## 5. Data Architecture
@@ -214,6 +219,10 @@ All database tables have RLS enabled with policies that enforce:
 | `quarter_summary` | Per-quarter totals across all practices |
 | `adoption_rates` | Licensed vs. active user calculations |
 
+### use_cases Table
+
+Stores AI Innovation approved reference use cases (40 EAS use cases from the AI Use Case Asset Template). Key columns: `asset_id`, `name`, `description`, `practice`, `sdlc_phase`, `category`, `subcategory`, `ai_tools`, `validation_detail`, `is_approved_reference`. Used by the Use Case Library UI and AI validation edge function.
+
 ---
 
 ## 6. Frontend Architecture
@@ -240,7 +249,7 @@ Sidebar Menu
 ├── SPOC Panel        → renderSPOCPanel()       (spoc only)
 ├── Leaderboard       → renderLeaderboard()     (all roles)
 ├── My Tasks          → renderMyTasks()         (contributor)
-└── Use Cases         → renderUseCases()        (all roles)
+└── Use Cases         → renderUseCases()        (all roles) — AI Innovation approved + community
 ```
 
 ### JavaScript Module Dependencies

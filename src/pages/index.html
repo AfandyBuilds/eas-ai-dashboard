@@ -282,6 +282,7 @@
                 <th>Saved</th>
                 <th>Eff %</th>
                 <th>Status</th>
+                <th>Approval</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -551,7 +552,7 @@
         </div>
         <div style="overflow-x:auto">
           <table aria-label="My tasks">
-            <thead><tr><th>Week</th><th>Project</th><th>Task</th><th>Category</th><th>AI Tool</th><th>Without AI</th><th>With AI</th><th>Saved</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Week</th><th>Project</th><th>Task</th><th>Category</th><th>AI Tool</th><th>Without AI</th><th>With AI</th><th>Saved</th><th>Status</th><th>Approval</th><th>Actions</th></tr></thead>
             <tbody id="mytasks-tbody"></tbody>
           </table>
         </div>
@@ -565,12 +566,17 @@
     <div class="page-header">
       <div>
         <h2>Use Case Library</h2>
-        <div class="subtitle">Searchable collection of AI use cases across the organization</div>
+        <div class="subtitle">AI Innovation approved reference use cases and community-submitted use cases across the organization</div>
       </div>
     </div>
     <div class="page-content">
       <div class="filters-bar">
         <input type="text" class="search-input" id="uc-search" placeholder="Search use cases..." aria-label="Search use cases" oninput="renderUseCases()">
+        <select class="filter-select" id="uc-filter-type" aria-label="Filter by type" onchange="renderUseCases()">
+          <option value="">All Types</option>
+          <option value="approved">AI Innovation Approved</option>
+          <option value="community">Community Use Cases</option>
+        </select>
         <select class="filter-select" id="uc-filter-practice" aria-label="Filter by practice" onchange="renderUseCases()">
           <option value="">All Practices</option>
         </select>
@@ -1427,6 +1433,21 @@ function statusBadge(status) {
   return `<span class="status-badge ${cls}">${status}</span>`;
 }
 
+/** Approval workflow badge — shows visual approval state */
+function approvalBadge(approvalStatus) {
+  if (!approvalStatus) return '<span style="color:#FFA500;font-weight:600;font-size:12px">⏳ Pending</span>';
+  const map = {
+    'pending':      { label: 'Pending',         color: '#FFA500', icon: '⏳' },
+    'ai_review':    { label: 'AI Reviewing',     color: '#4A90E2', icon: '🤖' },
+    'spoc_review':  { label: 'SPOC Review',      color: '#6C5CE7', icon: '👤' },
+    'admin_review': { label: 'Admin Review',     color: '#E67E22', icon: '🔒' },
+    'approved':     { label: 'Approved',         color: '#27AE60', icon: '✅' },
+    'rejected':     { label: 'Rejected',         color: '#E74C3C', icon: '❌' }
+  };
+  const info = map[approvalStatus] || map['pending'];
+  return `<span style="color:${info.color};font-weight:600;font-size:12px">${info.icon} ${info.label}</span>`;
+}
+
 function fmt(n, d = 1) { return n ? Number(n).toFixed(d) : '0'; }
 function fmtPct(n) { return n ? (n * 100).toFixed(1) + '%' : '0%'; }
 function fmtInt(n) { return n ? Math.round(n).toLocaleString() : '0'; }
@@ -1474,9 +1495,10 @@ function renderCharts() {
     options: { ...chartOpts, scales: { ...chartOpts.scales, y: { ...chartOpts.scales.y, max: 100 } } }
   });
 
-  // AI Tools donut
+  // AI Tools donut — only count approved tasks in charts
+  const approvedTasks = fd.tasks.filter(t => t.approvalStatus === 'approved');
   const toolCounts = {};
-  fd.tasks.forEach(t => { if (t.aiTool) toolCounts[t.aiTool] = (toolCounts[t.aiTool] || 0) + 1; });
+  approvedTasks.forEach(t => { if (t.aiTool) toolCounts[t.aiTool] = (toolCounts[t.aiTool] || 0) + 1; });
   const toolLabels = Object.keys(toolCounts);
   const toolColors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316'];
   charts.tools = new Chart(document.getElementById('chart-tools'), {
@@ -1484,18 +1506,18 @@ function renderCharts() {
     options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right', labels: { color: _tc, font: { size: 11 }, padding: 12 } } } }
   });
 
-  // Categories donut
+  // Categories donut — only count approved tasks
   const catCounts = {};
-  fd.tasks.forEach(t => { if (t.category) catCounts[t.category] = (catCounts[t.category] || 0) + 1; });
+  approvedTasks.forEach(t => { if (t.category) catCounts[t.category] = (catCounts[t.category] || 0) + 1; });
   const catLabels = Object.keys(catCounts);
   charts.categories = new Chart(document.getElementById('chart-categories'), {
     type: 'doughnut', data: { labels: catLabels, datasets: [{ data: Object.values(catCounts), backgroundColor: toolColors.slice(0, catLabels.length), borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right', labels: { color: _tc, font: { size: 11 }, padding: 12 } } } }
   });
 
-  // Weekly trend
+  // Weekly trend — only count approved tasks
   const weekCounts = {};
-  fd.tasks.forEach(t => { const w = 'Week ' + t.week; weekCounts[w] = (weekCounts[w] || 0) + 1; });
+  approvedTasks.forEach(t => { const w = 'Week ' + t.week; weekCounts[w] = (weekCounts[w] || 0) + 1; });
   const weekLabels = Object.keys(weekCounts).sort((a,b) => parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1]));
   charts.weekly = new Chart(document.getElementById('chart-weekly'), {
     type: 'line', data: { labels: weekLabels, datasets: [{ data: weekLabels.map(w => weekCounts[w]), borderColor: getThemeColor('--accent'), backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, pointBackgroundColor: getThemeColor('--accent'), pointRadius: 5 }] },
@@ -1519,7 +1541,8 @@ function linearRegression(points) {
 }
 
 function renderForecast() {
-  if (!data || !data.tasks.length) {
+  const approvedTasks = data?.tasks?.filter(t => t.approvalStatus === 'approved') || [];
+  if (!approvedTasks.length) {
     document.getElementById('forecast-kpis').innerHTML = '<p style="color:var(--text-muted)">Insufficient data for forecasting</p>';
     return;
   }
@@ -1529,7 +1552,7 @@ function renderForecast() {
 
   // Aggregate by week number
   const weekMap = {};
-  data.tasks.forEach(t => {
+  approvedTasks.forEach(t => {
     const w = t.week || 0;
     if (!weekMap[w]) weekMap[w] = { tasks: 0, hoursSaved: 0, hoursWithout: 0, efficiency: [], quality: [], copilot: 0 };
     weekMap[w].tasks++;
@@ -1655,7 +1678,7 @@ function showPracticeDetail(practice) {
   const detail = document.getElementById('practice-detail');
   detail.classList.remove('hidden');
   const fd = getFilteredData();
-  const tasks = fd.tasks.filter(t => t.practice === practice);
+  const tasks = fd.tasks.filter(t => t.practice === practice && t.approvalStatus === 'approved');
   const info = fd.summary.practices.find(p => p.name.includes(practice)) || {};
 
   detail.innerHTML = `
@@ -1716,7 +1739,7 @@ function renderTasks() {
 
   document.getElementById('task-count-label').textContent = `Showing ${start + 1}–${start + pageItems.length} of ${filtered.length} tasks`;
   document.getElementById('tasks-tbody').innerHTML = pageItems.map(t => `
-    <tr>
+    <tr${t.approvalStatus !== 'approved' ? ' style="opacity:0.75"' : ''}>
       <td><span style="color:${practiceColors[t.practice] || '#94a3b8'};font-weight:600">${t.practice}</span></td>
       <td>${t.week}</td>
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.project}">${t.project}</td>
@@ -1729,6 +1752,7 @@ function renderTasks() {
       <td style="color:var(--success);font-weight:600">${fmt(t.timeSaved)}</td>
       <td>${t.timeWithout > 0 ? fmt((t.timeSaved / t.timeWithout) * 100, 0) + '%' : '-'}</td>
       <td>${statusBadge(t.status)}</td>
+      <td>${approvalBadge(t.approvalStatus)}</td>
       <td class="row-actions">
         <button class="btn-icon btn-edit" onclick="editTask('${t.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="btn-icon btn-delete" onclick="deleteTaskConfirm('${t.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -1775,11 +1799,12 @@ function renderAccomplishments() {
     document.getElementById('acc-list').innerHTML = filtered.length === 0
       ? '<div class="empty-state"><h3>No accomplishments found</h3><p>Add your first AI win using the button above.</p></div>'
       : filtered.map(a => `
-    <div class="acc-card">
+    <div class="acc-card"${a.approvalStatus !== 'approved' ? ' style="opacity:0.75"' : ''}>
       <div class="acc-card-header">
         <div class="acc-card-title">${a.title}</div>
         <div style="display:flex;gap:8px;align-items:center">
           ${statusBadge(a.status)}
+          ${approvalBadge(a.approvalStatus)}
           <button class="btn-icon btn-edit" onclick="editAccomplishment('${a.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="btn-icon btn-delete" onclick="deleteAccomplishmentConfirm('${a.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </div>
@@ -2275,28 +2300,30 @@ async function renderMyTasks() {
     (t.employeeEmail && t.employeeEmail.toLowerCase() === userEmail.toLowerCase())
   );
 
-  // KPIs
-  const totalSaved = myTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
-  const totalWithout = myTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+  // KPIs — only count APPROVED tasks for metrics
+  const approvedTasks = myTasks.filter(t => t.approvalStatus === 'approved');
+  const pendingCount = myTasks.filter(t => t.approvalStatus !== 'approved' && t.approvalStatus !== 'rejected').length;
+  const totalSaved = approvedTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+  const totalWithout = approvedTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
   const eff = totalWithout > 0 ? (totalSaved / totalWithout * 100) : 0;
-  const qualTasks = myTasks.filter(t => t.quality > 0);
+  const qualTasks = approvedTasks.filter(t => t.quality > 0);
   const avgQual = qualTasks.length > 0 ? qualTasks.reduce((s, t) => s + t.quality, 0) / qualTasks.length : 0;
 
   document.getElementById('mytasks-kpis').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">My Tasks</div><div class="kpi-value blue">${myTasks.length}</div><div class="kpi-sub">logged</div></div>
-    <div class="kpi-card"><div class="kpi-label">Hours Saved</div><div class="kpi-value green">${fmt(totalSaved, 1)}</div><div class="kpi-sub">with AI</div></div>
+    <div class="kpi-card"><div class="kpi-label">Approved Tasks</div><div class="kpi-value blue">${approvedTasks.length}</div><div class="kpi-sub">${pendingCount > 0 ? pendingCount + ' pending approval' : 'all approved'}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Hours Saved</div><div class="kpi-value green">${fmt(totalSaved, 1)}</div><div class="kpi-sub">approved only</div></div>
     <div class="kpi-card"><div class="kpi-label">Efficiency</div><div class="kpi-value yellow">${fmt(eff, 0)}%</div><div class="kpi-sub">time reduction</div></div>
     <div class="kpi-card"><div class="kpi-label">Quality</div><div class="kpi-value purple">${fmt(avgQual, 1)}/5</div><div class="kpi-sub">avg rating</div></div>
   `;
 
-  // Task table
-  document.getElementById('mytasks-count-label').textContent = `${myTasks.length} tasks`;
+  // Task table — show ALL tasks (with approval status badge)
+  document.getElementById('mytasks-count-label').textContent = `${myTasks.length} tasks (${approvedTasks.length} approved)`;
   const el = document.getElementById('nav-mytask-count');
-  if (el) el.textContent = myTasks.length;
+  if (el) el.textContent = approvedTasks.length;
 
   document.getElementById('mytasks-tbody').innerHTML = myTasks.length === 0
-    ? '<tr><td colspan="10" style="text-align:center;padding:30px"><div class="empty-state"><h3>No tasks yet</h3><p>Click "+ Log Task" to record your first AI task!</p></div></td></tr>'
-    : myTasks.map(t => `<tr>
+    ? '<tr><td colspan="11" style="text-align:center;padding:30px"><div class="empty-state"><h3>No tasks yet</h3><p>Click "+ Log Task" to record your first AI task!</p></div></td></tr>'
+    : myTasks.map(t => `<tr${t.approvalStatus !== 'approved' ? ' style="opacity:0.7"' : ''}>
       <td>${t.week}</td>
       <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.project}">${t.project}</td>
       <td>${t.task}</td>
@@ -2306,19 +2333,20 @@ async function renderMyTasks() {
       <td>${fmt(t.timeWith)}</td>
       <td style="color:var(--success);font-weight:600">${fmt(t.timeSaved)}</td>
       <td>${statusBadge(t.status)}</td>
+      <td>${approvalBadge(t.approvalStatus)}</td>
       <td class="row-actions">
         <button class="btn-icon btn-edit" onclick="editTask('${t.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       </td>
     </tr>`).join('');
 
-  // My badges
+  // My badges — use approved-only stats
   const myStats = {
-    tasks: myTasks.length,
+    tasks: approvedTasks.length,
     timeSaved: totalSaved,
     timeWithout: totalWithout,
     efficiency: eff,
     quality: avgQual,
-    streakWeeks: new Set(myTasks.map(t => t.week)).size
+    streakWeeks: new Set(approvedTasks.map(t => t.week)).size
   };
   const badges = EAS_DB.computeBadges(myStats);
   document.getElementById('mytasks-badges').innerHTML = `
@@ -2341,10 +2369,41 @@ function renderUseCases() {
   const fPractice = document.getElementById('uc-filter-practice')?.value || '';
   const fCategory = document.getElementById('uc-filter-category')?.value || '';
   const fTool = document.getElementById('uc-filter-tool')?.value || '';
+  const fType = document.getElementById('uc-filter-type')?.value || '';
+--- 1. Build AI Innovation Approved use cases from DB ---
+  const approvedUCs = (data.approvedUseCases || []).map(uc => ({
+    task: uc.name,
+    description: uc.description,
+    category: uc.category || uc.sdlcPhase || '',
+    subcategory: uc.subcategory || '',
+    aiTool: uc.aiTools || '',
+    practice: uc.practice,
+    practices: [uc.practice],
+    count: 0,
+    totalSaved: 0,
+    totalWithout: 0,
+    avgQuality: 0,
+    efficiency: 0,
+    employees: [],
+    isApproved: true,
+    assetId: uc.assetId,
+    validationDetail: uc.validationDetail,
+    currentStatus: uc.currentStatus,
+    sdlcPhase: uc.sdlcPhase,
+    businessBenefits: uc.businessBenefits,
+    implementationGuidelines: uc.implementationGuidelines,
+    hoursSavedPerImpl: uc.hoursSavedPerImpl,
+    effortsWithoutAi: uc.effortsWithoutAi,
+    effortsWithAi: uc.effortsWithAi,
+    ownerSpoc: uc.ownerSpoc,
+    noOfAdoptions: uc.noOfAdoptions,
+    strategicTakeaways: uc.strategicTakeaways,
+    suggestionHowToApply: uc.suggestionHowToApply
+  }));
 
-  // Build use cases from tasks (unique by task description + category + tool)
+  // --- 2. Build community use cases from tasks ---
   const ucMap = {};
-  data.tasks.forEach(t => {
+  data.tasks.filter(t => t.approvalStatus === 'approved').forEach(t => {
     if (!t.task || !t.category) return;
     const key = `${t.task}||${t.category}||${t.aiTool}`;
     if (!ucMap[key]) {
@@ -2359,7 +2418,8 @@ function renderUseCases() {
         totalWithout: 0,
         avgQuality: 0,
         qualCount: 0,
-        employees: new Set()
+        employees: new Set(),
+        isApproved: false
       };
     }
     const uc = ucMap[key];
@@ -2371,38 +2431,87 @@ function renderUseCases() {
     if (t.quality > 0) { uc.avgQuality += t.quality; uc.qualCount++; }
   });
 
-  let useCases = Object.values(ucMap).map(uc => ({
+  const communityUCs = Object.values(ucMap).map(uc => ({
     ...uc,
     practices: [...uc.practices],
     employees: [...uc.employees],
     avgQuality: uc.qualCount > 0 ? uc.avgQuality / uc.qualCount : 0,
-    efficiency: uc.totalWithout > 0 ? (uc.totalSaved / uc.totalWithout * 100) : 0
-  })).sort((a, b) => b.totalSaved - a.totalSaved);
+    efficiency: uc.totalWithout > 0 ? (uc.totalSaved / uc.totalWithout * 100) : 0,
+    isApproved: false
+  }));
+
+  // --- 3. Merge: approved first, then community ---
+  let allUseCases = [...approvedUCs, ...communityUCs];
 
   // Apply filters
-  useCases = useCases.filter(uc => {
-    if (fPractice && !uc.practices.includes(fPractice)) return false;
+  allUseCases = allUseCases.filter(uc => {
+    // Type filter
+    if (fType === 'approved' && !uc.isApproved) return false;
+    if (fType === 'community' && uc.isApproved) return false;
+    const ucPractices = uc.practices || [uc.practice];
+    if (fPractice && !ucPractices.includes(fPractice)) return false;
     if (fCategory && uc.category !== fCategory) return false;
-    if (fTool && uc.aiTool !== fTool) return false;
+    if (fTool) {
+      const toolStr = (uc.aiTool || '').toLowerCase();
+      if (!toolStr.includes(fTool.toLowerCase())) return false;
+    }
     if (search) {
-      const hay = [uc.task, uc.category, uc.aiTool, ...uc.practices, ...uc.employees].join(' ').toLowerCase();
+      const hay = [uc.task, uc.description || '', uc.category, uc.aiTool, uc.subcategory || '', ...(uc.practices || []), ...(uc.employees || [])].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
   });
 
+  const approvedFiltered = allUseCases.filter(uc => uc.isApproved);
+  const communityFiltered = allUseCases.filter(uc => !uc.isApproved);
+
   // KPIs
   document.getElementById('uc-kpis').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Unique Use Cases</div><div class="kpi-value blue">${useCases.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Total Instances</div><div class="kpi-value green">${useCases.reduce((s, u) => s + u.count, 0)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Hours Saved</div><div class="kpi-value yellow">${fmt(useCases.reduce((s, u) => s + u.totalSaved, 0), 0)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Contributors</div><div class="kpi-value purple">${new Set(useCases.flatMap(u => u.employees)).size}</div></div>
+    <div class="kpi-card"><div class="kpi-label">AI Innovation Approved</div><div class="kpi-value blue">${approvedFiltered.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Community Use Cases</div><div class="kpi-value green">${communityFiltered.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Instances</div><div class="kpi-value yellow">${communityFiltered.reduce((s, u) => s + u.count, 0)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Contributors</div><div class="kpi-value purple">${new Set(communityFiltered.flatMap(u => u.employees || [])).size}</div></div>
   `;
 
-  // Use case cards
-  document.getElementById('uc-list').innerHTML = useCases.length === 0
-    ? '<div class="empty-state"><h3>No use cases found</h3><p>Try adjusting your filters.</p></div>'
-    : useCases.map(uc => `
+  // Render use case cards
+  const renderApprovedCard = (uc) => {
+    const statusColor = uc.currentStatus === 'Implemented' ? 'var(--success)' :
+                        uc.currentStatus === 'In Progress' ? 'var(--warning)' : 'var(--accent)';
+    const validationBadge = uc.validationDetail === 'Accepted – Proven with Adoption Evidence'
+      ? '<span class="status-badge" style="background:rgba(16,185,129,0.15);color:var(--success);font-size:11px">✓ Proven</span>'
+      : uc.validationDetail === 'Accepted – Ready for Implementation'
+      ? '<span class="status-badge" style="background:rgba(59,130,246,0.15);color:var(--accent);font-size:11px">Ready for Impl.</span>'
+      : '<span class="status-badge" style="background:rgba(245,158,11,0.15);color:var(--warning);font-size:11px">Ready for Pilot</span>';
+
+    return `
+    <div class="acc-card" style="border-left:3px solid var(--accent);position:relative">
+      <div class="acc-card-header">
+        <div class="acc-card-title">${uc.task}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="status-badge" style="background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(168,85,247,0.2));color:var(--accent);font-size:11px;font-weight:600">⚡ AI Innovation Approved</span>
+          ${validationBadge}
+        </div>
+      </div>
+      <div style="color:var(--text-secondary);font-size:13px;margin:6px 0 10px;line-height:1.5">${(uc.description || '').substring(0, 200)}${(uc.description || '').length > 200 ? '…' : ''}</div>
+      <div class="acc-meta">
+        <div class="acc-meta-item">Practice: <span style="color:${practiceColors[uc.practice] || '#94a3b8'};font-weight:600">${uc.practice}</span></div>
+        <div class="acc-meta-item">SDLC Phase: <span>${uc.sdlcPhase || '—'}</span></div>
+        <div class="acc-meta-item">Category: <span style="color:var(--accent)">${uc.category}${uc.subcategory ? ' / ' + uc.subcategory : ''}</span></div>
+        <div class="acc-meta-item">AI Tools: <span>${uc.aiTool || '—'}</span></div>
+        <div class="acc-meta-item">Owner: <span>${uc.ownerSpoc || '—'}</span></div>
+        <div class="acc-meta-item">Status: <span style="color:${statusColor};font-weight:600">${uc.currentStatus || '—'}</span></div>
+      </div>
+      <div style="display:flex;gap:24px;margin-top:10px;font-size:13px;flex-wrap:wrap">
+        ${uc.hoursSavedPerImpl ? `<div><span style="color:var(--success);font-weight:600">${uc.hoursSavedPerImpl}</span> hrs saved/impl</div>` : ''}
+        ${uc.effortsWithoutAi ? `<div>Without AI: <span style="font-weight:600">${uc.effortsWithoutAi}</span></div>` : ''}
+        ${uc.effortsWithAi ? `<div>With AI: <span style="font-weight:600">${uc.effortsWithAi}</span></div>` : ''}
+        ${uc.noOfAdoptions ? `<div>Adoptions: <span style="color:var(--purple);font-weight:600">${uc.noOfAdoptions}</span></div>` : ''}
+      </div>
+      ${uc.businessBenefits ? `<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><strong>Benefits:</strong> ${(uc.businessBenefits || '').substring(0, 150)}${(uc.businessBenefits || '').length > 150 ? '…' : ''}</div>` : ''}
+    </div>`;
+  };
+
+  const renderCommunityCard = (uc) => `
     <div class="acc-card">
       <div class="acc-card-header">
         <div class="acc-card-title">${uc.task}</div>
@@ -2411,15 +2520,21 @@ function renderUseCases() {
       <div class="acc-meta">
         <div class="acc-meta-item">Category: <span style="color:var(--accent)">${uc.category}</span></div>
         <div class="acc-meta-item">AI Tool: <span>${uc.aiTool}</span></div>
-        <div class="acc-meta-item">Practices: <span>${uc.practices.map(p => `<span style="color:${practiceColors[p] || '#94a3b8'}">${p}</span>`).join(', ')}</span></div>
-        <div class="acc-meta-item">Contributors: <span>${uc.employees.length}</span></div>
+        <div class="acc-meta-item">Practices: <span>${(uc.practices || []).map(p => '<span style="color:' + (practiceColors[p] || '#94a3b8') + '">' + p + '</span>').join(', ')}</span></div>
+        <div class="acc-meta-item">Contributors: <span>${(uc.employees || []).length}</span></div>
       </div>
       <div style="display:flex;gap:24px;margin-top:10px;font-size:13px">
         <div><span style="color:var(--success);font-weight:600">${fmt(uc.totalSaved, 1)} hrs</span> saved</div>
         <div><span style="color:var(--warning);font-weight:600">${fmt(uc.efficiency, 0)}%</span> efficiency</div>
-        ${uc.avgQuality > 0 ? `<div><span style="color:var(--purple);font-weight:600">${fmt(uc.avgQuality, 1)}/5</span> quality</div>` : ''}
+        ${uc.avgQuality > 0 ? '<div><span style="color:var(--purple);font-weight:600">' + fmt(uc.avgQuality, 1) + '/5</span> quality</div>' : ''}
       </div>
-    </div>
+    </div>`;
+
+  const allCards = allUseCases.length === 0
+    ? '<div class="empty-state"><h3>No use cases found</h3><p>Try adjusting your filters.</p></div>'
+    : allUseCases.map(uc => uc.isApproved ? renderApprovedCard(uc) : renderCommunityCard(uc)).join('');
+
+  document.getElementById('uc-list').innerHTML = allCards
   `).join('');
 }
 
@@ -2608,7 +2723,7 @@ async function saveTask() {
   let isEdit = false;
   if (_editingId && _editingType === 'task') {
     isEdit = true;
-    showToast('Updating task...');
+    showToast('Updating task (will require re-approval)...');
     result = await EAS_DB.updateTask(_editingId, taskData);
     _editingId = null; _editingType = null;
     document.querySelector('#modal-task .modal h3').textContent = 'Log AI Task';
@@ -2623,7 +2738,7 @@ async function saveTask() {
   const selectedQuarter = EAS_DB.getSelectedQuarter();
   data = await EAS_DB.fetchAllData(selectedQuarter);
   EAS_Utils.sanitizeDataset(data);
-  const resultMsg = isEdit ? 'Task updated!' : 'Task logged successfully with approval workflow!';
+  const resultMsg = isEdit ? 'Task updated — pending re-approval by Admin/SPOC' : 'Task logged successfully with approval workflow!';
   showToast(resultMsg);
   renderDashboard();
   renderTasks();
@@ -2677,20 +2792,20 @@ async function saveAccomplishment() {
   let isEdit = false;
   if (_editingId && _editingType === 'accomplishment') {
     isEdit = true;
-    showToast('Updating accomplishment...');
+    showToast('Updating accomplishment (will require re-approval)...');
     result = await EAS_DB.updateAccomplishment(_editingId, acc);
     _editingId = null; _editingType = null;
     document.querySelector('#modal-accomplishment .modal h3').textContent = 'Log Accomplishment';
     document.querySelector('#modal-accomplishment .btn-primary').textContent = 'Save';
   } else {
-    showToast('Saving accomplishment...');
-    result = await EAS_DB.insertAccomplishment(acc);
+    showToast('Saving accomplishment with approval workflow...');
+    result = await Phase8.submitWithApproval('accomplishment', acc);
   }
   if (!result) { showToast('Failed to save accomplishment — check console', 'error'); return; }
   const selectedQuarter = EAS_DB.getSelectedQuarter();
   data = await EAS_DB.fetchAllData(selectedQuarter);
   EAS_Utils.sanitizeDataset(data);
-  showToast(isEdit ? 'Accomplishment updated!' : 'Accomplishment added!');
+  showToast(isEdit ? 'Accomplishment updated — pending re-approval by Admin/SPOC' : 'Accomplishment submitted for approval!');
   renderAccomplishments();
   updateNavCounts();
   // Reset form
@@ -2950,13 +3065,13 @@ function _getExportTasks() {
   const fd = getFilteredData();
   if (role === 'contributor') {
     const userName = EAS_Auth.getUserName();
-    return fd.tasks.filter(t => t.employee && t.employee.toLowerCase() === userName.toLowerCase());
+    return fd.tasks.filter(t => t.approvalStatus === 'approved' && t.employee && t.employee.toLowerCase() === userName.toLowerCase());
   }
   if (role === 'spoc') {
     const practice = EAS_Auth.getUserPractice();
-    return fd.tasks.filter(t => t.practice === practice);
+    return fd.tasks.filter(t => t.approvalStatus === 'approved' && t.practice === practice);
   }
-  return fd.tasks;
+  return fd.tasks.filter(t => t.approvalStatus === 'approved');
 }
 
 // -------- EXCEL EXPORT --------
@@ -3686,11 +3801,15 @@ function populateFilters() {
     tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; el.appendChild(o); });
   });
 
-  // Use Case Library filter dropdowns
+  // Use Case Library filter dropdowns — include approved use case categories/tools too
+  const approvedCats = [...new Set((data.approvedUseCases || []).map(uc => uc.category).filter(Boolean))];
+  const approvedTools = [...new Set((data.approvedUseCases || []).flatMap(uc => (uc.aiTools || '').split(',').map(t => t.trim())).filter(Boolean))];
+  const ucAllCats = [...new Set([...categories, ...approvedCats])].sort();
+  const ucAllTools = [...new Set([...tools, ...approvedTools])].sort();
   const ucCatSel = document.getElementById('uc-filter-category');
-  if (ucCatSel) categories.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; ucCatSel.appendChild(o); });
+  if (ucCatSel) ucAllCats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; ucCatSel.appendChild(o); });
   const ucToolSel = document.getElementById('uc-filter-tool');
-  if (ucToolSel) tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; ucToolSel.appendChild(o); });
+  if (ucToolSel) ucAllTools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; ucToolSel.appendChild(o); });
 
   // Project dropdown for task form
   const projSel = document.getElementById('f-project');

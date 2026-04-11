@@ -6,6 +6,27 @@
 
 ## Changes Made
 
+### 0c. April 12, 2026 — AI Innovation Approved Use Cases
+
+- **New table:** `use_cases` in Supabase — stores AI Innovation approved reference use cases with full metadata (asset_id, name, description, practice, SDLC phase, category, subcategory, AI tools, effort estimates, validation details, implementation guidelines, etc.).
+- **Data source:** Extracted 40 EAS use cases from `ReferencesAndGuidance/AI_Use_Case_Asset_Template (5).xlsx`, filtered by Department=EAS, all with "Accepted Idea" validation feedback across 6 practices (BFSI, CES, EPCS, EPS, ERP Solutions, GRC).
+- **Validation detail breakdown:** 6 "Proven with Adoption Evidence", 4 "Ready for Implementation", 30 "Ready for Pilot".
+- **Migration SQL:** `sql/003_use_cases.sql` — 40 idempotent INSERT statements with ON CONFLICT DO NOTHING.
+- **db.js:** Added `fetchApprovedUseCases()` function and included in `fetchAllData()` parallel fetch.
+- **UI (Use Case Library):** Completely rewritten `renderUseCases()` to merge approved reference use cases (with "⚡ AI Innovation Approved" badge and validation detail badges) alongside community task-derived use cases. Added type filter dropdown (All/Approved/Community). KPIs now show approved vs community counts separately.
+- **AI Validation Edge Function:** Updated `ai-validate/index.ts` to fetch approved use cases from DB and include them as context in the GPT-4 validation prompt. Added rule 6: "Alignment with approved use cases" — submissions matching known patterns get bonus points; novel use cases not penalized.
+- **Trade-offs:**
+  - Chose TEXT for effort fields (efforts_without_ai, efforts_with_ai, hours_saved_per_impl) because source data has mixed formats ("16H", "3 Days per task", "8-10 MD per project") — no reliable numeric normalization possible.
+  - Two CES use cases had no asset_id in the Excel; generated IDs (CES-AI-DOC-001, CES-AI-DEV-001).
+  - Unit "ERP" mapped to practice "ERP Solutions" to match the existing practices table.
+
+### 0d. April 12, 2026 — Approval Gating (Approved-Only Metrics)
+
+- **DB:** Updated summary RPCs and views to filter `approval_status = 'approved'` for all aggregates.
+- **UI:** Added approval badges to tasks/accomplishments; charts and forecasts use approved-only tasks.
+- **Edits:** Task/accomplishment edits reset approval and re-create approval workflow entries.
+- **Exports:** Task exports now include approved-only records by default.
+
 ### 0b. April 12, 2026 — Guide Me Page (New Phase)
 
 - Added a new "Guide Me" tab under a **Resources** nav section in the sidebar, accessible to all roles.

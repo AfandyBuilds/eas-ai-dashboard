@@ -79,6 +79,7 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | FR-01.6 | Admin can create/deactivate users | P2 |
 | FR-01.7 | Contributor self-signup with profile info + copilot access flag | P1 ✅ |
 | FR-01.8 | Signup auto-creates users and copilot_users rows via RPC | P1 ✅ |
+| FR-01.9 | Self-signup always registers as Contributor; Admin assigns SPOC/Admin roles | P1 ✅ |
 
 ### FR-02: Quarter Segregation
 
@@ -103,6 +104,7 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | FR-03.5 | Inactive users widget | P2 ✅ |
 | FR-03.6 | Trend forecasting (linear regression, 4-week projection) | P3 ✅ |
 | FR-03.7 | Dark/Light mode toggle with localStorage persistence | P3 ✅ |
+| FR-03.8 | KPIs/charts/forecasts use approved-only data; pending items show approval badges | P1 ✅ |
 
 ### FR-04: Task Management
 
