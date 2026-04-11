@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Task Status - EAS AI Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="js/config.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/db.js"></script>
+<script defer src="js/config.js"></script>
+<script defer src="js/auth.js"></script>
+<script defer src="js/db.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -673,8 +673,30 @@ tbody tr:hover {
     window.location.href = 'index.html';
   }
 
-  // Initialize
-  init();
+  // Initialize with dependency check
+  async function startApp() {
+    // Wait for EAS_DB to be available (from db.js)
+    let attempts = 0;
+    while (typeof EAS_DB === 'undefined' && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    if (typeof EAS_DB === 'undefined') {
+      console.error('Failed to load EAS_DB library');
+      showToast('❌ Failed to load database library. Please refresh the page.', 'error');
+      return;
+    }
+    
+    await init();
+  }
+
+  // Start app when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApp);
+  } else {
+    startApp();
+  }
 </script>
 
 </body>
