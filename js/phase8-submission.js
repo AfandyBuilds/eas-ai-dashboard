@@ -206,6 +206,8 @@ const Phase8 = (() => {
   }
 
   function showSuggestionsDropdown(suggestions, fieldType) {
+    console.log('showSuggestionsDropdown called:', { suggestions: suggestions.length, fieldType, submissionType: _currentSubmission.type });
+    
     // Remove any existing suggestions dropdown
     const existing = document.getElementById('ai-suggestions-dropdown');
     if (existing) existing.remove();
@@ -214,24 +216,41 @@ const Phase8 = (() => {
     let inputElement = null;
     if (_currentSubmission.type === 'task') {
       inputElement = fieldType === 'why' 
-        ? document.getElementById('f-notes') 
+        ? document.getElementById('f-task-why')  // Correct ID for "Why is this important" field
         : document.getElementById('f-task');
     } else if (_currentSubmission.type === 'accomplishment') {
       inputElement = fieldType === 'why' 
-        ? document.getElementById('fa-details') 
+        ? document.getElementById('fa-impact')   // Use impact for accomplishment
         : document.getElementById('fa-title');
     }
 
-    if (!inputElement) return;
+    console.log('Input element found:', inputElement ? inputElement.id : 'NOT FOUND');
+    if (!inputElement) {
+      console.error('Could not find input element for field type:', fieldType, 'in type:', _currentSubmission.type);
+      return;
+    }
 
     // Create dropdown container
     const dropdown = document.createElement('div');
     dropdown.id = 'ai-suggestions-dropdown';
+    
+    // Get the parent form for positioning context
+    let parentContainer = inputElement.closest('.form-group') || inputElement.parentElement;
+    if (!parentContainer) {
+      console.error('Could not find parent container for positioning');
+      return;
+    }
+    
+    // Set parent position for absolute child positioning
+    if (getComputedStyle(parentContainer).position === 'static') {
+      parentContainer.style.position = 'relative';
+    }
+    
     dropdown.style.cssText = `
       position: absolute;
-      top: ${inputElement.offsetTop + inputElement.offsetHeight + 5}px;
-      left: ${inputElement.offsetLeft}px;
-      width: ${inputElement.offsetWidth}px;
+      bottom: -270px;
+      left: 0;
+      right: 0;
       background: var(--surface);
       border: 2px solid var(--primary);
       border-radius: 6px;
@@ -315,14 +334,9 @@ const Phase8 = (() => {
     footer.appendChild(dismissBtn);
     dropdown.appendChild(footer);
 
-    // Find parent container and position dropdown
-    const parentContainer = inputElement.parentElement;
-    if (parentContainer) {
-      parentContainer.style.position = 'relative';
-      parentContainer.appendChild(dropdown);
-    }
-
-    // Close on outside click
+    // Append to parent form group (not document.body)
+    parentContainer.appendChild(dropdown);
+    console.log('Suggestions dropdown appended to:', parentContainer.querySelector('label')?.textContent || 'unknown');
     setTimeout(() => {
       document.addEventListener('click', function closeDropdown(e) {
         if (!dropdown.contains(e.target) && e.target !== inputElement) {
@@ -502,6 +516,12 @@ const Phase8 = (() => {
 
     // State accessors
     getCurrentSubmission: () => _currentSubmission,
-    setCurrentSubmission: (type) => { _currentSubmission.type = type; },
+    setCurrentSubmission: (type) => { 
+      _currentSubmission.type = type;
+      _currentSubmission.fieldType = null;
+      _currentSubmission.currentText = null;
+      _currentSubmission.suggestions = [];
+      console.log('Phase8 submission context set to:', type);
+    },
   };
 })();
