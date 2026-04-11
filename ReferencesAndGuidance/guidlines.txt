@@ -1,0 +1,28 @@
+URL of Github Enterprise to Login: https://github.com/enterprises/ejadasa/
+
+GitHub Copilot-for PM-SM: 
+https://ejadasharepoint.sharepoint.com/:p:/s/CloudCenterofExcellence/IQAvKD6ou_DjQ6ntelOWzS5jAdmKV7RO2WbHIR1OFeIc4bI?e=EVdFDp
+
+microsoft sessions :
+GitHub Copilot for Business – Fundamentals-20260127_160135-Meeting Recording: https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQCsf2MqZfGKTp7Zzx9ntiH-ARP-qNu5SO-8oPijEP0KliE?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=y09JaF
+
+GitHub Copilot for Business – Fundamentals-20260126_160443-Meeting Recording:
+https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQBU4B1EJYxzRKbR8PxNJcDgAZ3ZH7PRrB819tcW5eUum34?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=ddJYHk
+
+GitHub Copilot for Business – Fundamentals-20260125_160348-Meeting Recording:
+https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQB2TbE5FmB8SoR3G2RQvfD8AV21jASdzOLuNdmeFIz33CE?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=GwEWeC
+
+Imp. Guidelines :
+
+All the Resources to start using Microsoft Copilot.
+Developers to Integrate their IDE environment with Github Copilot Plugin to start using.
+https://github.com/enterprises/ejadasa
+
+Non-Developers (PM, BA, Architect, Consultant, Design, Tester etc)  start using Copilot Chat Environment. (Links attached)
+https://m365.cloud.microsoft/chat
+
+Resources need to stop using any personally subscribed or Public AI.
+To get Copilot access, List of Resources at project level or department level need to raise IT ticket and ask for Manager Approval & Mohamed Al Banna Approval.
+There are 2 types of access, and you need to mention the correct access type resource wise as follows :
+For Developers : Github Business  :  Github Enterprise + Github Copilot Business
+For Non-Developers : Github Business Only :  Github Copilot Business only, without repository access for Copilot Chat only users, in case they do not have by default access.

@@ -10,6 +10,7 @@ This changelog is **append-only**. Every task, regardless of origin, must add an
 
 ## [Unreleased]
 
+- 2026-04-12 (copilot) — Add "Guide Me" page: new Resources section in sidebar with a 4-tab help page for adopters — Guidelines (parsed from guidelines.txt), AI News, Skills Library, and GitHub Copilot Enablement links from Microsoft. Includes full responsive CSS and tab-switching JS. (feat)
 - 2026-04-12 (copilot) — Fix RLS policies on `submission_approvals` and `practice_spoc`: policies were comparing `auth.uid()` against `users.id` instead of `users.auth_id`, causing zero rows returned for all roles. Replaced with `get_user_role()`/`get_user_practice()` helper functions that correctly use `auth_id`. Added authenticated-read SELECT policy. (fix)
 - 2026-04-12 (copilot) — Fix approvals navigation errors by adding `getUserId` to auth and scoping the Approvals nav item to admin/SPOC roles (fix)
 

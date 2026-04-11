@@ -6,6 +6,18 @@
 
 ## Changes Made
 
+### 0b. April 12, 2026 — Guide Me Page (New Phase)
+
+- Added a new "Guide Me" tab under a **Resources** nav section in the sidebar, accessible to all roles.
+- The page has 4 tabbed sections:
+  1. **Guidelines** — Content parsed from `ReferencesAndGuidance/guidlines.txt` and rendered as structured cards (GitHub Enterprise login, access types, how to get access, important reminders, PM/SM resources).
+  2. **AI News** — Curated AI news items covering GitHub Copilot Workspace, M365 Copilot, Extensions, industry trends, and responsible AI.
+  3. **Skills Library** — Training resources organized by skill level (beginner/intermediate/advanced) with tags for role applicability.
+  4. **Copilot Enablement** — Microsoft training session recordings (3 sessions from Jan 2026) and official Microsoft enablement links.
+- CSS styles added to `css/dashboard.css` (`.guide-*` classes) with responsive breakpoints.
+- Tab switching handled via `renderGuideMe()` function with event delegation.
+- No database changes required — all content is static HTML.
+
 ### 0. April 12, 2026 — Approvals UI Fix
 
 - Added `getUserId()` to the auth module to support approvals queries without runtime errors.
