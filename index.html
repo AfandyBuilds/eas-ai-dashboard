@@ -1738,9 +1738,9 @@ function openModal(type) {
   console.log('🔓 openModal called with type:', type);
   try {
     // Guard: Wait for Phase8 to load
-    if (!window.Phase8) {
-      console.warn('⏳ Phase8 still loading, retrying in 100ms...');
-      setTimeout(() => openModal(type), 100);
+    if (typeof Phase8 === 'undefined') {
+      console.warn('⏳ Phase8 still loading, retrying in 50ms...');
+      setTimeout(() => openModal(type), 50);
       return;
     }
 

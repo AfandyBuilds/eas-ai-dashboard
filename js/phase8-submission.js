@@ -5,7 +5,7 @@
  * ============================================================
  */
 
-const Phase8 = (() => {
+window.Phase8 = (() => {
   // Supabase Edge Functions - deployed live for all employees
   const API_BASE = 'https://apcfnzbiylhgiutcjigg.supabase.co/functions/v1';
 
