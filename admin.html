@@ -1652,22 +1652,43 @@ async function renderApprovals() {
     document.getElementById('admin-approval-count').textContent = pendingApprovals?.length || 0;
     document.getElementById('pending-approval-count').textContent = pendingApprovals?.length || 0;
   } catch (err) {
-    console.error('Approvals render error:', err);
+    console.error('Approvals render error:', err.message, err);
     
-    // Check if it's a table not found error
-    if (err.message && err.message.includes('relation') && err.message.includes('submission_approvals')) {
-      const html = `
-        <tr>
-          <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">
-            <div style="font-size:16px;margin-bottom:16px">⚠️ Approval System Not Initialized</div>
-            <div style="font-size:13px;color:var(--text-primary);margin-bottom:16px">
-              The approval workflow tables haven't been created yet.
-            </div>
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:24px;max-width:600px;margin-left:auto;margin-right:auto">
-              <strong>To enable the approval workflow:</strong><br/>
-              1. Open docs/APPROVAL_WORKFLOW.md <br/>
-              2. Run the SQL migration from sql/002_approval_workflow.sql in Supabase SQL Editor<br/>
-              3. Refresh this page
+    let errorMessage = err.message || 'Failed to load approvals';
+    let showSetupInstructions = false;
+    
+    // Check if it's a table/view not found error
+    if (errorMessage.includes('relation') || errorMessage.includes('no rows')) {
+      showSetupInstructions = true;
+      errorMessage = 'Approval system not yet initialized';
+    } else if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
+      showSetupInstructions = false;
+      errorMessage = 'Permission denied. You may not have sufficient access.';
+    }
+    
+    const html = `
+      <tr>
+        <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">
+          <div style="font-size:16px;margin-bottom:16px">⚠️ ${errorMessage}</div>
+          <div style="font-size:13px;color:var(--text-primary);margin-bottom:16px">
+            ${showSetupInstructions ? 'The approval workflow tables haven\'t been created yet.' : err.message}
+          </div>
+          ${showSetupInstructions ? `
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:24px;max-width:600px;margin-left:auto;margin-right:auto">
+            <strong>To enable the approval workflow:</strong><br/>
+            1. Apply the Supabase migration<br/>
+            2. RLS policies must be configured<br/>
+            3. Refresh this page
+          </div>
+          ` : ''}
+          <button class="btn btn-primary" onclick="location.reload()">🔄 Refresh Page</button>
+        </td>
+      </tr>
+    `;
+    document.getElementById('pending-approvals-tbody').innerHTML = html;
+    document.getElementById('approval-history-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Unable to load history</td></tr>';
+  }
+}
             </div>
             <button class="btn btn-primary" onclick="location.reload()">🔄 Refresh Page</button>
           </td>

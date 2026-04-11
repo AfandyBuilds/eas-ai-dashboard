@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 2.0 | **Last Updated:** April 10, 2026
+> **Version:** 2.1 | **Last Updated:** April 11, 2026 (Phase 8 Complete)
 
 ---
 
@@ -60,6 +60,52 @@ If you don’t have an account yet, you can register yourself:
 | No | Pending | "Not Granted" |
 
 Your user profile is created with the **contributor** role.
+
+---
+
+## Phase 8: AI-Assisted Task Submission
+
+### New Features (April 11, 2026)
+
+When submitting a **Task** or **Accomplishment**, you now have access to:
+
+#### 1. **AI Suggestions** ("Powered by AI" button)
+- Click the **✨ Powered by AI** button in the "Why is this task valuable?" field
+- Receive **3 AI-generated suggestions** for your task description
+- Click a suggestion to insert it into the field
+- Text completion dropdown appears as you type (shows AI suggestions in real-time)
+
+#### 2. **Smart Saved Hours Calculation**
+- Enter "Time without AI" (hours)
+- Enter "Time with AI" (hours)
+- System auto-calculates: **Saved Hours = Without - With**
+- Minimum **2 hours saved** required for approval routing
+
+#### 3. **AI Validation Check**
+Before submission, the system validates:
+- ✅ **Minimum 2 hours saved** (required)
+- ✅ **Mentions specific AI tool** (ChatGPT, Copilot, Claude, etc.)
+- ✅ **Quantifiable metrics/outcomes** (reduces 50% time, improves accuracy by X%, etc.)
+- ✅ **Quality check** (coherence, professional tone)
+
+#### 4. **Multi-Layer Approval Routing**
+After submission, your task goes through:
+
+| Scenario | Route | Approver | Timeline |
+|----------|-------|----------|----------|
+| **Saved Hours ≥ 15** | Admin Review | Omar Ibrahim | 2-3 days |
+| **Saved Hours < 15 + Validation Passed** | SPOC Review | Your practice manager | 1-2 days |
+| **Validation Failed** | SPOC Manual Review | Your practice manager | 2-3 days |
+
+#### 5. **Track Your Approvals**
+- Navigate to **My Tasks** → **View Task Status** (new link)
+- Or go directly to [employee-status.html](../employee-status.html)
+- See:
+  - Total tasks submitted
+  - Approved tasks
+  - Pending approvals
+  - Rejected tasks (with feedback)
+  - Detailed approval timeline
 
 ---
 

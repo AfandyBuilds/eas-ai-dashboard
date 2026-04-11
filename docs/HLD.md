@@ -2,8 +2,8 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 2.0 | **Date:** April 10, 2026  
-> **Status:** All 6 Phases Complete
+> **Version:** 2.1 | **Date:** April 11, 2026  
+> **Status:** Phase 8 Complete - AI-Assisted Approval Workflow Deployed
 
 ---
 
@@ -52,8 +52,10 @@
 | **Spreadsheet** | SheetJS 0.18.5 (CDN, deferred) | Excel import/export |
 | **PDF** | jsPDF 2.5.2 (CDN, deferred) | Quarterly report generation |
 | **Auth** | Supabase Auth (JWT) | Managed, email/password |
-| **Database** | Supabase PostgreSQL (10 tables) | Free tier, RLS, REST API |
-| **API** | Supabase PostgREST | Auto-generated from schema |
+| **Database** | Supabase PostgreSQL (14 tables) | Free tier, RLS, REST API, audit trails |
+| **API** | Supabase PostgREST + Edge Functions | Auto-generated REST, OpenAI integration |
+| **AI Services** | OpenAI GPT-4 (suggestions & validation) | Suggestions: 3 options, Validation: 4 criteria |
+| **Approval Workflow** | Multi-layer routing engine | AI → SPOC → Admin based on impact |
 | **CSS** | Custom properties + dark/light theme | `[data-theme]` toggle, localStorage |
 | **Accessibility** | WCAG 2.1 AA | Skip link, ARIA, focus-visible, reduced motion |
 

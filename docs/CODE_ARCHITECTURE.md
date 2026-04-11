@@ -1,12 +1,12 @@
 # Code Architecture — EAS AI Dashboard
 
-> **Last Updated:** April 11, 2026 | **Phase:** 7 (Export Center)
+> **Last Updated:** April 11, 2026 | **Phase:** 8 (AI-Assisted Approval Workflow)
 
 ---
 
 ## 1. System Overview
 
-The EAS AI Dashboard is a **static-first web application** hosted on GitHub Pages with a Supabase (PostgreSQL) backend. It tracks AI tool adoption across 6 practices in Ejada’s Enterprise Application Solutions (EAS) department.
+The EAS AI Dashboard is a **static-first web application** hosted on GitHub Pages with a Supabase (PostgreSQL) backend. It tracks AI tool adoption across 6 practices with integrated AI-assisted task/accomplishment submissions and multi-layer approval workflow in Ejada's Enterprise Application Solutions (EAS) department.
 
 ### Architecture Pattern
 
@@ -39,8 +39,8 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 |----------|--------|-----------|
 | No build step | Vanilla JS | GitHub Pages hosting, simple deployment |
 | Supabase over Firebase | PostgreSQL + built-in Auth | Better SQL support, RLS, free tier |
-| CDN libraries | Chart.js, SheetJS, jsPDF, PptxGenJS, html2canvas, Supabase JS | No npm build needed for frontend |
-| Dark/Light theme | CSS custom properties + `[data-theme]` toggle | User preference, localStorage persistence |
+| CDN libraries | Chart.js, SheetJS, jsPDF, PptxGenJS, html2canvas, Supabase JS | No npm build needed for frontend || AI Integration | OpenAI GPT-4 via Edge Functions | Suggestions and validation without exposing API keys |
+| Approval Workflow | Multi-layer routing (AI → SPOC → Admin) | Smart triage based on saved hours and validation || Dark/Light theme | CSS custom properties + `[data-theme]` toggle | User preference, localStorage persistence |
 | Single-page per HTML file | Multi-page SPA pattern | Works with GitHub Pages routing |
 | WCAG 2.1 AA | Semantic HTML, ARIA, focus-visible | Accessibility compliance |
 
@@ -58,7 +58,8 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │
 ├── login.html              # Supabase Auth login (email/password)
 ├── signup.html             # Contributor self-registration (2-step form)
-├── admin.html              # Admin CRUD panel (legacy — deprecated, CRUD merged into index.html)
+├── admin.html              # Admin CRUD panel + Approvals tab
+├── employee-status.html    # Employee task approval status tracker
 ├── migrate.html            # One-time data migration tool
 │
 ├── css/
@@ -68,11 +69,13 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 ├── js/
 │   ├── config.js           # Supabase URL + anon key + client factory
 │   ├── auth.js             # EAS_Auth module: session, roles, guards
-│   ├── db.js               # EAS_DB module: quarters, queries, CRUD writes, RPCs, audit (~838 lines)
+│   ├── db.js               # EAS_DB module: quarters, queries, CRUD writes, RPCs, audit
+│   ├── phase8-submission.js # Phase 8 IIFE: AI suggestions, validation, approval workflow
 │   └── utils.js            # EAS_Utils: format, sanitize, colors, dates
 │
 ├── sql/
-│   └── 001_schema.sql      # Full Supabase schema (tables, views, RLS, triggers)
+│   ├── 001_schema.sql      # Full Supabase schema (core tables, views, RLS, triggers)
+│   └── 002_approval_workflow.sql # Phase 8 approval workflow schema
 │
 ├── scripts/                # Node.js admin/migration scripts
 │   ├── create-auth-users.mjs   # One-time auth user creation
@@ -80,12 +83,32 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │   └── create-schema.mjs       # Schema execution (superseded by MCP)
 │
 ├── docs/                   # Project documentation
+│   ├── PHASE_8_IMPLEMENTATION.md    # Phase 8 detailed specs
+│   ├── APPROVAL_WORKFLOW.md         # Workflow rules and guides
+│   ├── CODE_ARCHITECTURE.md         # This file
+│   ├── HLD.md                       # High-level design
+│   ├── BRD.md                       # Business requirements
+│   ├── IMPLEMENTATION_NOTES.md      # Implementation details
+│   ├── IMPLEMENTATION_PLAN.md       # Phased delivery roadmap
+│   └── ONBOARDING_GUIDE.md          # Setup & usage guide
+│
+├── supabase/                # Supabase Edge Functions
+│   └── functions/
+│       ├── ai-suggestions/          # GPT-4 suggestion generation
+│       └── ai-validate/             # AI submission validation
+│
+├── server/                 # Node.js backend
+│   ├── adoption-agent-endpoint.js   # Express API + Claude integration
+│   ├── package.json
+│   ├── README.md
+│   └── SETUP_GUIDE.md
 │
 ├── .agents/                # Copilot agent skills (Superpowers)
 ├── .github/                # GitHub config (copilot-instructions.md)
 ├── .env.example            # Environment variable template
 ├── .gitignore              # Ignores: .env, node_modules, logs
-├── package.json            # Only dep: @supabase/supabase-js (for scripts)
+├── package.json            # Dependencies
+├── DEPLOYMENT_PHASE8_APPROVAL_WORKFLOW.md    # Phase 8 deployment report
 └── README.md               # Project overview
 ```
 

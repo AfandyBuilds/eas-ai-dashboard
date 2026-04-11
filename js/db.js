@@ -1031,44 +1031,60 @@ const EAS_DB = (() => {
    * Fetch pending approvals for admin/SPOC
    */
   async function fetchPendingApprovals(userRole, userPractice, userId) {
-    let query = sb
-      .from('submission_approvals')
-      .select('*')
-      .order('submitted_at', { ascending: false });
+    try {
+      let query = sb
+        .from('submission_approvals')
+        .select('*')
+        .order('submitted_at', { ascending: false });
 
-    if (userRole === 'admin') {
-      // Admin sees all pending approvals
-      query = query.in('approval_status', ['pending', 'admin_review', 'ai_review', 'spoc_review']);
-    } else if (userRole === 'spoc') {
-      // SPOC sees approvals pending for their practice
-      query = query
-        .eq('approval_status', 'spoc_review')
-        .eq('spoc_id', userId);
+      if (userRole === 'admin') {
+        // Admin sees all pending approvals
+        query = query.in('approval_status', ['pending', 'admin_review', 'ai_review', 'spoc_review']);
+      } else if (userRole === 'spoc') {
+        // SPOC sees approvals pending for their practice
+        query = query
+          .eq('approval_status', 'spoc_review')
+          .eq('spoc_id', userId);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('fetchPendingApprovals error:', error);
+        throw new Error(`Failed to fetch pending approvals: ${error.message}`);
+      }
+      return data || [];
+    } catch (err) {
+      console.error('fetchPendingApprovals exception:', err);
+      throw err;
     }
-
-    const { data, error } = await query;
-    if (error) { console.error('fetchPendingApprovals error:', error.message); return []; }
-    return data || [];
   }
 
   /**
    * Fetch completed approvals (approved/rejected) for dashboard
    */
   async function fetchApprovalHistory(userRole, userPractice, limit = 50) {
-    const query = sb
-      .from('submission_approvals')
-      .select('*')
-      .in('approval_status', ['approved', 'rejected'])
-      .order('approved_at', { ascending: false })
-      .limit(limit);
+    try {
+      let query = sb
+        .from('submission_approvals')
+        .select('*')
+        .in('approval_status', ['approved', 'rejected'])
+        .order('approved_at', { ascending: false })
+        .limit(limit);
 
-    if (userRole === 'spoc') {
-      query.eq('practice', userPractice);
+      if (userRole === 'spoc') {
+        query = query.eq('practice', userPractice);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('fetchApprovalHistory error:', error);
+        throw new Error(`Failed to fetch approval history: ${error.message}`);
+      }
+      return data || [];
+    } catch (err) {
+      console.error('fetchApprovalHistory exception:', err);
+      throw err;
     }
-
-    const { data, error } = await query;
-    if (error) { console.error('fetchApprovalHistory error:', error.message); return []; }
-    return data || [];
   }
 
   /**
@@ -1156,14 +1172,22 @@ const EAS_DB = (() => {
    * Fetch employee's task approval status
    */
   async function fetchEmployeeTaskApprovals(employeeEmail) {
-    const { data, error } = await sb
-      .from('employee_task_approvals')
-      .select('*')
-      .eq('employee_email', employeeEmail)
-      .order('submitted_at', { ascending: false });
-    
-    if (error) { console.error('fetchEmployeeTaskApprovals error:', error.message); return []; }
-    return data || [];
+    try {
+      const { data, error } = await sb
+        .from('employee_task_approvals')
+        .select('*')
+        .eq('employee_email', employeeEmail)
+        .order('submitted_at', { ascending: false });
+      
+      if (error) {
+        console.error('fetchEmployeeTaskApprovals error:', error);
+        throw new Error(`Failed to fetch task approvals: ${error.message}`);
+      }
+      return data || [];
+    } catch (err) {
+      console.error('fetchEmployeeTaskApprovals exception:', err);
+      throw err;
+    }
   }
 
   // ===========================================================
