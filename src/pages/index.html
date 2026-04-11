@@ -821,6 +821,20 @@
   </div>
 </div>
 
+<!-- Approval Detail Modal -->
+<div class="modal-overlay" id="modal-approval-detail">
+  <div class="modal" style="max-width:640px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin-bottom:0" id="approval-detail-title">Submission Detail</h3>
+      <button class="btn btn-secondary" style="padding:4px 8px" onclick="closeModal('approval-detail')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="approval-detail-body" style="color:var(--text-secondary)">Loading...</div>
+    <div id="approval-detail-actions" class="modal-actions" style="margin-top:20px"></div>
+  </div>
+</div>
+
 <!-- Export Center Modal -->
 <div class="modal-overlay" id="modal-export">
   <div class="modal" style="max-width:720px">
@@ -1580,7 +1594,7 @@ async function renderApprovals() {
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)" title="${a.submission_description || ''}">${a.submission_description || '-'}</td>
           <td><span class="status-badge ${statusBadgeClass}">${statusLabel}</span></td>
           <td>${layerLabel}</td>
-          <td><button class="btn btn-xs btn-secondary" onclick="alert('Approval detail view - coming soon')">View</button></td>
+          <td><button class="btn btn-xs btn-secondary" onclick="viewApprovalDetail('${a.id}')">View</button></td>
         </tr>
       `;
     }).join('');
@@ -1589,6 +1603,153 @@ async function renderApprovals() {
     console.error('renderApprovals error:', err);
     showToast('Error loading approvals: ' + err.message, 'error');
     document.getElementById('approvals-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--danger)">Error loading data</td></tr>';
+  }
+}
+
+// ======== APPROVAL DETAIL VIEW ========
+async function viewApprovalDetail(approvalId) {
+  try {
+    document.getElementById('modal-approval-detail').classList.add('active');
+    document.getElementById('approval-detail-body').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted)">Loading submission details...</div>';
+    document.getElementById('approval-detail-actions').innerHTML = '';
+
+    // Fetch the approval record
+    const { data: approval, error } = await getSupabaseClient()
+      .from('submission_approvals')
+      .select('*')
+      .eq('id', approvalId)
+      .single();
+
+    if (error || !approval) {
+      document.getElementById('approval-detail-body').innerHTML = '<div style="color:var(--danger)">Could not load approval details.</div>';
+      return;
+    }
+
+    // Fetch linked task or accomplishment
+    let submission = null;
+    if (approval.submission_id) {
+      const table = approval.submission_type === 'task' ? 'tasks' : 'accomplishments';
+      const { data } = await getSupabaseClient().from(table).select('*').eq('id', approval.submission_id).single();
+      submission = data;
+    }
+
+    const statusColor = approval.approval_status === 'approved' ? 'var(--success)' : approval.approval_status === 'rejected' ? 'var(--danger)' : 'var(--warning)';
+    const statusLabel = {
+      pending: 'Pending', ai_review: 'AI Review', spoc_review: 'SPOC Review',
+      admin_review: 'Admin Review', approved: 'Approved', rejected: 'Rejected'
+    }[approval.approval_status] || approval.approval_status;
+
+    const isPending = !['approved', 'rejected'].includes(approval.approval_status);
+    const userRole = EAS_Auth.getUserRole();
+
+    let detailRows = '';
+
+    // Submission info
+    detailRows += `<div style="display:grid;grid-template-columns:140px 1fr;gap:8px 16px;font-size:14px">`;
+    detailRows += `<span style="color:var(--text-muted)">Status</span><span style="color:${statusColor};font-weight:600">${statusLabel}</span>`;
+    detailRows += `<span style="color:var(--text-muted)">Type</span><span style="text-transform:capitalize">${approval.submission_type || '-'}</span>`;
+    detailRows += `<span style="color:var(--text-muted)">Practice</span><span style="font-weight:600">${approval.practice || '-'}</span>`;
+    detailRows += `<span style="color:var(--text-muted)">Submitted By</span><span>${approval.submitted_by_email || '-'}</span>`;
+    detailRows += `<span style="color:var(--text-muted)">Submitted At</span><span>${approval.submitted_at ? new Date(approval.submitted_at).toLocaleString() : '-'}</span>`;
+    detailRows += `<span style="color:var(--text-muted)">Saved Hours</span><span style="font-weight:600;color:var(--success)">${approval.saved_hours || 0}h</span>`;
+    detailRows += `<span style="color:var(--text-muted)">Approval Layer</span><span>${(approval.approval_layer || '-').toUpperCase()}</span>`;
+
+    // Task-specific fields
+    if (submission && approval.submission_type === 'task') {
+      detailRows += `<span style="color:var(--text-muted)">Employee</span><span>${submission.employee_name || '-'}</span>`;
+      detailRows += `<span style="color:var(--text-muted)">Description</span><span>${submission.task_description || '-'}</span>`;
+      detailRows += `<span style="color:var(--text-muted)">AI Tool</span><span>${submission.ai_tool || '-'}</span>`;
+      detailRows += `<span style="color:var(--text-muted)">Category</span><span>${submission.category || '-'}</span>`;
+      detailRows += `<span style="color:var(--text-muted)">Project</span><span>${submission.project || '-'}</span>`;
+      if (submission.prompt_used) detailRows += `<span style="color:var(--text-muted)">Prompt Used</span><span style="font-size:12px;max-height:60px;overflow:auto">${submission.prompt_used}</span>`;
+      detailRows += `<span style="color:var(--text-muted)">Time Without AI</span><span>${submission.time_without_ai || 0}h</span>`;
+      detailRows += `<span style="color:var(--text-muted)">Time With AI</span><span>${submission.time_with_ai || 0}h</span>`;
+    }
+
+    // AI validation info
+    if (approval.ai_validation_result) {
+      const ai = approval.ai_validation_result;
+      detailRows += `<span style="color:var(--text-muted)">AI Validation</span><span>${approval.ai_validation_failed ? '<span style="color:var(--danger)">Failed</span>' : '<span style="color:var(--success)">Passed</span>'}</span>`;
+      if (approval.ai_failure_reason) detailRows += `<span style="color:var(--text-muted)">AI Reason</span><span style="font-size:12px">${approval.ai_failure_reason}</span>`;
+    }
+
+    // Rejection reason
+    if (approval.rejection_reason) {
+      detailRows += `<span style="color:var(--text-muted)">Rejection Reason</span><span style="color:var(--danger)">${approval.rejection_reason}</span>`;
+    }
+    // Approval info
+    if (approval.approved_by_name) {
+      detailRows += `<span style="color:var(--text-muted)">Approved By</span><span>${approval.approved_by_name}</span>`;
+    }
+    if (approval.approved_at) {
+      detailRows += `<span style="color:var(--text-muted)">Approved At</span><span>${new Date(approval.approved_at).toLocaleString()}</span>`;
+    }
+
+    detailRows += `</div>`;
+
+    document.getElementById('approval-detail-title').textContent = `${approval.submission_type === 'task' ? 'Task' : 'Accomplishment'} Submission Detail`;
+    document.getElementById('approval-detail-body').innerHTML = detailRows;
+
+    // Show approve/reject actions for pending items (admin or SPOC with matching practice)
+    const canAct = isPending && (
+      userRole === 'admin' ||
+      (userRole === 'spoc' && approval.approval_status === 'spoc_review' && approval.practice === EAS_Auth.getUserPractice())
+    );
+
+    if (canAct) {
+      document.getElementById('approval-detail-actions').innerHTML = `
+        <div style="width:100%">
+          <label style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px">Notes (optional)</label>
+          <textarea id="approval-notes" rows="2" style="width:100%;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;resize:vertical" placeholder="Add review notes..."></textarea>
+          <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
+            <button class="btn btn-secondary" onclick="closeModal('approval-detail')">Cancel</button>
+            <button class="btn" style="background:var(--danger);color:#fff" onclick="handleApprovalAction('${approvalId}', 'reject')">Reject</button>
+            <button class="btn btn-primary" onclick="handleApprovalAction('${approvalId}', 'approve')">Approve</button>
+          </div>
+        </div>
+      `;
+    } else {
+      document.getElementById('approval-detail-actions').innerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal('approval-detail')">Close</button>
+      `;
+    }
+
+  } catch (err) {
+    console.error('viewApprovalDetail error:', err);
+    document.getElementById('approval-detail-body').innerHTML = `<div style="color:var(--danger)">Error: ${err.message}</div>`;
+  }
+}
+
+async function handleApprovalAction(approvalId, action) {
+  const notes = document.getElementById('approval-notes')?.value || '';
+  try {
+    const btns = document.querySelectorAll('#approval-detail-actions .btn');
+    btns.forEach(b => b.disabled = true);
+
+    let result;
+    if (action === 'approve') {
+      result = await EAS_DB.approveSubmission(approvalId, notes);
+    } else {
+      if (!notes.trim()) {
+        showToast('Please provide a reason for rejection', 'error');
+        btns.forEach(b => b.disabled = false);
+        return;
+      }
+      result = await EAS_DB.rejectSubmission(approvalId, notes);
+    }
+
+    if (result) {
+      showToast(`Submission ${action === 'approve' ? 'approved' : 'rejected'} successfully`, 'success');
+      closeModal('approval-detail');
+      await renderApprovals();
+    } else {
+      showToast(`Failed to ${action} submission`, 'error');
+      btns.forEach(b => b.disabled = false);
+    }
+  } catch (err) {
+    console.error('handleApprovalAction error:', err);
+    showToast('Error: ' + err.message, 'error');
+    document.querySelectorAll('#approval-detail-actions .btn').forEach(b => b.disabled = false);
   }
 }
 
