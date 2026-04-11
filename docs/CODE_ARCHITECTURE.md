@@ -1,6 +1,6 @@
 # Code Architecture — EAS AI Dashboard
 
-> **Last Updated:** April 10, 2026 | **Phase:** 6 (All Phases Complete)
+> **Last Updated:** April 11, 2026 | **Phase:** 7 (Export Center)
 
 ---
 
@@ -39,7 +39,7 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 |----------|--------|-----------|
 | No build step | Vanilla JS | GitHub Pages hosting, simple deployment |
 | Supabase over Firebase | PostgreSQL + built-in Auth | Better SQL support, RLS, free tier |
-| CDN libraries | Chart.js, SheetJS, jsPDF, Supabase JS | No npm build needed for frontend |
+| CDN libraries | Chart.js, SheetJS, jsPDF, PptxGenJS, html2canvas, Supabase JS | No npm build needed for frontend |
 | Dark/Light theme | CSS custom properties + `[data-theme]` toggle | User preference, localStorage persistence |
 | Single-page per HTML file | Multi-page SPA pattern | Works with GitHub Pages routing |
 | WCAG 2.1 AA | Semantic HTML, ARIA, focus-visible | Accessibility compliance |
@@ -154,6 +154,8 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script defer src="https://cdn.sheetjs.com/.../xlsx.full.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 ```
 
 ---

@@ -20,6 +20,7 @@
 | 1.7 | Apr 12, 2026 | Omar Ibrahim | Phase 6 completed — accessibility, dark/light mode, forecasting, PDF reports |
 | 2.0 | Apr 10, 2026 | Omar Ibrahim | All 6 phases complete — final plan consolidation |
 | 2.1 | Apr 10, 2026 | Omar Ibrahim | Post-launch: contributor data visibility fix, page quarter selectors, auto week number |
+| 2.2 | Apr 11, 2026 | Omar Ibrahim | Phase 7 — Export Center: Excel/PDF/PPT with role-based access and per-page export |
 
 ---
 
@@ -33,6 +34,7 @@
 | 4 | Admin Panel & Writes | ✅ Complete | `f5120ce` | CRUD writes, edit/delete UI, audit logging |
 | 5 | SPOC Panel & Gamification | ✅ Complete | `1643a9a` | Leaderboard, badges, nudge, use case library |
 | 6 | Polish & Advanced Features | ✅ Complete | `fad8237` | PDF export, forecasting, accessibility, dark/light mode |
+| 7 | Export Center | ✅ Complete | `—` | Excel/PDF/PPT export, per-page buttons, role-based access |
 
 ---
 
@@ -279,7 +281,35 @@
 | Phase 4 | 38h | ✅ Complete | 11 write functions, audit logging |
 | Phase 5 | 38h | ✅ Complete | 4 new pages, 7 badges, 2 RPCs |
 | Phase 6 | 41h | ✅ Complete | PDF, forecast, a11y, dark/light mode |
-| **Total** | **212h** | **✅ All Complete** | **6 phases delivered** |
+| Phase 7 | 20h | ✅ Complete | Export Center: Excel/PDF/PPT, per-page exports |
+| **Total** | **232h** | **✅ All Complete** | **7 phases delivered** |
+
+---
+
+## Phase 7: Export Center ✅
+
+**Status:** Complete | **Date:** April 11, 2026
+
+### Deliverables
+
+- [x] Export Center modal with tab-based format selection (Excel / PDF / PPT)
+- [x] Per-page export buttons on all pages (Dashboard, Practices, Tasks, etc.)
+- [x] Sidebar "Export Center" button opens global modal
+- [x] Excel export: role-based (Admin=all, SPOC=practice, Contributor=my tasks), multi-sheet
+- [x] PDF export: modular sections (Dashboard, Practices, My Practice, Leaderboard, Accomplishments, My Tasks)
+- [x] PPT export: two styles (Executive Summary / Data-Heavy) with KPI slides, practice cards, leaderboard, accomplishments
+- [x] Role-based access: Admin=full, SPOC=practice-filtered, Contributor=my tasks + summary only
+- [x] PPT tab hidden for Contributors; Copilot/Projects/Leaderboard exports hidden for Contributors
+- [x] Context-aware checkbox pre-selection when opened from page-specific export buttons
+- [x] PptxGenJS and html2canvas CDN libraries added
+- [x] Export modal CSS with responsive grid, tabs, checkbox cards, radio cards
+- [x] Legacy `exportToExcel()` and `generatePDFReport()` functions preserved as wrappers
+
+### CDN Libraries Added
+| Library | Version | Purpose |
+|---------|---------|--------|
+| PptxGenJS | 3.12.0 | PowerPoint generation |
+| html2canvas | 1.4.1 | Screenshot-to-image for PDF/PPT charts |
 
 ---
 

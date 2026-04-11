@@ -179,6 +179,10 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | FR-12.2 | Excel import capability | P1 (deprecated — replaced by Supabase writes) |
 | FR-12.3 | Quarterly report generation | P3 ✅ |
 | FR-12.4 | PDF export | P3 ✅ |
+| FR-12.5 | Export Center modal with format selection (Excel/PDF/PPT) | P2 ✅ |
+| FR-12.6 | Per-page export buttons on all pages | P2 ✅ |
+| FR-12.7 | PowerPoint export (Executive + Data-heavy styles) | P2 ✅ |
+| FR-12.8 | Role-based export access (Admin=full, SPOC=practice, Contributor=own tasks) | P2 ✅ |
 
 ### FR-13: Accessibility & UX
 

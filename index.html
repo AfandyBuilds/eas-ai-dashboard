@@ -17,6 +17,8 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" integrity="sha384-5MXQT3yrGpx6/FO6Z5JlMsn1xsN/OggV+b88W2CfpNqmvPfmv7JW/O8x78GzptfE" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha384-cwS6YdhLI7XS60eoDiC+egV0qHp8zI+Cms46R0nbn8JrmoAzV9uFL60etMZhAnSu" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -107,9 +109,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
-    <button class="upload-btn" onclick="exportToExcel()">
+    <button class="upload-btn" onclick="openExportModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Export to Excel
+      Export Center
     </button>
     <button class="upload-btn" style="margin-top:8px" onclick="EAS_DB.createDump('Manual Backup', ['tasks','accomplishments','copilot_users']).then(d => d ? showToast('Data backup created!') : showToast('Backup failed', 'error'))" data-role="admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -139,9 +141,9 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
         <button class="btn btn-secondary" onclick="openModal('accomplishment')">+ Add Win</button>
-        <button class="btn btn-secondary" onclick="generatePDFReport()" data-role="admin,spoc" aria-label="Generate quarterly PDF report">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          PDF Report
+        <button class="btn btn-secondary" onclick="openExportModal('dashboard')" aria-label="Export this page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
         </button>
       </div>
     </div>
@@ -198,6 +200,10 @@
         <h2>Practice Tracking</h2>
         <div class="subtitle">AI adoption progress by practice</div>
       </div>
+      <button class="btn btn-secondary" onclick="openExportModal('practices')" aria-label="Export practices" data-role="admin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
     </div>
     <div class="page-content">
       <div class="practice-grid" id="practice-grid"></div>
@@ -212,7 +218,13 @@
         <h2>All Tasks</h2>
         <div class="subtitle">Complete task log across all practices</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-secondary" onclick="openExportModal('tasks')" aria-label="Export tasks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
+      </div>
     </div>
     <div class="page-content">
       <div class="filters-bar">
@@ -269,7 +281,13 @@
         <h2>AI Accomplishments</h2>
         <div class="subtitle">Notable AI-driven wins, POCs, and value-adds</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('accomplishment')">+ Add Accomplishment</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-secondary" onclick="openExportModal('accomplishments')" aria-label="Export accomplishments">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary" onclick="openModal('accomplishment')">+ Add Accomplishment</button>
+      </div>
     </div>
     <div class="page-content">
       <div class="filters-bar">
@@ -293,7 +311,13 @@
         <h2>GitHub Copilot Access</h2>
         <div class="subtitle">User access management across practices</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('copilot')">+ Add User</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-secondary" onclick="openExportModal('copilot')" aria-label="Export copilot users">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary" onclick="openModal('copilot')">+ Add User</button>
+      </div>
     </div>
     <div class="page-content">
       <div class="filters-bar">
@@ -325,6 +349,10 @@
         <h2>AI Projects</h2>
         <div class="subtitle">Projects tracked for AI adoption</div>
       </div>
+      <button class="btn btn-secondary" onclick="openExportModal('projects')" aria-label="Export projects" data-role="admin,spoc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
     </div>
     <div class="page-content">
       <div class="filters-bar">
@@ -351,7 +379,13 @@
         <h2>My Practice</h2>
         <div class="subtitle" id="mypractice-subtitle">Practice dashboard</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-secondary" onclick="openExportModal('mypractice')" aria-label="Export my practice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
+      </div>
     </div>
     <div class="page-content">
       <div class="kpi-grid" id="mypractice-kpis"></div>
@@ -389,9 +423,15 @@
         <h2>Leaderboard</h2>
         <div class="subtitle">AI adoption rankings across practices</div>
       </div>
-      <div class="quarter-selector-wrapper">
-        <label for="lb-filter-quarter">Quarter</label>
-        <select class="quarter-selector" id="lb-filter-quarter" aria-label="Filter by quarter"></select>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="quarter-selector-wrapper">
+          <label for="lb-filter-quarter">Quarter</label>
+          <select class="quarter-selector" id="lb-filter-quarter" aria-label="Filter by quarter"></select>
+        </div>
+        <button class="btn btn-secondary" onclick="openExportModal('leaderboard')" aria-label="Export leaderboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
       </div>
     </div>
     <div class="page-content">
@@ -429,6 +469,10 @@
           <label for="mytasks-filter-quarter">Quarter</label>
           <select class="quarter-selector" id="mytasks-filter-quarter" aria-label="Filter by quarter"></select>
         </div>
+        <button class="btn btn-secondary" onclick="openExportModal('mytasks')" aria-label="Export my tasks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
         <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
       </div>
     </div>
@@ -692,6 +736,124 @@
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('confirm')">Cancel</button>
       <button class="btn btn-danger" id="confirm-btn" onclick="">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Center Modal -->
+<div class="modal-overlay" id="modal-export">
+  <div class="modal" style="max-width:720px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h3 style="margin-bottom:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="vertical-align:middle;margin-right:8px" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Center
+      </h3>
+      <button class="btn btn-secondary" style="padding:6px 10px" onclick="closeModal('export')" aria-label="Close export modal">&times;</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px">Choose a format and select the pages to include in your export.</p>
+
+    <!-- Format Tabs -->
+    <div class="export-tabs" role="tablist">
+      <button class="export-tab active" role="tab" aria-selected="true" data-format="excel" onclick="switchExportTab('excel')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Excel
+      </button>
+      <button class="export-tab" role="tab" aria-selected="false" data-format="pdf" onclick="switchExportTab('pdf')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        PDF
+      </button>
+      <button class="export-tab" role="tab" aria-selected="false" data-format="ppt" onclick="switchExportTab('ppt')" data-role="admin,spoc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+        PowerPoint
+      </button>
+    </div>
+
+    <!-- Excel Options -->
+    <div class="export-panel" id="export-panel-excel">
+      <div class="export-option-group">
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-xl-summary" checked> Summary (Practice KPIs)
+        </label>
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-xl-tasks" checked> All Tasks (per-practice sheets)
+        </label>
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-xl-accomplishments" checked> Accomplishments
+        </label>
+        <label class="export-check-label" data-role="admin,spoc">
+          <input type="checkbox" id="exp-xl-copilot" checked> Copilot Users
+        </label>
+        <label class="export-check-label" data-role="admin,spoc">
+          <input type="checkbox" id="exp-xl-projects" checked> Projects
+        </label>
+        <label class="export-check-label" data-role="admin,spoc">
+          <input type="checkbox" id="exp-xl-leaderboard" checked> Leaderboard
+        </label>
+      </div>
+    </div>
+
+    <!-- PDF Options -->
+    <div class="export-panel hidden" id="export-panel-pdf">
+      <div class="export-option-group">
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-pdf-dashboard" checked> Dashboard (KPIs + Practice Breakdown)
+        </label>
+        <label class="export-check-label" data-role="admin">
+          <input type="checkbox" id="exp-pdf-practices" checked> Practice Detail Cards
+        </label>
+        <label class="export-check-label" data-role="spoc">
+          <input type="checkbox" id="exp-pdf-mypractice" checked> My Practice Summary
+        </label>
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-pdf-leaderboard" checked> Leaderboard
+        </label>
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-pdf-accomplishments" checked> Accomplishments
+        </label>
+        <label class="export-check-label" data-role="contributor">
+          <input type="checkbox" id="exp-pdf-mytasks" checked> My Tasks Summary
+        </label>
+      </div>
+    </div>
+
+    <!-- PPT Options -->
+    <div class="export-panel hidden" id="export-panel-ppt">
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="margin-bottom:8px">Presentation Style</label>
+        <div style="display:flex;gap:12px">
+          <label class="export-radio-label">
+            <input type="radio" name="ppt-style" value="executive" checked> Executive Summary
+            <span class="export-radio-desc">Clean KPI slides for leadership</span>
+          </label>
+          <label class="export-radio-label">
+            <input type="radio" name="ppt-style" value="detailed"> Data-Heavy
+            <span class="export-radio-desc">Tables and detailed breakdowns</span>
+          </label>
+        </div>
+      </div>
+      <div class="export-option-group">
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-ppt-dashboard" checked> Dashboard KPIs
+        </label>
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-ppt-practices" checked> Practice Summary
+        </label>
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-ppt-leaderboard" checked> Leaderboard
+        </label>
+        <label class="export-check-label">
+          <input type="checkbox" id="exp-ppt-accomplishments" checked> Accomplishments
+        </label>
+      </div>
+    </div>
+
+    <!-- Export Actions -->
+    <div class="modal-actions" style="margin-top:24px">
+      <button class="btn btn-secondary" onclick="closeModal('export')">Cancel</button>
+      <button class="btn btn-primary" id="export-run-btn" onclick="runExport()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span id="export-btn-label">Export Excel</span>
+      </button>
     </div>
   </div>
 </div>
@@ -988,197 +1150,6 @@ function renderForecast() {
     },
     options: { ...chartOpts, plugins: { legend: { display: true, labels: { color: _tc, font: { size: 11 } } } } }
   });
-}
-
-// ======== PDF REPORT GENERATION ========
-async function generatePDFReport() {
-  if (!data) { showToast('No data loaded', 'error'); return; }
-  if (typeof jspdf === 'undefined') { showToast('PDF library still loading...', 'error'); return; }
-
-  showToast('Generating PDF report...');
-  const { jsPDF } = jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const W = 210, H = 297, M = 15;
-  const pw = W - 2 * M; // page width minus margins
-  let y = M;
-
-  const quarter = EAS_DB.getSelectedQuarter();
-  const qLabel = quarter && quarter !== 'all' ? quarter : 'All Quarters';
-  const practice = EAS_Auth.getUserPractice();
-  const role = EAS_Auth.getUserRole();
-  const fd = getFilteredData();
-
-  // === Header ===
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, W, 40, 'F');
-  doc.setTextColor(241, 245, 249);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.text('EAS AI Adoption Report', M, 22);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${qLabel} — Generated ${new Date().toLocaleDateString()}`, M, 32);
-  if (role === 'spoc') doc.text(`Practice: ${practice}`, W - M, 32, { align: 'right' });
-  y = 50;
-
-  // === Summary KPIs ===
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('Executive Summary', M, y); y += 8;
-
-  const totalTasks = fd.tasks.length;
-  const totalSaved = fd.tasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
-  const totalWithout = fd.tasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
-  const avgEff = totalWithout > 0 ? (totalSaved / totalWithout * 100) : 0;
-  const qualTasks = fd.tasks.filter(t => t.quality > 0);
-  const avgQual = qualTasks.length > 0 ? qualTasks.reduce((s, t) => s + t.quality, 0) / qualTasks.length : 0;
-  const copilotCount = data.copilotUsers?.length || 0;
-  const accCount = fd.accomplishments?.length || 0;
-
-  const kpis = [
-    ['Total Tasks', totalTasks.toString()],
-    ['Hours Saved', fmt(totalSaved, 0)],
-    ['Avg Efficiency', fmt(avgEff, 0) + '%'],
-    ['Avg Quality', fmt(avgQual, 1) + '/5'],
-    ['Copilot Users', copilotCount.toString()],
-    ['Accomplishments', accCount.toString()]
-  ];
-
-  const kpiW = pw / 3;
-  kpis.forEach((kpi, i) => {
-    const col = i % 3;
-    const row = Math.floor(i / 3);
-    const kx = M + col * kpiW;
-    const ky = y + row * 18;
-    doc.setFillColor(241, 245, 249);
-    doc.roundedRect(kx, ky, kpiW - 4, 14, 3, 3, 'F');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text(kpi[0], kx + 4, ky + 5);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(59, 130, 246);
-    doc.text(kpi[1], kx + 4, ky + 12);
-  });
-  y += Math.ceil(kpis.length / 3) * 18 + 10;
-
-  // === Practice Breakdown Table ===
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('Practice Breakdown', M, y); y += 8;
-
-  // Table header
-  const cols = ['Practice', 'Tasks', 'Hours Saved', 'Efficiency', 'Quality'];
-  const colW = [40, 25, 30, 30, 25];
-  doc.setFillColor(59, 130, 246);
-  doc.rect(M, y, pw, 8, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  let cx = M + 3;
-  cols.forEach((col, i) => { doc.text(col, cx, y + 6); cx += colW[i]; });
-  y += 8;
-
-  // Table rows
-  const practiceList = ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
-  doc.setFont('helvetica', 'normal');
-  practiceList.forEach((p, idx) => {
-    const pTasks = fd.tasks.filter(t => t.practice === p);
-    const pSaved = pTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
-    const pWithout = pTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
-    const pEff = pWithout > 0 ? (pSaved / pWithout * 100) : 0;
-    const pQTasks = pTasks.filter(t => t.quality > 0);
-    const pQual = pQTasks.length > 0 ? pQTasks.reduce((s, t) => s + t.quality, 0) / pQTasks.length : 0;
-
-    if (idx % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(M, y, pw, 7, 'F'); }
-    doc.setTextColor(15, 23, 42);
-    doc.setFontSize(9);
-    cx = M + 3;
-    [p, pTasks.length.toString(), fmt(pSaved, 0), fmt(pEff, 0) + '%', pQual > 0 ? fmt(pQual, 1) : '—'].forEach((val, i) => {
-      doc.text(val, cx, y + 5); cx += colW[i];
-    });
-    y += 7;
-  });
-  y += 8;
-
-  // === Top Contributors ===
-  if (y > H - 80) { doc.addPage(); y = M; }
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('Top Contributors', M, y); y += 8;
-
-  // Group by employee
-  const empMap = {};
-  fd.tasks.forEach(t => {
-    if (!t.employee) return;
-    if (!empMap[t.employee]) empMap[t.employee] = { name: t.employee, practice: t.practice, tasks: 0, saved: 0 };
-    empMap[t.employee].tasks++;
-    empMap[t.employee].saved += t.timeSaved || 0;
-  });
-  const topEmp = Object.values(empMap).sort((a, b) => b.saved - a.saved).slice(0, 10);
-
-  doc.setFillColor(59, 130, 246);
-  doc.rect(M, y, pw, 8, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  const empCols = ['#', 'Employee', 'Practice', 'Tasks', 'Hours Saved'];
-  const empColW = [10, 55, 40, 25, 30];
-  cx = M + 3;
-  empCols.forEach((c, i) => { doc.text(c, cx, y + 6); cx += empColW[i]; });
-  y += 8;
-
-  doc.setFont('helvetica', 'normal');
-  topEmp.forEach((e, idx) => {
-    if (idx % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(M, y, pw, 7, 'F'); }
-    doc.setTextColor(15, 23, 42);
-    doc.setFontSize(9);
-    cx = M + 3;
-    [(idx + 1).toString(), e.name, e.practice, e.tasks.toString(), fmt(e.saved, 1)].forEach((val, i) => {
-      doc.text(val, cx, y + 5); cx += empColW[i];
-    });
-    y += 7;
-  });
-  y += 8;
-
-  // === Accomplishments ===
-  if (fd.accomplishments.length > 0) {
-    if (y > H - 60) { doc.addPage(); y = M; }
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(15, 23, 42);
-    doc.text('Key Accomplishments', M, y); y += 8;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    fd.accomplishments.slice(0, 8).forEach(a => {
-      if (y > H - 20) { doc.addPage(); y = M; }
-      doc.setTextColor(59, 130, 246);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${a.practice} — ${a.title}`, M, y + 5);
-      doc.setTextColor(100, 116, 139);
-      doc.setFont('helvetica', 'normal');
-      const desc = a.description?.substring(0, 120) || '';
-      doc.text(desc, M, y + 10);
-      y += 16;
-    });
-  }
-
-  // === Footer ===
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(148, 163, 184);
-    doc.text(`EAS AI Adoption Dashboard — ${qLabel} — Page ${i} of ${totalPages}`, W / 2, H - 8, { align: 'center' });
-  }
-
-  // Save
-  doc.save(`EAS_AI_Report_${qLabel.replace(/\s+/g, '_')}.pdf`);
-  showToast('PDF report downloaded!');
 }
 
 // ======== PRACTICES ========
@@ -2079,45 +2050,764 @@ function deleteCopilotUserConfirm(id) {
   });
 }
 
-// ======== EXCEL EXPORT ========
-function exportToExcel() {
+// ======== EXPORT CENTER ========
+let _currentExportFormat = 'excel';
+let _exportContext = null; // page context when opened from per-page button
+
+function openExportModal(pageContext) {
+  _exportContext = pageContext || null;
+  const role = EAS_Auth.getUserRole();
+
+  // Apply role visibility within the export modal
+  document.querySelectorAll('#modal-export [data-role]').forEach(el => {
+    const roles = el.getAttribute('data-role').split(',');
+    el.style.display = roles.includes(role) ? '' : 'none';
+  });
+
+  // Pre-select relevant checkboxes based on page context
+  if (pageContext) {
+    // Uncheck all first, then check only relevant ones
+    document.querySelectorAll('.export-panel input[type="checkbox"]').forEach(cb => cb.checked = false);
+    const mappings = {
+      'dashboard': ['exp-xl-summary', 'exp-pdf-dashboard', 'exp-ppt-dashboard'],
+      'practices': ['exp-xl-summary', 'exp-xl-tasks', 'exp-pdf-practices', 'exp-ppt-practices'],
+      'tasks': ['exp-xl-tasks'],
+      'accomplishments': ['exp-xl-accomplishments', 'exp-pdf-accomplishments', 'exp-ppt-accomplishments'],
+      'copilot': ['exp-xl-copilot'],
+      'projects': ['exp-xl-projects'],
+      'mypractice': ['exp-xl-summary', 'exp-xl-tasks', 'exp-pdf-mypractice', 'exp-ppt-practices'],
+      'leaderboard': ['exp-xl-leaderboard', 'exp-pdf-leaderboard', 'exp-ppt-leaderboard'],
+      'mytasks': ['exp-xl-tasks', 'exp-pdf-mytasks']
+    };
+    (mappings[pageContext] || []).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.checked = true;
+    });
+  } else {
+    // Check all visible checkboxes when opening from sidebar
+    document.querySelectorAll('.export-panel input[type="checkbox"]').forEach(cb => {
+      const label = cb.closest('[data-role]');
+      if (!label || label.style.display !== 'none') cb.checked = true;
+    });
+  }
+
+  // Hide PPT tab for contributors
+  const pptTab = document.querySelector('.export-tab[data-format="ppt"]');
+  if (pptTab) pptTab.style.display = role === 'contributor' ? 'none' : '';
+
+  switchExportTab('excel');
+  openModal('export');
+}
+
+function switchExportTab(format) {
+  _currentExportFormat = format;
+  document.querySelectorAll('.export-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.format === format);
+    t.setAttribute('aria-selected', t.dataset.format === format ? 'true' : 'false');
+  });
+  document.querySelectorAll('.export-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById('export-panel-' + format)?.classList.remove('hidden');
+
+  const labels = { excel: 'Export Excel', pdf: 'Export PDF', ppt: 'Export PPT' };
+  document.getElementById('export-btn-label').textContent = labels[format] || 'Export';
+}
+
+function runExport() {
+  closeModal('export');
+  if (_currentExportFormat === 'excel') exportExcel();
+  else if (_currentExportFormat === 'pdf') exportPDF();
+  else if (_currentExportFormat === 'ppt') exportPPT();
+}
+
+// -------- HELPER: Get tasks for the current role --------
+function _getExportTasks() {
+  const role = EAS_Auth.getUserRole();
+  const fd = getFilteredData();
+  if (role === 'contributor') {
+    const userName = EAS_Auth.getUserName();
+    return fd.tasks.filter(t => t.employee && t.employee.toLowerCase() === userName.toLowerCase());
+  }
+  if (role === 'spoc') {
+    const practice = EAS_Auth.getUserPractice();
+    return fd.tasks.filter(t => t.practice === practice);
+  }
+  return fd.tasks;
+}
+
+// -------- EXCEL EXPORT --------
+function exportExcel() {
+  if (!data) { showToast('No data loaded', 'error'); return; }
+  if (typeof XLSX === 'undefined') { showToast('Excel library still loading...', 'error'); return; }
+  showToast('Generating Excel export...');
+
   const wb = XLSX.utils.book_new();
+  const role = EAS_Auth.getUserRole();
+  const practice = EAS_Auth.getUserPractice();
+  const fd = getFilteredData();
+  const qLabel = EAS_DB.getQuarterLabel(EAS_DB.getSelectedQuarter()) || 'All';
 
-  // Summary sheet
-  const summaryData = [
-    ['EAS AI Adoption - Overall Weekly Progress Summary'],
-    ['EAS Overall AI SPOC: Omar Ibrahim'],
-    [],
-    ['Practice', 'Practice Head', 'AI SPOC', 'Total Tasks', 'Time Without AI (hrs)', 'Time With AI (hrs)', 'Time Saved (hrs)', 'Efficiency %', 'Quality (1-5)', 'Completed', 'Projects']
-  ];
-  data.summary.practices.forEach(p => {
-    summaryData.push([p.name, p.head, p.spoc, p.tasks, p.timeWithout, p.timeWith, p.timeSaved, p.efficiency, p.quality, p.completed, p.projects]);
-  });
-  const t = data.summary.totals;
-  summaryData.push(['TOTAL', '', '', t.tasks, t.timeWithout, t.timeWith, t.timeSaved, t.efficiency, t.quality, t.completed, t.projects]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), 'Summary');
+  // Summary
+  if (document.getElementById('exp-xl-summary')?.checked) {
+    const summaryData = [
+      ['EAS AI Adoption - Export Summary'],
+      [`Quarter: ${qLabel}`, `Exported: ${new Date().toLocaleString()}`],
+      [],
+      ['Practice', 'Practice Head', 'AI SPOC', 'Total Tasks', 'Time Without AI (hrs)', 'Time With AI (hrs)', 'Time Saved (hrs)', 'Efficiency %', 'Quality (1-5)', 'Completed', 'Projects']
+    ];
+    const practices = role === 'spoc' ? fd.summary.practices.filter(p => p.name?.includes(practice) || p.practice === practice) : fd.summary.practices;
+    practices.forEach(p => {
+      summaryData.push([p.name, p.head, p.spoc, p.tasks, p.timeWithout, p.timeWith, p.timeSaved, p.efficiency, p.quality, p.completed, p.projects]);
+    });
+    if (role === 'admin') {
+      const t = fd.summary.totals;
+      summaryData.push(['TOTAL', '', '', t.tasks, t.timeWithout, t.timeWith, t.timeSaved, t.efficiency, t.quality, t.completed, t.projects]);
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), 'Summary');
+  }
 
-  // Task sheets per practice
-  const practices = ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
-  practices.forEach(p => {
-    const tasks = data.tasks.filter(t => t.practice === p);
-    const rows = [['Week #', 'Week Start', 'Week End', 'Project', 'Code', 'Employee', 'Task', 'Category', 'AI Tool', 'Prompt', 'Without AI (hrs)', 'With AI (hrs)', 'Saved (hrs)', 'Efficiency', 'Quality', 'Status', 'Notes']];
-    tasks.forEach(t => rows.push([t.week, t.weekStart, t.weekEnd, t.project, t.projectCode, t.employee, t.task, t.category, t.aiTool, t.prompt, t.timeWithout, t.timeWith, t.timeSaved, t.efficiency, t.quality, t.status, t.notes]));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), p);
-  });
+  // Tasks
+  if (document.getElementById('exp-xl-tasks')?.checked) {
+    const exportTasks = _getExportTasks();
+    if (role === 'contributor') {
+      // Single sheet for contributor
+      const rows = [['Week #', 'Week Start', 'Week End', 'Project', 'Task', 'Category', 'AI Tool', 'Without AI (hrs)', 'With AI (hrs)', 'Saved (hrs)', 'Efficiency', 'Quality', 'Status']];
+      exportTasks.forEach(t => rows.push([t.week, t.weekStart, t.weekEnd, t.project, t.task, t.category, t.aiTool, t.timeWithout, t.timeWith, t.timeSaved, t.efficiency, t.quality, t.status]));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'My Tasks');
+    } else {
+      const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
+      practiceList.forEach(p => {
+        const tasks = exportTasks.filter(t => t.practice === p);
+        const rows = [['Week #', 'Week Start', 'Week End', 'Project', 'Code', 'Employee', 'Task', 'Category', 'AI Tool', 'Prompt', 'Without AI (hrs)', 'With AI (hrs)', 'Saved (hrs)', 'Efficiency', 'Quality', 'Status', 'Notes']];
+        tasks.forEach(t => rows.push([t.week, t.weekStart, t.weekEnd, t.project, t.projectCode, t.employee, t.task, t.category, t.aiTool, t.prompt, t.timeWithout, t.timeWith, t.timeSaved, t.efficiency, t.quality, t.status, t.notes]));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), p);
+      });
+    }
+  }
 
   // Accomplishments
-  const accRows = [['#', 'Date', 'Practice', 'Project', 'Code', 'SPOC', 'Employees', 'Title', 'Details', 'AI Tool', 'Category', 'Before', 'After', 'Impact', 'Business Gains', 'Cost', 'Effort Saved', 'Status']];
-  data.accomplishments.forEach(a => accRows.push([a.id, a.date, a.practice, a.project, a.projectCode, a.spoc, a.employees, a.title, a.details, a.aiTool, a.category, a.before, a.after, a.impact, a.businessGains, a.cost, a.effortSaved, a.status]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(accRows), 'Accomplishments');
+  if (document.getElementById('exp-xl-accomplishments')?.checked) {
+    const accRows = [['#', 'Date', 'Practice', 'Project', 'Code', 'SPOC', 'Employees', 'Title', 'Details', 'AI Tool', 'Category', 'Before', 'After', 'Impact', 'Business Gains', 'Cost', 'Effort Saved', 'Status']];
+    const accs = role === 'spoc' ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
+    accs.forEach(a => accRows.push([a.id, a.date, a.practice, a.project, a.projectCode, a.spoc, a.employees, a.title, a.details, a.aiTool, a.category, a.before, a.after, a.impact, a.businessGains, a.cost, a.effortSaved, a.status]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(accRows), 'Accomplishments');
+  }
 
-  // Copilot Users
-  const copRows = [['Practice', 'Name', 'Email', 'Skill', 'Status']];
-  data.copilotUsers.forEach(u => copRows.push([u.practice, u.name, u.email, u.skill, u.remarks]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(copRows), 'Copilot Users');
+  // Copilot Users (admin & spoc)
+  if (document.getElementById('exp-xl-copilot')?.checked && role !== 'contributor') {
+    const copUsers = role === 'spoc' ? data.copilotUsers.filter(u => u.practice === practice) : data.copilotUsers;
+    const copRows = [['Practice', 'Name', 'Email', 'Skill', 'Status']];
+    copUsers.forEach(u => copRows.push([u.practice, u.name, u.email, u.skill, u.remarks]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(copRows), 'Copilot Users');
+  }
 
-  XLSX.writeFile(wb, 'EAS_AI_Adoption_Export.xlsx');
+  // Projects (admin & spoc)
+  if (document.getElementById('exp-xl-projects')?.checked && role !== 'contributor') {
+    const projs = role === 'spoc' ? data.projects.filter(p => p.practice === practice) : data.projects;
+    const projRows = [['Practice', 'Project Name', 'Code', 'Customer', 'Contract Value (SAR)', 'Start', 'End', 'Revenue Type', 'PM']];
+    projs.forEach(p => projRows.push([p.practice, p.projectName, p.projectCode, p.customer, p.contractValue, p.startDate, p.endDate, p.revenueType, p.pm]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(projRows), 'Projects');
+  }
+
+  // Leaderboard (admin & spoc)
+  if (document.getElementById('exp-xl-leaderboard')?.checked && role !== 'contributor') {
+    const tasks = _getExportTasks();
+    const empMap = {};
+    tasks.forEach(t => {
+      if (!t.employee) return;
+      if (!empMap[t.employee]) empMap[t.employee] = { name: t.employee, practice: t.practice, tasks: 0, saved: 0, totalWithout: 0, qualSum: 0, qualCount: 0 };
+      empMap[t.employee].tasks++;
+      empMap[t.employee].saved += t.timeSaved || 0;
+      empMap[t.employee].totalWithout += t.timeWithout || 0;
+      if (t.quality > 0) { empMap[t.employee].qualSum += t.quality; empMap[t.employee].qualCount++; }
+    });
+    const sorted = Object.values(empMap).sort((a, b) => b.saved - a.saved);
+    const lbRows = [['Rank', 'Employee', 'Practice', 'Tasks', 'Hours Saved', 'Efficiency %', 'Avg Quality']];
+    sorted.forEach((e, i) => {
+      const eff = e.totalWithout > 0 ? ((e.saved / e.totalWithout) * 100).toFixed(1) : '0';
+      const qual = e.qualCount > 0 ? (e.qualSum / e.qualCount).toFixed(1) : '—';
+      lbRows.push([i + 1, e.name, e.practice, e.tasks, e.saved.toFixed(1), eff, qual]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lbRows), 'Leaderboard');
+  }
+
+  if (wb.SheetNames.length === 0) { showToast('No sheets selected for export', 'error'); return; }
+
+  const suffix = role === 'contributor' ? '_MyTasks' : role === 'spoc' ? `_${practice}` : '';
+  XLSX.writeFile(wb, `EAS_AI_Export${suffix}_${qLabel.replace(/\s+/g, '_')}.xlsx`);
   showToast('Excel exported successfully!');
+}
+
+// Keep legacy function for backwards compatibility
+function exportToExcel() { openExportModal(); }
+
+// -------- PDF EXPORT --------
+async function exportPDF() {
+  if (!data) { showToast('No data loaded', 'error'); return; }
+  if (typeof jspdf === 'undefined') { showToast('PDF library still loading...', 'error'); return; }
+
+  showToast('Generating PDF report...');
+  const { jsPDF } = jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const W = 210, H = 297, M = 15;
+  const pw = W - 2 * M;
+  let y = M;
+
+  const quarter = EAS_DB.getSelectedQuarter();
+  const qLabel = quarter && quarter !== 'all' ? quarter : 'All Quarters';
+  const practice = EAS_Auth.getUserPractice();
+  const role = EAS_Auth.getUserRole();
+  const fd = getFilteredData();
+  const exportTasks = _getExportTasks();
+
+  // === Cover / Header ===
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, W, 45, 'F');
+  doc.setTextColor(241, 245, 249);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.text('EAS AI Adoption Report', M, 22);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${qLabel} — Generated ${new Date().toLocaleDateString()}`, M, 32);
+  if (role === 'spoc') doc.text(`Practice: ${practice}`, W - M, 32, { align: 'right' });
+  if (role === 'contributor') doc.text(`${EAS_Auth.getUserName()}`, W - M, 32, { align: 'right' });
+  doc.setFontSize(9);
+  doc.setTextColor(148, 163, 184);
+  doc.text(`Role: ${role.toUpperCase()}`, M, 40);
+  y = 55;
+
+  // === Dashboard Section ===
+  if (document.getElementById('exp-pdf-dashboard')?.checked) {
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Executive Summary', M, y); y += 8;
+
+    const totalTasks = exportTasks.length;
+    const totalSaved = exportTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+    const totalWithout = exportTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+    const avgEff = totalWithout > 0 ? (totalSaved / totalWithout * 100) : 0;
+    const qualTasks = exportTasks.filter(t => t.quality > 0);
+    const avgQual = qualTasks.length > 0 ? qualTasks.reduce((s, t) => s + t.quality, 0) / qualTasks.length : 0;
+    const copilotCount = data.copilotUsers?.length || 0;
+    const accCount = fd.accomplishments?.length || 0;
+
+    const kpis = [
+      ['Total Tasks', totalTasks.toString()],
+      ['Hours Saved', fmt(totalSaved, 0)],
+      ['Avg Efficiency', fmt(avgEff, 0) + '%'],
+      ['Avg Quality', fmt(avgQual, 1) + '/5'],
+      ['Copilot Users', copilotCount.toString()],
+      ['Accomplishments', accCount.toString()]
+    ];
+
+    const kpiW = pw / 3;
+    kpis.forEach((kpi, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const kx = M + col * kpiW;
+      const ky = y + row * 18;
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(kx, ky, kpiW - 4, 14, 3, 3, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(kpi[0], kx + 4, ky + 5);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(59, 130, 246);
+      doc.text(kpi[1], kx + 4, ky + 12);
+    });
+    y += Math.ceil(kpis.length / 3) * 18 + 10;
+
+    // Practice Breakdown Table
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Practice Breakdown', M, y); y += 8;
+
+    const cols = ['Practice', 'Tasks', 'Hours Saved', 'Efficiency', 'Quality'];
+    const colW = [40, 25, 30, 30, 25];
+    doc.setFillColor(59, 130, 246);
+    doc.rect(M, y, pw, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    let cx = M + 3;
+    cols.forEach((col, i) => { doc.text(col, cx, y + 6); cx += colW[i]; });
+    y += 8;
+
+    const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
+    doc.setFont('helvetica', 'normal');
+    practiceList.forEach((p, idx) => {
+      const pTasks = exportTasks.filter(t => t.practice === p);
+      const pSaved = pTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+      const pWithout = pTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+      const pEff = pWithout > 0 ? (pSaved / pWithout * 100) : 0;
+      const pQTasks = pTasks.filter(t => t.quality > 0);
+      const pQual = pQTasks.length > 0 ? pQTasks.reduce((s, t) => s + t.quality, 0) / pQTasks.length : 0;
+
+      if (idx % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(M, y, pw, 7, 'F'); }
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(9);
+      cx = M + 3;
+      [p, pTasks.length.toString(), fmt(pSaved, 0), fmt(pEff, 0) + '%', pQual > 0 ? fmt(pQual, 1) : '—'].forEach((val, i) => {
+        doc.text(val, cx, y + 5); cx += colW[i];
+      });
+      y += 7;
+    });
+    y += 10;
+  }
+
+  // === Practices Detail (admin) ===
+  if (document.getElementById('exp-pdf-practices')?.checked && role === 'admin') {
+    if (y > H - 80) { doc.addPage(); y = M; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Practice Details', M, y); y += 10;
+
+    ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'].forEach(p => {
+      if (y > H - 40) { doc.addPage(); y = M; }
+      const pTasks = exportTasks.filter(t => t.practice === p);
+      const pSaved = pTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+      const pWithout = pTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+      const pEff = pWithout > 0 ? ((pSaved / pWithout) * 100).toFixed(0) : '0';
+      const uniqueEmps = [...new Set(pTasks.map(t => t.employee).filter(Boolean))].length;
+
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(M, y, pw, 20, 3, 3, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(59, 130, 246);
+      doc.text(practiceNames[p] || p, M + 4, y + 7);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Tasks: ${pTasks.length} | Hours Saved: ${fmt(pSaved, 0)} | Efficiency: ${pEff}% | Contributors: ${uniqueEmps}`, M + 4, y + 15);
+      y += 25;
+    });
+    y += 5;
+  }
+
+  // === My Practice (SPOC) ===
+  if (document.getElementById('exp-pdf-mypractice')?.checked && role === 'spoc') {
+    if (y > H - 80) { doc.addPage(); y = M; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`My Practice: ${practice}`, M, y); y += 10;
+
+    const pTasks = exportTasks;
+    const pSaved = pTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+    const pWithout = pTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+    const pEff = pWithout > 0 ? ((pSaved / pWithout) * 100).toFixed(0) : '0';
+    const empMap = {};
+    pTasks.forEach(t => {
+      if (!t.employee) return;
+      if (!empMap[t.employee]) empMap[t.employee] = { tasks: 0, saved: 0 };
+      empMap[t.employee].tasks++;
+      empMap[t.employee].saved += t.timeSaved || 0;
+    });
+    const teamMembers = Object.entries(empMap).sort((a, b) => b[1].saved - a[1].saved);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Total Tasks: ${pTasks.length} | Hours Saved: ${fmt(pSaved, 0)} | Efficiency: ${pEff}% | Team Size: ${teamMembers.length}`, M, y);
+    y += 10;
+
+    // Team table
+    if (teamMembers.length > 0) {
+      doc.setFillColor(59, 130, 246);
+      doc.rect(M, y, pw, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      cx = M + 3;
+      ['#', 'Employee', 'Tasks', 'Hours Saved'].forEach((c, i) => { doc.text(c, cx, y + 6); cx += [10, 80, 30, 30][i]; });
+      y += 8;
+
+      doc.setFont('helvetica', 'normal');
+      teamMembers.slice(0, 15).forEach(([name, stats], idx) => {
+        if (y > H - 20) { doc.addPage(); y = M; }
+        if (idx % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(M, y, pw, 7, 'F'); }
+        doc.setTextColor(15, 23, 42);
+        cx = M + 3;
+        [(idx + 1).toString(), name, stats.tasks.toString(), fmt(stats.saved, 1)].forEach((v, i) => { doc.text(v, cx, y + 5); cx += [10, 80, 30, 30][i]; });
+        y += 7;
+      });
+      y += 10;
+    }
+  }
+
+  // === Leaderboard ===
+  if (document.getElementById('exp-pdf-leaderboard')?.checked) {
+    if (y > H - 80) { doc.addPage(); y = M; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Top Contributors', M, y); y += 8;
+
+    const empMap = {};
+    exportTasks.forEach(t => {
+      if (!t.employee) return;
+      if (!empMap[t.employee]) empMap[t.employee] = { name: t.employee, practice: t.practice, tasks: 0, saved: 0 };
+      empMap[t.employee].tasks++;
+      empMap[t.employee].saved += t.timeSaved || 0;
+    });
+    const topEmp = Object.values(empMap).sort((a, b) => b.saved - a.saved).slice(0, 10);
+
+    doc.setFillColor(59, 130, 246);
+    doc.rect(M, y, pw, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    const empCols = ['#', 'Employee', 'Practice', 'Tasks', 'Hours Saved'];
+    const empColW = [10, 55, 40, 25, 30];
+    cx = M + 3;
+    empCols.forEach((c, i) => { doc.text(c, cx, y + 6); cx += empColW[i]; });
+    y += 8;
+
+    doc.setFont('helvetica', 'normal');
+    topEmp.forEach((e, idx) => {
+      if (y > H - 20) { doc.addPage(); y = M; }
+      if (idx % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(M, y, pw, 7, 'F'); }
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(9);
+      cx = M + 3;
+      [(idx + 1).toString(), e.name, e.practice, e.tasks.toString(), fmt(e.saved, 1)].forEach((val, i) => {
+        doc.text(val, cx, y + 5); cx += empColW[i];
+      });
+      y += 7;
+    });
+    y += 10;
+  }
+
+  // === Accomplishments ===
+  if (document.getElementById('exp-pdf-accomplishments')?.checked) {
+    const accs = role === 'spoc' ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
+    if (accs.length > 0) {
+      if (y > H - 60) { doc.addPage(); y = M; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Key Accomplishments', M, y); y += 8;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      accs.slice(0, 10).forEach(a => {
+        if (y > H - 20) { doc.addPage(); y = M; }
+        doc.setTextColor(59, 130, 246);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${a.practice} — ${a.title}`, M, y + 5);
+        doc.setTextColor(100, 116, 139);
+        doc.setFont('helvetica', 'normal');
+        const desc = (a.details || a.description || '').substring(0, 120);
+        doc.text(desc, M, y + 10);
+        if (a.impact) {
+          doc.setTextColor(16, 185, 129);
+          doc.text(`Impact: ${a.impact.substring(0, 80)}`, M, y + 15);
+          y += 20;
+        } else {
+          y += 16;
+        }
+      });
+    }
+  }
+
+  // === My Tasks (Contributor) ===
+  if (document.getElementById('exp-pdf-mytasks')?.checked && role === 'contributor') {
+    if (y > H - 80) { doc.addPage(); y = M; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`My Tasks — ${EAS_Auth.getUserName()}`, M, y); y += 8;
+
+    const myTasks = _getExportTasks();
+    const mySaved = myTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Total: ${myTasks.length} tasks | Hours Saved: ${fmt(mySaved, 1)}`, M, y); y += 8;
+
+    if (myTasks.length > 0) {
+      doc.setFillColor(59, 130, 246);
+      doc.rect(M, y, pw, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      cx = M + 2;
+      ['Week', 'Project', 'Task', 'Tool', 'Saved', 'Status'].forEach((c, i) => { doc.text(c, cx, y + 6); cx += [15, 30, 50, 30, 20, 25][i]; });
+      y += 8;
+
+      doc.setFont('helvetica', 'normal');
+      myTasks.slice(0, 25).forEach((t, idx) => {
+        if (y > H - 20) { doc.addPage(); y = M; }
+        if (idx % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(M, y, pw, 7, 'F'); }
+        doc.setTextColor(15, 23, 42);
+        doc.setFontSize(8);
+        cx = M + 2;
+        [t.week?.toString() || '', (t.project || '').substring(0, 18), (t.task || '').substring(0, 30), (t.aiTool || '').substring(0, 18), fmt(t.timeSaved, 1), t.status || ''].forEach((v, i) => {
+          doc.text(v, cx, y + 5); cx += [15, 30, 50, 30, 20, 25][i];
+        });
+        y += 7;
+      });
+    }
+  }
+
+  // === Footer ===
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`EAS AI Adoption Dashboard — ${qLabel} — Page ${i} of ${totalPages}`, W / 2, H - 8, { align: 'center' });
+  }
+
+  const suffix = role === 'contributor' ? '_MyTasks' : role === 'spoc' ? `_${practice}` : '';
+  doc.save(`EAS_AI_Report${suffix}_${qLabel.replace(/\s+/g, '_')}.pdf`);
+  showToast('PDF report downloaded!');
+}
+
+// Keep legacy function
+async function generatePDFReport() { openExportModal('dashboard'); }
+
+// -------- PPT EXPORT --------
+async function exportPPT() {
+  if (!data) { showToast('No data loaded', 'error'); return; }
+  if (typeof PptxGenJS === 'undefined') { showToast('PowerPoint library still loading...', 'error'); return; }
+
+  showToast('Generating PowerPoint presentation...');
+  const pptx = new PptxGenJS();
+  const role = EAS_Auth.getUserRole();
+  const practice = EAS_Auth.getUserPractice();
+  const fd = getFilteredData();
+  const exportTasks = _getExportTasks();
+  const qLabel = EAS_DB.getQuarterLabel(EAS_DB.getSelectedQuarter()) || 'All Quarters';
+  const pptStyle = document.querySelector('input[name="ppt-style"]:checked')?.value || 'executive';
+
+  // Theme colors
+  const BLUE = '3B82F6';
+  const DARK = '0F172A';
+  const SLATE = '64748B';
+  const WHITE = 'FFFFFF';
+  const LIGHT_BG = 'F1F5F9';
+
+  pptx.defineLayout({ name: 'CUSTOM', width: 13.333, height: 7.5 });
+  pptx.layout = 'LAYOUT_16x9';
+  pptx.author = 'EAS AI Dashboard';
+  pptx.subject = `AI Adoption Report — ${qLabel}`;
+
+  // === Title Slide ===
+  let slide = pptx.addSlide();
+  slide.background = { color: DARK };
+  slide.addText('EAS AI Adoption Report', { x: 0.8, y: 1.5, w: 8, h: 1.2, fontSize: 36, fontFace: 'Arial', bold: true, color: WHITE });
+  slide.addText(`${qLabel} — ${new Date().toLocaleDateString()}`, { x: 0.8, y: 2.7, w: 8, h: 0.6, fontSize: 16, fontFace: 'Arial', color: SLATE });
+  if (role === 'spoc') slide.addText(`Practice: ${practice}`, { x: 0.8, y: 3.3, w: 8, h: 0.5, fontSize: 14, fontFace: 'Arial', color: BLUE });
+  slide.addText('Enterprise Application Solutions · Ejada', { x: 0.8, y: 5.5, w: 8, h: 0.4, fontSize: 12, fontFace: 'Arial', color: SLATE });
+
+  // === Dashboard KPIs Slide ===
+  if (document.getElementById('exp-ppt-dashboard')?.checked) {
+    const totalTasks = exportTasks.length;
+    const totalSaved = exportTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+    const totalWithout = exportTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+    const avgEff = totalWithout > 0 ? (totalSaved / totalWithout * 100) : 0;
+    const qualTasks = exportTasks.filter(t => t.quality > 0);
+    const avgQual = qualTasks.length > 0 ? qualTasks.reduce((s, t) => s + t.quality, 0) / qualTasks.length : 0;
+    const copilotCount = data.copilotUsers?.length || 0;
+    const accCount = fd.accomplishments?.length || 0;
+
+    slide = pptx.addSlide();
+    slide.addText('Executive Summary', { x: 0.5, y: 0.3, w: 9, h: 0.6, fontSize: 24, fontFace: 'Arial', bold: true, color: DARK });
+
+    const kpiData = [
+      { label: 'Total Tasks', value: totalTasks.toString(), color: BLUE },
+      { label: 'Hours Saved', value: fmt(totalSaved, 0), color: '10B981' },
+      { label: 'Efficiency', value: fmt(avgEff, 0) + '%', color: 'F59E0B' },
+      { label: 'Quality', value: fmt(avgQual, 1) + '/5', color: '8B5CF6' },
+      { label: 'Copilot Users', value: copilotCount.toString(), color: 'EC4899' },
+      { label: 'Accomplishments', value: accCount.toString(), color: '06B6D4' }
+    ];
+
+    kpiData.forEach((kpi, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const kx = 0.5 + col * 3.1;
+      const ky = 1.2 + row * 2.2;
+      slide.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: kx, y: ky, w: 2.8, h: 1.8, fill: { color: LIGHT_BG }, rectRadius: 0.15 });
+      slide.addText(kpi.label, { x: kx + 0.2, y: ky + 0.2, w: 2.4, h: 0.4, fontSize: 12, fontFace: 'Arial', color: SLATE });
+      slide.addText(kpi.value, { x: kx + 0.2, y: ky + 0.7, w: 2.4, h: 0.8, fontSize: 32, fontFace: 'Arial', bold: true, color: kpi.color });
+    });
+  }
+
+  // === Practice Summary Slide ===
+  if (document.getElementById('exp-ppt-practices')?.checked) {
+    slide = pptx.addSlide();
+    slide.addText('Practice Performance', { x: 0.5, y: 0.3, w: 9, h: 0.6, fontSize: 24, fontFace: 'Arial', bold: true, color: DARK });
+
+    const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
+
+    if (pptStyle === 'executive') {
+      // Practice cards
+      practiceList.forEach((p, idx) => {
+        const pTasks = exportTasks.filter(t => t.practice === p);
+        const pSaved = pTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+        const pWithout = pTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+        const pEff = pWithout > 0 ? ((pSaved / pWithout) * 100).toFixed(0) : '0';
+
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        const px = 0.5 + col * 3.1;
+        const py = 1.2 + row * 2.8;
+
+        slide.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: px, y: py, w: 2.8, h: 2.4, fill: { color: LIGHT_BG }, rectRadius: 0.15 });
+        slide.addText(practiceNames[p] || p, { x: px + 0.2, y: py + 0.15, w: 2.4, h: 0.4, fontSize: 13, fontFace: 'Arial', bold: true, color: BLUE });
+        slide.addText(`${pTasks.length} Tasks`, { x: px + 0.2, y: py + 0.6, w: 2.4, h: 0.35, fontSize: 11, fontFace: 'Arial', color: DARK });
+        slide.addText(`${fmt(pSaved, 0)} hrs saved`, { x: px + 0.2, y: py + 1.0, w: 2.4, h: 0.35, fontSize: 11, fontFace: 'Arial', color: '10B981' });
+        slide.addText(`${pEff}% efficiency`, { x: px + 0.2, y: py + 1.4, w: 2.4, h: 0.35, fontSize: 11, fontFace: 'Arial', color: 'F59E0B' });
+        const uniqueEmps = [...new Set(pTasks.map(t => t.employee).filter(Boolean))].length;
+        slide.addText(`${uniqueEmps} contributors`, { x: px + 0.2, y: py + 1.8, w: 2.4, h: 0.35, fontSize: 11, fontFace: 'Arial', color: SLATE });
+      });
+    } else {
+      // Data-heavy table
+      const tblRows = [
+        [{ text: 'Practice', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Tasks', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Hours Saved', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Efficiency', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Quality', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Contributors', options: { bold: true, color: WHITE, fill: { color: BLUE } } }]
+      ];
+      practiceList.forEach(p => {
+        const pTasks = exportTasks.filter(t => t.practice === p);
+        const pSaved = pTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+        const pWithout = pTasks.reduce((s, t) => s + (t.timeWithout || 0), 0);
+        const pEff = pWithout > 0 ? ((pSaved / pWithout) * 100).toFixed(0) + '%' : '0%';
+        const pQTasks = pTasks.filter(t => t.quality > 0);
+        const pQual = pQTasks.length > 0 ? (pQTasks.reduce((s, t) => s + t.quality, 0) / pQTasks.length).toFixed(1) : '—';
+        const uniqueEmps = [...new Set(pTasks.map(t => t.employee).filter(Boolean))].length;
+        tblRows.push([practiceNames[p] || p, pTasks.length.toString(), fmt(pSaved, 0), pEff, pQual, uniqueEmps.toString()]);
+      });
+
+      slide.addTable(tblRows, {
+        x: 0.5, y: 1.2, w: 9,
+        fontSize: 11, fontFace: 'Arial',
+        border: { type: 'solid', pt: 0.5, color: 'CBD5E1' },
+        colW: [2.5, 1.2, 1.5, 1.3, 1.2, 1.3],
+        rowH: 0.5,
+        autoPage: true,
+        autoPageRepeatHeader: true
+      });
+    }
+  }
+
+  // === Leaderboard Slide ===
+  if (document.getElementById('exp-ppt-leaderboard')?.checked) {
+    slide = pptx.addSlide();
+    slide.addText('Top Contributors', { x: 0.5, y: 0.3, w: 9, h: 0.6, fontSize: 24, fontFace: 'Arial', bold: true, color: DARK });
+
+    const empMap = {};
+    exportTasks.forEach(t => {
+      if (!t.employee) return;
+      if (!empMap[t.employee]) empMap[t.employee] = { name: t.employee, practice: t.practice, tasks: 0, saved: 0 };
+      empMap[t.employee].tasks++;
+      empMap[t.employee].saved += t.timeSaved || 0;
+    });
+    const topEmp = Object.values(empMap).sort((a, b) => b.saved - a.saved).slice(0, 10);
+
+    if (pptStyle === 'executive') {
+      // Podium-style top 3 + list
+      topEmp.slice(0, 3).forEach((e, i) => {
+        const medals = ['🥇', '🥈', '🥉'];
+        const px = 0.5 + i * 3.1;
+        slide.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: px, y: 1.2, w: 2.8, h: 1.6, fill: { color: LIGHT_BG }, rectRadius: 0.15 });
+        slide.addText(`${medals[i]} ${e.name}`, { x: px + 0.15, y: 1.3, w: 2.5, h: 0.4, fontSize: 13, fontFace: 'Arial', bold: true, color: DARK });
+        slide.addText(e.practice, { x: px + 0.15, y: 1.7, w: 2.5, h: 0.3, fontSize: 10, fontFace: 'Arial', color: SLATE });
+        slide.addText(`${e.tasks} tasks · ${fmt(e.saved, 1)} hrs saved`, { x: px + 0.15, y: 2.1, w: 2.5, h: 0.3, fontSize: 10, fontFace: 'Arial', color: '10B981' });
+      });
+
+      // Remaining in simple list
+      if (topEmp.length > 3) {
+        const restText = topEmp.slice(3).map((e, i) => `${i + 4}. ${e.name} (${e.practice}) — ${e.tasks} tasks, ${fmt(e.saved, 1)} hrs`).join('\n');
+        slide.addText(restText, { x: 0.5, y: 3.2, w: 9, h: 3.5, fontSize: 11, fontFace: 'Arial', color: DARK, lineSpacingMultiple: 1.5 });
+      }
+    } else {
+      // Table
+      const tblRows = [
+        [{ text: '#', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Employee', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Practice', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Tasks', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+         { text: 'Hours Saved', options: { bold: true, color: WHITE, fill: { color: BLUE } } }]
+      ];
+      topEmp.forEach((e, i) => {
+        tblRows.push([(i + 1).toString(), e.name, e.practice, e.tasks.toString(), fmt(e.saved, 1)]);
+      });
+      slide.addTable(tblRows, {
+        x: 0.5, y: 1.2, w: 9,
+        fontSize: 11, fontFace: 'Arial',
+        border: { type: 'solid', pt: 0.5, color: 'CBD5E1' },
+        colW: [0.6, 3, 2, 1.2, 1.5],
+        rowH: 0.45,
+        autoPage: true
+      });
+    }
+  }
+
+  // === Accomplishments Slide ===
+  if (document.getElementById('exp-ppt-accomplishments')?.checked) {
+    const accs = role === 'spoc' ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
+    if (accs.length > 0) {
+      slide = pptx.addSlide();
+      slide.addText('Key Accomplishments', { x: 0.5, y: 0.3, w: 9, h: 0.6, fontSize: 24, fontFace: 'Arial', bold: true, color: DARK });
+
+      if (pptStyle === 'executive') {
+        accs.slice(0, 4).forEach((a, i) => {
+          const col = i % 2;
+          const row = Math.floor(i / 2);
+          const ax = 0.5 + col * 4.7;
+          const ay = 1.2 + row * 2.8;
+
+          slide.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: ax, y: ay, w: 4.3, h: 2.4, fill: { color: LIGHT_BG }, rectRadius: 0.15 });
+          slide.addText(a.title || 'Untitled', { x: ax + 0.2, y: ay + 0.15, w: 3.9, h: 0.4, fontSize: 13, fontFace: 'Arial', bold: true, color: BLUE });
+          slide.addText(`${a.practice} · ${a.aiTool || ''}`, { x: ax + 0.2, y: ay + 0.55, w: 3.9, h: 0.3, fontSize: 10, fontFace: 'Arial', color: SLATE });
+          const descText = (a.details || a.description || '').substring(0, 150);
+          slide.addText(descText, { x: ax + 0.2, y: ay + 0.95, w: 3.9, h: 0.7, fontSize: 10, fontFace: 'Arial', color: DARK, lineSpacingMultiple: 1.3 });
+          if (a.impact) {
+            slide.addText(`Impact: ${a.impact.substring(0, 80)}`, { x: ax + 0.2, y: ay + 1.75, w: 3.9, h: 0.35, fontSize: 10, fontFace: 'Arial', bold: true, color: '10B981' });
+          }
+        });
+      } else {
+        const tblRows = [
+          [{ text: 'Practice', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+           { text: 'Title', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+           { text: 'AI Tool', options: { bold: true, color: WHITE, fill: { color: BLUE } } },
+           { text: 'Impact', options: { bold: true, color: WHITE, fill: { color: BLUE } } }]
+        ];
+        accs.slice(0, 8).forEach(a => {
+          tblRows.push([a.practice || '', (a.title || '').substring(0, 40), a.aiTool || '', (a.impact || '').substring(0, 50)]);
+        });
+        slide.addTable(tblRows, {
+          x: 0.5, y: 1.2, w: 9,
+          fontSize: 10, fontFace: 'Arial',
+          border: { type: 'solid', pt: 0.5, color: 'CBD5E1' },
+          colW: [1.5, 3, 1.5, 3],
+          rowH: 0.5,
+          autoPage: true
+        });
+      }
+    }
+  }
+
+  // === Thank You Slide ===
+  slide = pptx.addSlide();
+  slide.background = { color: DARK };
+  slide.addText('Thank You', { x: 0.5, y: 2.5, w: 9, h: 1, fontSize: 36, fontFace: 'Arial', bold: true, color: WHITE, align: 'center' });
+  slide.addText(`EAS AI Adoption Dashboard · ${qLabel}`, { x: 0.5, y: 3.8, w: 9, h: 0.5, fontSize: 14, fontFace: 'Arial', color: SLATE, align: 'center' });
+
+  const suffix = role === 'spoc' ? `_${practice}` : '';
+  await pptx.writeFile({ fileName: `EAS_AI_Presentation${suffix}_${qLabel.replace(/\s+/g, '_')}.pptx` });
+  showToast('PowerPoint presentation downloaded!');
 }
 
 // ======== INIT ========

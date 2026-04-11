@@ -737,3 +737,101 @@ tr:hover td { background: var(--bg-translucent); }
 [data-theme="light"] .theme-toggle .icon-sun { display: none; }
 [data-theme="light"] .theme-toggle .theme-label::after { content: 'Dark Mode'; }
 .theme-toggle .theme-label { font-size: 13px; }
+
+/* ======== PHASE 7: EXPORT CENTER ======== */
+.export-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0;
+}
+.export-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: -2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.export-tab:hover { color: var(--text-primary); }
+.export-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.export-tab svg { flex-shrink: 0; }
+
+.export-panel {
+  padding: 16px 0;
+  min-height: 120px;
+}
+.export-option-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.export-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.export-check-label:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover, var(--bg-secondary));
+}
+.export-check-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.export-radio-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex: 1;
+  transition: border-color 0.2s;
+}
+.export-radio-label:hover { border-color: var(--accent); }
+.export-radio-label:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.08);
+}
+.export-radio-label input[type="radio"] {
+  accent-color: var(--accent);
+}
+.export-radio-desc {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .export-option-group { grid-template-columns: 1fr; }
+  .export-tabs { overflow-x: auto; }
+}
