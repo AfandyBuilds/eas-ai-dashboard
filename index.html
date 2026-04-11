@@ -44,6 +44,7 @@
     <p>Enterprise Application Solutions</p>
   </div>
 
+  <div class="sidebar-nav">
   <div class="nav-section">Overview</div>
   <div class="nav-item active" data-page="dashboard">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -96,6 +97,7 @@
   <div class="nav-item" data-page="usecases">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
     Use Case Library
+  </div>
   </div>
 
   <div class="sidebar-footer">
@@ -2243,14 +2245,16 @@ function exportToExcel() { openExportModal(); }
 // -------- PDF EXPORT --------
 async function exportPDF() {
   if (!data) { showToast('No data loaded', 'error'); return; }
-  if (typeof jspdf === 'undefined') { showToast('PDF library still loading...', 'error'); return; }
+  if (typeof jspdf === 'undefined') { showToast('PDF library still loading — please try again', 'error'); return; }
 
+  try {
   showToast('Generating PDF report...');
   const { jsPDF } = jspdf;
   const doc = new jsPDF('p', 'mm', 'a4');
   const W = 210, H = 297, M = 15;
   const pw = W - 2 * M;
   let y = M;
+  let cx; // reused across sections for column positioning
 
   const quarter = EAS_DB.getSelectedQuarter();
   const qLabel = quarter && quarter !== 'all' ? quarter : 'All Quarters';
@@ -2333,7 +2337,7 @@ async function exportPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    let cx = M + 3;
+    cx = M + 3;
     cols.forEach((col, i) => { doc.text(col, cx, y + 6); cx += colW[i]; });
     y += 8;
 
@@ -2567,6 +2571,10 @@ async function exportPDF() {
   const suffix = role === 'contributor' ? '_MyTasks' : role === 'spoc' ? `_${practice}` : '';
   doc.save(`EAS_AI_Report${suffix}_${qLabel.replace(/\s+/g, '_')}.pdf`);
   showToast('PDF report downloaded!');
+  } catch (err) {
+    console.error('PDF export error:', err);
+    showToast('PDF export failed: ' + err.message, 'error');
+  }
 }
 
 // Keep legacy function
@@ -2575,8 +2583,9 @@ async function generatePDFReport() { openExportModal('dashboard'); }
 // -------- PPT EXPORT --------
 async function exportPPT() {
   if (!data) { showToast('No data loaded', 'error'); return; }
-  if (typeof PptxGenJS === 'undefined') { showToast('PowerPoint library still loading...', 'error'); return; }
+  if (typeof PptxGenJS === 'undefined') { showToast('PowerPoint library still loading — please try again', 'error'); return; }
 
+  try {
   showToast('Generating PowerPoint presentation...');
   const pptx = new PptxGenJS();
   const role = EAS_Auth.getUserRole();
@@ -2808,6 +2817,10 @@ async function exportPPT() {
   const suffix = role === 'spoc' ? `_${practice}` : '';
   await pptx.writeFile({ fileName: `EAS_AI_Presentation${suffix}_${qLabel.replace(/\s+/g, '_')}.pptx` });
   showToast('PowerPoint presentation downloaded!');
+  } catch (err) {
+    console.error('PPT export error:', err);
+    showToast('PPT export failed: ' + err.message, 'error');
+  }
 }
 
 // ======== INIT ========

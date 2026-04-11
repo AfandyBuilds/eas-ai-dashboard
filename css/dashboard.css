@@ -68,6 +68,14 @@ body { display: flex; }
   color: var(--text-muted);
   margin-top: 4px;
 }
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 8px;
+}
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 .nav-section {
   padding: 16px 12px 8px;
   font-size: 11px;
@@ -102,7 +110,7 @@ body { display: flex; }
 }
 .nav-item.active .badge { background: rgba(255,255,255,0.25); }
 .sidebar-footer {
-  margin-top: auto;
+  flex-shrink: 0;
   padding: 16px;
   border-top: 1px solid var(--border);
 }
