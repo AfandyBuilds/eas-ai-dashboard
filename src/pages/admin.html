@@ -556,6 +556,11 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       Approvals
       <span class="badge" id="admin-approval-count">0</span>
     </div>
+    <div class="nav-item" data-page="manage-users">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Users
+      <span class="badge" id="admin-user-count">0</span>
+    </div>
 
     <div class="nav-section">Configuration</div>
     <div class="nav-item" data-page="manage-practices">
@@ -574,6 +579,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
       Prompt Library
       <span class="badge" id="admin-prompt-count">0</span>
+    </div>
+    <div class="nav-item" data-page="manage-permissions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      View Permissions
     </div>
 
     <div class="sidebar-footer">
@@ -902,6 +911,86 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div>
 
+    <!-- Manage Users Page -->
+    <div id="page-manage-users" class="page hidden">
+      <div class="page-header">
+        <div>
+          <h2>Manage Users</h2>
+          <div class="subtitle">View and manage user roles and access</div>
+        </div>
+      </div>
+      <div class="page-content">
+        <!-- Filters -->
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+          <input type="text" id="admin-user-search" placeholder="Search by name or email…" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary)" oninput="renderAdminUsers()">
+          <select id="admin-user-role-filter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary)" onchange="renderAdminUsers()">
+            <option value="">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="spoc">SPOC</option>
+            <option value="contributor">Contributor</option>
+            <option value="viewer">Viewer</option>
+          </select>
+          <select id="admin-user-practice-filter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary)" onchange="renderAdminUsers()">
+            <option value="">All Practices</option>
+          </select>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Practice</th>
+                <th style="width:140px">Role</th>
+                <th style="width:80px">Active</th>
+                <th style="width:120px">Last Login</th>
+                <th style="width:80px">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manage Permissions Page -->
+    <div id="page-manage-permissions" class="page hidden">
+      <div class="page-header">
+        <div>
+          <h2>View Permissions</h2>
+          <div class="subtitle">Control which VS Code sidebar sections each role can see</div>
+        </div>
+        <button class="btn btn-secondary" onclick="resetAllPermissions()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          Reset All to Visible
+        </button>
+      </div>
+      <div class="page-content">
+        <div class="table-card">
+          <table id="permissions-matrix">
+            <thead>
+              <tr>
+                <th style="width:200px">View Section</th>
+                <th style="text-align:center">Admin</th>
+                <th style="text-align:center">SPOC</th>
+                <th style="text-align:center">Contributor</th>
+                <th style="text-align:center">Viewer</th>
+              </tr>
+            </thead>
+            <tbody id="permissions-matrix-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted)">
+          <strong>How it works:</strong> Toggles control visibility of sidebar sections in the VS Code extension. Enabled (green) = visible, Disabled (red) = hidden. Changes take effect on the user's next sidebar refresh. Default: all visible (deny-list approach).
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /admin-app -->
 
@@ -1017,6 +1106,42 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-edit-practice')">Cancel</button>
       <button class="btn btn-primary" onclick="savePractice()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="modal-edit-user">
+  <div class="modal" style="max-width:500px">
+    <h3 id="user-modal-title">Edit User</h3>
+    <input type="hidden" id="eu-id" value="">
+    <div class="form-group"><label>Name</label><input type="text" id="eu-name" placeholder="Full name"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="eu-email" placeholder="Email address" readonly style="opacity:0.6"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Practice</label>
+        <select id="eu-practice"></select>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="eu-role">
+          <option value="admin">Admin</option>
+          <option value="spoc">SPOC</option>
+          <option value="contributor">Contributor</option>
+          <option value="viewer">Viewer</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="eu-active">
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -1184,6 +1309,8 @@ function renderCurrentPage(page) {
     case 'manage-lovs': renderLOVs(); break;
     case 'manage-data': renderDataMgmt(); break;
     case 'manage-prompts': renderAdminPrompts(); break;
+    case 'manage-users': renderAdminUsers(); break;
+    case 'manage-permissions': renderAdminPermissions(); break;
   }
 }
 
@@ -2723,6 +2850,245 @@ async function sendAdoptionAgentQuery() {
 function escapeHtml(text) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// ============ MANAGE USERS ============
+let _adminUsers = [];
+
+async function renderAdminUsers() {
+  const sb = getSupabaseClient();
+  if (!_adminUsers.length) {
+    const { data, error } = await sb
+      .from('users')
+      .select('id, auth_id, email, name, role, practice, is_active, last_login, created_at')
+      .order('practice', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) {
+      showToast('Failed to load users: ' + error.message, 'error');
+      return;
+    }
+    _adminUsers = data || [];
+  }
+
+  // Populate practice filter if empty
+  const practiceFilter = document.getElementById('admin-user-practice-filter');
+  if (practiceFilter && practiceFilter.options.length <= 1) {
+    const practices = [...new Set(_adminUsers.map(u => u.practice).filter(Boolean))].sort();
+    practices.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      practiceFilter.appendChild(opt);
+    });
+  }
+
+  // Apply filters
+  const search = (document.getElementById('admin-user-search')?.value || '').toLowerCase();
+  const roleFilter = document.getElementById('admin-user-role-filter')?.value || '';
+  const practFilter = document.getElementById('admin-user-practice-filter')?.value || '';
+
+  let filtered = _adminUsers;
+  if (search) {
+    filtered = filtered.filter(u =>
+      (u.name || '').toLowerCase().includes(search) ||
+      (u.email || '').toLowerCase().includes(search)
+    );
+  }
+  if (roleFilter) filtered = filtered.filter(u => u.role === roleFilter);
+  if (practFilter) filtered = filtered.filter(u => u.practice === practFilter);
+
+  // Update count badge
+  const badge = document.getElementById('admin-user-count');
+  if (badge) badge.textContent = _adminUsers.length;
+
+  // Render table
+  const roleBadgeColor = { admin: '#dc3545', spoc: '#fd7e14', contributor: '#0d6efd', viewer: '#6c757d' };
+  let html = '';
+  filtered.forEach((u, i) => {
+    const roleColor = roleBadgeColor[u.role] || '#6c757d';
+    const activeIcon = u.is_active ? '✅' : '❌';
+    const lastLogin = u.last_login ? new Date(u.last_login).toLocaleDateString() : '—';
+    html += `<tr>
+      <td>${i + 1}</td>
+      <td style="font-weight:500">${escapeHtml(u.name || '')}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${escapeHtml(u.email || '')}</td>
+      <td>${escapeHtml(u.practice || '')}</td>
+      <td>
+        <select onchange="quickChangeRole('${u.id}', this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text-primary);font-size:12px;cursor:pointer">
+          <option value="admin"${u.role === 'admin' ? ' selected' : ''}>Admin</option>
+          <option value="spoc"${u.role === 'spoc' ? ' selected' : ''}>SPOC</option>
+          <option value="contributor"${u.role === 'contributor' ? ' selected' : ''}>Contributor</option>
+          <option value="viewer"${u.role === 'viewer' ? ' selected' : ''}>Viewer</option>
+        </select>
+      </td>
+      <td style="text-align:center">${activeIcon}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${lastLogin}</td>
+      <td>
+        <button class="btn-icon" onclick="editUser('${u.id}')" title="Edit user">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </td>
+    </tr>`;
+  });
+
+  document.getElementById('admin-users-tbody').innerHTML = html || '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No users found</td></tr>';
+}
+
+async function quickChangeRole(userId, newRole) {
+  const sb = getSupabaseClient();
+  const { error } = await sb.from('users').update({ role: newRole }).eq('id', userId);
+  if (error) {
+    showToast('Failed to update role: ' + error.message, 'error');
+    _adminUsers = []; // force refresh
+    renderAdminUsers();
+    return;
+  }
+  // Update local cache
+  const user = _adminUsers.find(u => u.id === userId);
+  if (user) user.role = newRole;
+  showToast(`Role updated to ${newRole}`, 'success');
+}
+
+function editUser(userId) {
+  const user = _adminUsers.find(u => u.id === userId);
+  if (!user) return;
+
+  document.getElementById('eu-id').value = user.id;
+  document.getElementById('eu-name').value = user.name || '';
+  document.getElementById('eu-email').value = user.email || '';
+  document.getElementById('eu-role').value = user.role || 'contributor';
+  document.getElementById('eu-active').value = user.is_active ? 'true' : 'false';
+
+  // Populate practice select
+  const practiceSelect = document.getElementById('eu-practice');
+  const practices = [...new Set(_adminUsers.map(u => u.practice).filter(Boolean))].sort();
+  practiceSelect.innerHTML = practices.map(p =>
+    `<option value="${escapeHtml(p)}"${user.practice === p ? ' selected' : ''}>${escapeHtml(p)}</option>`
+  ).join('');
+
+  document.getElementById('user-modal-title').textContent = 'Edit User — ' + (user.name || user.email);
+  openModal('modal-edit-user');
+}
+
+async function saveUser() {
+  const id = document.getElementById('eu-id').value;
+  const updates = {
+    name: document.getElementById('eu-name').value.trim(),
+    practice: document.getElementById('eu-practice').value,
+    role: document.getElementById('eu-role').value,
+    is_active: document.getElementById('eu-active').value === 'true'
+  };
+
+  if (!updates.name) {
+    showToast('Name is required', 'error');
+    return;
+  }
+
+  const sb = getSupabaseClient();
+  const { error } = await sb.from('users').update(updates).eq('id', id);
+  if (error) {
+    showToast('Failed to save user: ' + error.message, 'error');
+    return;
+  }
+
+  closeModal('modal-edit-user');
+  showToast('User updated successfully', 'success');
+  _adminUsers = []; // force refresh
+  renderAdminUsers();
+}
+
+// ============ MANAGE PERMISSIONS ============
+let _adminPermissions = [];
+const ROLE_ORDER = ['admin', 'spoc', 'contributor', 'viewer'];
+
+async function renderAdminPermissions() {
+  const sb = getSupabaseClient();
+  const { data, error } = await sb
+    .from('role_view_permissions')
+    .select('*')
+    .order('view_key', { ascending: true })
+    .order('role', { ascending: true });
+
+  if (error) {
+    showToast('Failed to load permissions: ' + error.message, 'error');
+    return;
+  }
+  _adminPermissions = data || [];
+
+  // Group by view_key
+  const viewKeys = [...new Set(_adminPermissions.map(p => p.view_key))].sort();
+  const labelMap = {};
+  _adminPermissions.forEach(p => { labelMap[p.view_key] = p.label || p.view_key; });
+
+  let html = '';
+  viewKeys.forEach(vk => {
+    html += `<tr><td style="font-weight:500">${escapeHtml(labelMap[vk])}<br><span style="font-size:11px;color:var(--text-muted)">${escapeHtml(vk)}</span></td>`;
+    ROLE_ORDER.forEach(role => {
+      const perm = _adminPermissions.find(p => p.view_key === vk && p.role === role);
+      const isVisible = perm ? perm.is_visible : true;
+      const toggleId = `perm-${role}-${vk.replace(/\./g, '-')}`;
+      html += `<td style="text-align:center">
+        <label class="toggle-switch" style="display:inline-block;position:relative;width:44px;height:24px;cursor:pointer">
+          <input type="checkbox" id="${toggleId}" ${isVisible ? 'checked' : ''}
+            onchange="togglePermission('${escapeHtml(role)}', '${escapeHtml(vk)}', this.checked)"
+            style="opacity:0;width:0;height:0">
+          <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:${isVisible ? '#28a745' : '#dc3545'};border-radius:24px;transition:0.3s"></span>
+          <span style="position:absolute;top:2px;${isVisible ? 'left:22px' : 'left:2px'};width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></span>
+        </label>
+      </td>`;
+    });
+    html += '</tr>';
+  });
+
+  document.getElementById('permissions-matrix-tbody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">No permissions configured. Run the SQL migration first.</td></tr>';
+}
+
+async function togglePermission(role, viewKey, isVisible) {
+  const sb = getSupabaseClient();
+  const { error } = await sb
+    .from('role_view_permissions')
+    .update({ is_visible: isVisible })
+    .eq('role', role)
+    .eq('view_key', viewKey);
+
+  if (error) {
+    showToast('Failed to update permission: ' + error.message, 'error');
+    renderAdminPermissions(); // re-render to revert visual state
+    return;
+  }
+
+  // Update local cache
+  const perm = _adminPermissions.find(p => p.role === role && p.view_key === viewKey);
+  if (perm) perm.is_visible = isVisible;
+
+  // Update toggle visual without full re-render
+  const toggleId = `perm-${role}-${viewKey.replace(/\./g, '-')}`;
+  const checkbox = document.getElementById(toggleId);
+  if (checkbox) {
+    const track = checkbox.nextElementSibling;
+    const thumb = track?.nextElementSibling;
+    if (track) track.style.background = isVisible ? '#28a745' : '#dc3545';
+    if (thumb) thumb.style.left = isVisible ? '22px' : '2px';
+  }
+
+  showToast(`${viewKey} ${isVisible ? 'enabled' : 'disabled'} for ${role}`, 'success');
+}
+
+async function resetAllPermissions() {
+  confirmAction('Reset all view permissions to visible? This will enable all sidebar sections for all roles.', async () => {
+    const sb = getSupabaseClient();
+    const { error } = await sb
+      .from('role_view_permissions')
+      .update({ is_visible: true })
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (error) {
+      showToast('Failed to reset permissions: ' + error.message, 'error');
+      return;
+    }
+    showToast('All permissions reset to visible', 'success');
+    renderAdminPermissions();
+  });
 }
 
 // Toggle button click handler

@@ -88,6 +88,7 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │   ├── 002_approval_workflow.sql # Phase 8 approval workflow schema
 │   ├── 003_use_cases.sql    # AI Innovation approved use cases seed data (40 EAS use cases)
 │   └── 006_ide_api.sql      # Phase 10 IDE API schema (source column on tasks/accomplishments)
+│   └── 007_role_view_permissions.sql  # Role-based sidebar view permissions (deny-list)
 │
 ├── scripts/                # Node.js admin/migration scripts
 │   ├── create-auth-users.mjs   # One-time auth user creation
@@ -227,7 +228,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 
 ## 4. Database Schema
 
-### Tables (10)
+### Tables (11)
 
 | Table | Purpose | Row Count (Phase 1) |
 |-------|---------|---------------------|
@@ -241,6 +242,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `lovs` | Lists of values (dropdowns) | 18 |
 | `activity_log` | Audit trail (all CRUD operations) | Dynamic |
 | `data_dumps` | JSON backup snapshots (admin) | Dynamic |
+| `role_view_permissions` | Controls per-role sidebar section visibility (deny-list) | 32 (4 roles × 8 views) |
 
 ### Computed Columns
 
@@ -255,6 +257,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 |----------|------|--------|
 | `get_user_role()` | SQL | Returns role of currently authenticated user from `users` |
 | `get_user_practice()` | SQL | Returns practice of currently authenticated user from `users` |
+| `get_role_permissions()` | SQL | Returns JSONB of `{view_key: is_visible}` for a given role |
 | `signup_contributor()` | SECURITY DEFINER | Creates `users` row + `copilot_users` row for new signups (role forced to `contributor`) |
 | `get_practice_summary()` | SECURITY INVOKER | Quarter-aware practice summary (approved-only tasks) |
 | `get_employee_leaderboard()` | SECURITY INVOKER | Employee rankings by approved tasks, hours saved, efficiency |
@@ -288,6 +291,7 @@ Returns `jsonb` with `{status, user_id, copilot_id?}`. Copilot logic:
 | **Admin** | Full read/write on all tables |
 | **SPOC** | Read/write own practice, read aggregates |
 | **Contributor** | Insert own tasks, read own data |
+| **Viewer** | Read-only access (new: controlled by `role_view_permissions`) |
 
 ---
 

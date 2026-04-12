@@ -1416,6 +1416,144 @@ const EAS_DB = (() => {
   }
 
   // ===========================================================
+  // User Management (Admin)
+  // ===========================================================
+
+  /**
+   * Fetch all users for admin management.
+   */
+  async function fetchUsers() {
+    const { data, error } = await sb
+      .from('users')
+      .select('id, auth_id, email, name, role, practice, is_active, last_login, created_at')
+      .order('practice', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) {
+      console.error('fetchUsers error:', error.message);
+      return [];
+    }
+    return data || [];
+  }
+
+  /**
+   * Update a user's role.
+   */
+  async function updateUserRole(userId, newRole) {
+    const { data, error } = await sb
+      .from('users')
+      .update({ role: newRole })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) {
+      console.error('updateUserRole error:', error.message);
+      return null;
+    }
+    await logActivity('UPDATE', 'users', userId, { field: 'role', newValue: newRole });
+    return data;
+  }
+
+  /**
+   * Update a user's active status.
+   */
+  async function updateUserStatus(userId, isActive) {
+    const { data, error } = await sb
+      .from('users')
+      .update({ is_active: isActive })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) {
+      console.error('updateUserStatus error:', error.message);
+      return null;
+    }
+    await logActivity('UPDATE', 'users', userId, { field: 'is_active', newValue: isActive });
+    return data;
+  }
+
+  /**
+   * Update a user's profile fields (name, email, practice, role, is_active).
+   */
+  async function updateUser(userId, updates) {
+    const payload = {};
+    if (updates.name !== undefined)      payload.name = updates.name;
+    if (updates.email !== undefined)     payload.email = updates.email;
+    if (updates.practice !== undefined)  payload.practice = updates.practice;
+    if (updates.role !== undefined)      payload.role = updates.role;
+    if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+
+    const { data, error } = await sb
+      .from('users')
+      .update(payload)
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) {
+      console.error('updateUser error:', error.message);
+      return null;
+    }
+    await logActivity('UPDATE', 'users', userId, payload);
+    return data;
+  }
+
+  // ===========================================================
+  // Role-Based View Permissions (Admin)
+  // ===========================================================
+
+  /**
+   * Fetch all role_view_permissions rows for the admin grid.
+   */
+  async function fetchRolePermissions() {
+    const { data, error } = await sb
+      .from('role_view_permissions')
+      .select('*')
+      .order('role', { ascending: true })
+      .order('view_key', { ascending: true });
+    if (error) {
+      console.error('fetchRolePermissions error:', error.message);
+      return [];
+    }
+    return data || [];
+  }
+
+  /**
+   * Update a single permission toggle.
+   */
+  async function updateRolePermission(role, viewKey, isVisible) {
+    const { data, error } = await sb
+      .from('role_view_permissions')
+      .update({ is_visible: isVisible })
+      .eq('role', role)
+      .eq('view_key', viewKey)
+      .select()
+      .single();
+    if (error) {
+      console.error('updateRolePermission error:', error.message);
+      return null;
+    }
+    await logActivity('UPDATE', 'role_view_permissions', data.id, {
+      role, view_key: viewKey, is_visible: isVisible
+    });
+    return data;
+  }
+
+  /**
+   * Reset all permissions to visible (deny-list default).
+   */
+  async function resetRolePermissions() {
+    const { error } = await sb
+      .from('role_view_permissions')
+      .update({ is_visible: true })
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // match all rows
+    if (error) {
+      console.error('resetRolePermissions error:', error.message);
+      return false;
+    }
+    await logActivity('RESET', 'role_view_permissions', null, { action: 'reset_all_to_visible' });
+    return true;
+  }
+
+  // ===========================================================
   // Public API
   // ===========================================================
 
@@ -1488,6 +1626,17 @@ const EAS_DB = (() => {
 
     // Prompt Library (Guide Me)
     fetchPromptLibrary,
-    incrementPromptCopy
+    incrementPromptCopy,
+
+    // User Management (Admin)
+    fetchUsers,
+    updateUserRole,
+    updateUserStatus,
+    updateUser,
+
+    // Role-Based View Permissions (Admin)
+    fetchRolePermissions,
+    updateRolePermission,
+    resetRolePermissions
   };
 })();

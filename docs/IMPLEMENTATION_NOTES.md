@@ -6,6 +6,28 @@
 
 ## Changes Made
 
+### 0h. April 13, 2026 — Role-Based Sidebar View Permissions
+
+**Problem:** All VS Code extension sidebar sections were visible to all roles. Admins had no way to control which sections each role could see, and no UI to manage user roles.
+
+**Solution:** Deny-list permissions table (`role_view_permissions`) controlling 8 sidebar view keys across 4 roles. Admin panel gains "Manage Users" and "View Permissions" pages.
+
+**Design Decisions:**
+- **Deny-list approach:** Default visible (`is_visible = true`). Admins toggle to `false` to hide. Prevents accidental lockouts and reduces initial setup.
+- **Per-role only:** No per-user overrides. Simpler schema and admin UI. Can be extended later with a `user_view_overrides` table.
+- **Permissions embedded in `/context`:** Avoids extra API call. Permissions fetched alongside user profile on every sidebar load.
+- **8 granular view keys:** Covers all meaningful sidebar sections without being too atomic (individual form fields would be overkill).
+- **Seed all 32 rows:** Pre-populating ensures the admin grid is complete; no need for upsert logic on first access.
+
+**Files Changed:**
+- `sql/007_role_view_permissions.sql` — New migration: table, RLS, helper function, seed data
+- `supabase/functions/ide-task-log/index.ts` — Extended `/context` response with `permissions` object
+- `vscode-extension/src/api.ts` — Added `permissions` to `EasContext` type + `isViewPermitted()` helper
+- `vscode-extension/src/sidebar.ts` — Conditional rendering of all sidebar sections based on permissions
+- `vscode-extension/src/quickLog.ts` — Permission check before Quick Log wizard execution
+- `js/db.js` — New CRUD functions: `fetchUsers`, `updateUserRole`, `updateUserStatus`, `updateUser`, `fetchRolePermissions`, `updateRolePermission`, `resetRolePermissions`
+- `src/pages/admin.html` — Two new admin pages (Manage Users + View Permissions), Edit User modal, navigation wiring
+
 ### 0g. April 13, 2026 — Phase 10: IDE Task Logger
 
 **Objective:** Allow developers to log AI adoption tasks directly from VS Code without switching to the web dashboard.

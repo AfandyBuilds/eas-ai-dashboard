@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { getSession, onDidChangeAuth } from './auth';
-import { fetchContext, submitTask, fetchMyTasks, EasContext, MyTask } from './api';
+import { fetchContext, submitTask, fetchMyTasks, EasContext, MyTask, isViewPermitted } from './api';
 import { gatherIdeContext, matchToolToLov, IdeContext } from './contextDetector';
 
 export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
@@ -202,6 +202,30 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _getMainHtml(ctx: EasContext, tasks: MyTask[], ideCtx?: IdeContext | null): string {
+    // ---- Permission helpers (deny-list: default visible) ----
+    const can = (key: string) => isViewPermitted(ctx, key);
+    const showLogTask = can('ext.tab_log_task');
+    const showMyTasks = can('ext.tab_my_tasks');
+    const showContextBanner = can('ext.context_banner');
+    const showAdvancedFields = can('ext.advanced_fields');
+    const showTimeTracking = can('ext.time_tracking');
+    const showQualityRating = can('ext.quality_rating');
+    const showProjectSelect = can('ext.project_select');
+
+    // If no tabs are visible, show a "restricted" message
+    if (!showLogTask && !showMyTasks) {
+      return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><style>${this._getBaseStyles()}</style></head>
+<body>
+  <div class="center-container">
+    <div class="logo">🔒</div>
+    <h2>Access Restricted</h2>
+    <p class="subtitle">Your administrator has restricted sidebar access for the <strong>${this._escapeHtml(ctx.user.role)}</strong> role.</p>
+    <p class="hint">Contact your admin to request access.</p>
+  </div>
+</body></html>`;
+    }
+
     // Auto-detect best matches from IDE context
     const autoTool = ideCtx ? matchToolToLov(ideCtx.detectedAiTools, ctx.aiTools) : null;
     const autoCategory = ideCtx?.suggestedCategory || null;
@@ -227,45 +251,113 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
       ? tasks.map(t => this._renderTaskCard(t)).join('')
       : '<p class="empty-state">No tasks logged yet. Submit your first task above!</p>';
 
-    // Build context detection banner
-    const contextParts: string[] = [];
-    if (autoTool) contextParts.push(`🔧 ${autoTool}`);
-    if (ideCtx?.git.branch) contextParts.push(`🌿 ${ideCtx.git.branch}`);
-    if (ideCtx?.editor.language) contextParts.push(`📄 ${ideCtx.editor.language}`);
-    if (ideCtx?.datetime.weekNumber) contextParts.push(`📅 W${ideCtx.datetime.weekNumber}`);
-    const contextBannerHtml = contextParts.length > 0
-      ? `<div class="context-banner"><span class="context-label">Auto-detected:</span> ${contextParts.map(p => `<span class="context-chip">${p}</span>`).join('')}</div>`
-      : '';
+    // Build context detection banner (only if permitted)
+    let contextBannerHtml = '';
+    if (showContextBanner) {
+      const contextParts: string[] = [];
+      if (autoTool) contextParts.push(`🔧 ${autoTool}`);
+      if (ideCtx?.git.branch) contextParts.push(`🌿 ${ideCtx.git.branch}`);
+      if (ideCtx?.editor.language) contextParts.push(`📄 ${ideCtx.editor.language}`);
+      if (ideCtx?.datetime.weekNumber) contextParts.push(`📅 W${ideCtx.datetime.weekNumber}`);
+      contextBannerHtml = contextParts.length > 0
+        ? `<div class="context-banner"><span class="context-label">Auto-detected:</span> ${contextParts.map(p => `<span class="context-chip">${p}</span>`).join('')}</div>`
+        : '';
+    }
 
     // Auto-fill description suggestion
     const suggestedDesc = ideCtx?.suggestedDescription || '';
 
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>${this._getBaseStyles()}${this._getFormStyles()}</style>
-</head>
-<body>
-  <div class="header">
-    <div class="user-info">
-      <span class="user-name">${this._escapeHtml(ctx.user.name)}</span>
-      <span class="user-practice">${this._escapeHtml(ctx.user.practice)}</span>
-    </div>
-    <span class="quarter-badge">${this._escapeHtml(quarterLabel)}</span>
-  </div>
+    // Determine which tab is active by default
+    const defaultTab = showLogTask ? 'submit' : 'tasks';
 
-  ${contextBannerHtml}
-
-  <!-- Tab Navigation -->
+    // ---- Build tab bar (only show if both tabs are visible) ----
+    let tabBarHtml = '';
+    if (showLogTask && showMyTasks) {
+      tabBarHtml = `
   <div class="tabs">
     <button class="tab active" data-tab="submit" onclick="switchTab('submit')">Log Task</button>
     <button class="tab" data-tab="tasks" onclick="switchTab('tasks')">My Tasks (${tasks.length})</button>
-  </div>
+  </div>`;
+    } else if (showMyTasks) {
+      // Only My Tasks visible — small header instead of tab bar
+      tabBarHtml = `<div class="tabs"><button class="tab active" data-tab="tasks">My Tasks (${tasks.length})</button></div>`;
+    } else {
+      tabBarHtml = `<div class="tabs"><button class="tab active" data-tab="submit">Log Task</button></div>`;
+    }
 
-  <!-- Submit Tab -->
-  <div id="tab-submit" class="tab-content active">
+    // ---- Build time tracking fields ----
+    const timeFieldsHtml = showTimeTracking ? `
+      <div class="form-row">
+        <div class="form-group">
+          <label for="timeWithoutAi">Time Without AI (h) *</label>
+          <input type="number" id="timeWithoutAi" required min="0" step="0.25" placeholder="e.g. 4" />
+        </div>
+        <div class="form-group">
+          <label for="timeWithAi">Time With AI (h) *</label>
+          <input type="number" id="timeWithAi" required min="0" step="0.25" placeholder="e.g. 1.5" />
+        </div>
+      </div>
+      <div class="time-saved-preview" id="timeSavedPreview"></div>` : `
+      <input type="hidden" id="timeWithoutAi" value="0" />
+      <input type="hidden" id="timeWithAi" value="0" />`;
+
+    // ---- Build project + quality row ----
+    let projectQualityHtml = '';
+    if (showProjectSelect && showQualityRating) {
+      projectQualityHtml = `
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project">Project</label>
+          <select id="project"><option value="">None</option>${projectOptions}</select>
+        </div>
+        <div class="form-group">
+          <label for="qualityRating">Quality (1-5)</label>
+          <input type="number" id="qualityRating" min="1" max="5" step="0.5" placeholder="e.g. 4" />
+        </div>
+      </div>`;
+    } else if (showProjectSelect) {
+      projectQualityHtml = `
+      <div class="form-group">
+        <label for="project">Project</label>
+        <select id="project"><option value="">None</option>${projectOptions}</select>
+      </div>
+      <input type="hidden" id="qualityRating" value="" />`;
+    } else if (showQualityRating) {
+      projectQualityHtml = `
+      <div class="form-group">
+        <label for="qualityRating">Quality (1-5)</label>
+        <input type="number" id="qualityRating" min="1" max="5" step="0.5" placeholder="e.g. 4" />
+      </div>
+      <input type="hidden" id="project" value="" />`;
+    } else {
+      projectQualityHtml = `
+      <input type="hidden" id="project" value="" />
+      <input type="hidden" id="qualityRating" value="" />`;
+    }
+
+    // ---- Build advanced fields ----
+    const advancedFieldsHtml = showAdvancedFields ? `
+      <div class="form-group collapsible">
+        <button type="button" class="collapse-toggle" onclick="toggleAdvanced()">
+          ▶ Advanced Fields
+        </button>
+        <div id="advancedFields" class="collapse-content" style="display:none;">
+          <div class="form-group">
+            <label for="promptUsed">Prompt Used</label>
+            <textarea id="promptUsed" rows="2" placeholder="Paste the AI prompt you used..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" rows="2" placeholder="Any additional notes..."></textarea>
+          </div>
+        </div>
+      </div>` : `
+      <input type="hidden" id="promptUsed" value="" />
+      <input type="hidden" id="notes" value="" />`;
+
+    // ---- Build Log Task tab content ----
+    const submitTabHtml = showLogTask ? `
+  <div id="tab-submit" class="tab-content${defaultTab === 'submit' ? ' active' : ''}">
     <form id="taskForm" onsubmit="handleSubmit(event)">
       <div class="form-group">
         <label for="taskDescription">Task Description *</label>
@@ -290,57 +382,19 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="timeWithoutAi">Time Without AI (h) *</label>
-          <input type="number" id="timeWithoutAi" required min="0" step="0.25" placeholder="e.g. 4" />
-        </div>
-        <div class="form-group">
-          <label for="timeWithAi">Time With AI (h) *</label>
-          <input type="number" id="timeWithAi" required min="0" step="0.25" placeholder="e.g. 1.5" />
-        </div>
-      </div>
-
-      <div class="time-saved-preview" id="timeSavedPreview"></div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="project">Project</label>
-          <select id="project">
-            <option value="">None</option>
-            ${projectOptions}
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="qualityRating">Quality (1-5)</label>
-          <input type="number" id="qualityRating" min="1" max="5" step="0.5" placeholder="e.g. 4" />
-        </div>
-      </div>
-
-      <div class="form-group collapsible">
-        <button type="button" class="collapse-toggle" onclick="toggleAdvanced()">
-          ▶ Advanced Fields
-        </button>
-        <div id="advancedFields" class="collapse-content" style="display:none;">
-          <div class="form-group">
-            <label for="promptUsed">Prompt Used</label>
-            <textarea id="promptUsed" rows="2" placeholder="Paste the AI prompt you used..."></textarea>
-          </div>
-          <div class="form-group">
-            <label for="notes">Notes</label>
-            <textarea id="notes" rows="2" placeholder="Any additional notes..."></textarea>
-          </div>
-        </div>
-      </div>
+      ${timeFieldsHtml}
+      ${projectQualityHtml}
+      ${advancedFieldsHtml}
 
       <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
         Submit Task
       </button>
     </form>
-  </div>
+  </div>` : '';
 
-  <!-- Tasks Tab -->
-  <div id="tab-tasks" class="tab-content">
+    // ---- Build My Tasks tab content ----
+    const tasksTabHtml = showMyTasks ? `
+  <div id="tab-tasks" class="tab-content${defaultTab === 'tasks' ? ' active' : ''}">
     <div class="tasks-header">
       <h3>Recent Tasks</h3>
       <button class="btn btn-small" onclick="refreshTasks()">↻ Refresh</button>
@@ -348,7 +402,28 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
     <div class="tasks-list">
       ${tasksHtml}
     </div>
+  </div>` : '';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>${this._getBaseStyles()}${this._getFormStyles()}</style>
+</head>
+<body>
+  <div class="header">
+    <div class="user-info">
+      <span class="user-name">${this._escapeHtml(ctx.user.name)}</span>
+      <span class="user-practice">${this._escapeHtml(ctx.user.practice)}</span>
+    </div>
+    <span class="quarter-badge">${this._escapeHtml(quarterLabel)}</span>
   </div>
+
+  ${contextBannerHtml}
+  ${tabBarHtml}
+  ${submitTabHtml}
+  ${tasksTabHtml}
 
   <script>
     const vscode = acquireVsCodeApi();
@@ -357,8 +432,10 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
     function switchTab(tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
-      document.getElementById('tab-' + tab).classList.add('active');
+      const tabBtn = document.querySelector('[data-tab="' + tab + '"]');
+      if (tabBtn) tabBtn.classList.add('active');
+      const tabEl = document.getElementById('tab-' + tab);
+      if (tabEl) tabEl.classList.add('active');
     }
 
     // Time saved preview
@@ -367,6 +444,7 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
     const previewEl = document.getElementById('timeSavedPreview');
 
     function updateTimeSaved() {
+      if (!previewEl || !timeWithoutEl || !timeWithEl) return;
       const without = parseFloat(timeWithoutEl.value) || 0;
       const withAi = parseFloat(timeWithEl.value) || 0;
       if (without > 0 && withAi >= 0) {
@@ -379,8 +457,12 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
         previewEl.style.display = 'none';
       }
     }
-    timeWithoutEl.addEventListener('input', updateTimeSaved);
-    timeWithEl.addEventListener('input', updateTimeSaved);
+    if (timeWithoutEl && timeWithoutEl.type !== 'hidden') {
+      timeWithoutEl.addEventListener('input', updateTimeSaved);
+    }
+    if (timeWithEl && timeWithEl.type !== 'hidden') {
+      timeWithEl.addEventListener('input', updateTimeSaved);
+    }
 
     // Form submission
     function handleSubmit(e) {
@@ -390,7 +472,7 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
       btn.textContent = 'Submitting...';
 
       const projectEl = document.getElementById('project');
-      const selectedOption = projectEl.options[projectEl.selectedIndex];
+      const selectedOption = projectEl && projectEl.tagName === 'SELECT' ? projectEl.options[projectEl.selectedIndex] : null;
 
       vscode.postMessage({
         command: 'submitTask',
@@ -401,14 +483,13 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
           timeWithoutAi: document.getElementById('timeWithoutAi').value,
           timeWithAi: document.getElementById('timeWithAi').value,
           qualityRating: document.getElementById('qualityRating').value || undefined,
-          project: projectEl.value || undefined,
+          project: projectEl ? projectEl.value : undefined,
           projectCode: selectedOption ? selectedOption.dataset.code : undefined,
           promptUsed: document.getElementById('promptUsed').value || undefined,
           notes: document.getElementById('notes').value || undefined,
         }
       });
 
-      // Re-enable after a delay (actual result comes via webview refresh)
       setTimeout(() => {
         btn.disabled = false;
         btn.textContent = 'Submit Task';
@@ -418,6 +499,7 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
     // Advanced fields toggle
     function toggleAdvanced() {
       const el = document.getElementById('advancedFields');
+      if (!el) return;
       const toggle = el.previousElementSibling;
       if (el.style.display === 'none') {
         el.style.display = 'block';

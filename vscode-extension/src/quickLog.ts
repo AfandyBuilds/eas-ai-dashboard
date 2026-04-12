@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import { getSession } from './auth';
-import { fetchContext, submitTask, EasContext } from './api';
+import { fetchContext, submitTask, EasContext, isViewPermitted } from './api';
 import { gatherIdeContext, matchToolToLov, IdeContext } from './contextDetector';
 
 /**
@@ -35,6 +35,12 @@ export async function quickLogTask(): Promise<void> {
     ]);
   } catch (err) {
     vscode.window.showErrorMessage(`EAS: Failed to load context — ${(err as Error).message}`);
+    return;
+  }
+
+  // Check Quick Log permission (deny-list: default visible)
+  if (!isViewPermitted(ctx, 'ext.quick_log')) {
+    vscode.window.showWarningMessage('EAS: Quick Log is disabled by your administrator.');
     return;
   }
 

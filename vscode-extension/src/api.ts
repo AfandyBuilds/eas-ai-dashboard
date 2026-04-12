@@ -37,6 +37,17 @@ export interface EasContext {
     code: string;
     customer: string;
   }>;
+  /** Role-based view permissions: { "ext.tab_log_task": true, ... } */
+  permissions: Record<string, boolean>;
+}
+
+/**
+ * Check if a view is permitted for the current user.
+ * Defaults to VISIBLE (deny-list approach) if the key is missing.
+ */
+export function isViewPermitted(ctx: EasContext | null, viewKey: string): boolean {
+  if (!ctx || !ctx.permissions) return true;
+  return ctx.permissions[viewKey] !== false;
 }
 
 export interface TaskSubmission {

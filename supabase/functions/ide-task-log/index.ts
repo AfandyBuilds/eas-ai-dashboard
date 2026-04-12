@@ -137,6 +137,19 @@ async function handleGetContext(
     .eq("practice", profile.practice as string)
     .order("project_name");
 
+  // Fetch role-based view permissions for this user's role
+  const { data: permRows } = await userClient
+    .from("role_view_permissions")
+    .select("view_key, is_visible")
+    .eq("role", profile.role as string);
+
+  const permissions: Record<string, boolean> = {};
+  if (permRows) {
+    for (const row of permRows as Array<{ view_key: string; is_visible: boolean }>) {
+      permissions[row.view_key] = row.is_visible;
+    }
+  }
+
   return jsonResponse({
     user: {
       id: profile.id,
@@ -161,6 +174,7 @@ async function handleGetContext(
       code: p.project_code,
       customer: p.customer,
     })) || [],
+    permissions,
   });
 }
 
