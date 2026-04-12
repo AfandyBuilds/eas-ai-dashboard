@@ -200,6 +200,7 @@ const EAS_DB = (() => {
       task:        t.task_description,
       category:    t.category,
       aiTool:      t.ai_tool,
+      isLicensedTool: isLicensedTool(t.ai_tool),
       prompt:      t.prompt_used,
       timeWithout: Number(t.time_without_ai) || 0,
       timeWith:    Number(t.time_with_ai) || 0,
@@ -285,7 +286,11 @@ const EAS_DB = (() => {
       hasLoggedTask: u.has_logged_task,
       lastTaskDate:  u.last_task_date,
       remarks:       u.remarks,
-      copilotAccessDate: u.copilot_access_date
+      copilotAccessDate: u.copilot_access_date,
+      githubCopilotStatus: u.github_copilot_status || 'inactive',
+      m365CopilotStatus:   u.m365_copilot_status || 'inactive',
+      githubCopilotActivatedAt: u.github_copilot_activated_at,
+      m365CopilotActivatedAt:   u.m365_copilot_activated_at
     }));
   }
 
@@ -366,9 +371,23 @@ const EAS_DB = (() => {
     }));
   }
 
+  // Licensed tools — Ejada-paid, primary adoption targets
+  const LICENSED_TOOLS = ['Github Copilot', 'M365 Copilot'];
+
+  /**
+   * Check if an AI tool name is a licensed (Ejada-paid) tool.
+   * @param {string} toolName
+   * @returns {boolean}
+   */
+  function isLicensedTool(toolName) {
+    if (!toolName) return false;
+    const lower = toolName.toLowerCase();
+    return lower.includes('github copilot') || lower.includes('m365 copilot');
+  }
+
   /**
    * Fetch LOV values (lists of values for dropdowns).
-   * Returns object: { taskCategories: [], aiTools: [] }
+   * Returns object: { taskCategories: [], aiTools: [], licensedTools: [], otherTools: [] }
    */
   async function fetchLovs() {
     const { data, error } = await sb
@@ -377,14 +396,49 @@ const EAS_DB = (() => {
       .order('sort_order', { ascending: true });
     if (error) {
       console.error('fetchLovs error:', error.message);
-      return { taskCategories: [], aiTools: [] };
+      return { taskCategories: [], aiTools: [], licensedTools: [], otherTools: [] };
     }
-    const lovs = { taskCategories: [], aiTools: [] };
+    const lovs = { taskCategories: [], aiTools: [], licensedTools: [], otherTools: [] };
     (data || []).forEach(row => {
       if (row.category === 'taskCategory') lovs.taskCategories.push(row.value);
-      else if (row.category === 'aiTool') lovs.aiTools.push(row.value);
+      else if (row.category === 'aiTool') {
+        lovs.aiTools.push(row.value);
+        if (row.is_licensed || isLicensedTool(row.value)) {
+          lovs.licensedTools.push(row.value);
+        } else {
+          lovs.otherTools.push(row.value);
+        }
+      }
     });
     return lovs;
+  }
+
+  /**
+   * Fetch licensed tool adoption summary per practice (quarter-aware via RPC).
+   * Returns per-practice breakdown of GitHub Copilot vs M365 Copilot vs other tool usage.
+   */
+  async function fetchLicensedToolAdoption(quarterId) {
+    const qid = (!quarterId || quarterId === 'all') ? null : quarterId;
+    const { data, error } = await sb.rpc('get_licensed_tool_adoption', { p_quarter_id: qid });
+    if (error) {
+      console.error('fetchLicensedToolAdoption error:', error.message);
+      return [];
+    }
+    return (data || []).map(r => ({
+      practice:             r.practice,
+      licensedUsers:        Number(r.licensed_users) || 0,
+      ghCopilotActive:      Number(r.gh_copilot_active) || 0,
+      m365CopilotActive:    Number(r.m365_copilot_active) || 0,
+      licensedToolTasks:    Number(r.licensed_tool_tasks) || 0,
+      otherToolTasks:       Number(r.other_tool_tasks) || 0,
+      licensedHoursSaved:   Number(r.licensed_hours_saved) || 0,
+      otherHoursSaved:      Number(r.other_hours_saved) || 0,
+      ghCopilotTasks:       Number(r.gh_copilot_tasks) || 0,
+      m365CopilotTasks:     Number(r.m365_copilot_tasks) || 0,
+      ghCopilotHours:       Number(r.gh_copilot_hours) || 0,
+      m365CopilotHours:     Number(r.m365_copilot_hours) || 0,
+      adoptionRateLicensed: Number(r.adoption_rate_licensed) || 0
+    }));
   }
 
   /**
@@ -416,14 +470,15 @@ const EAS_DB = (() => {
     // Parallel fetch for speed
     // Tasks and accomplishments include ALL statuses (UI shows approval badges)
     // But practice summary RPC already filters to approved-only server-side
-    const [practices, tasks, accomplishments, copilotUsers, projects, lovs, approvedUseCases] = await Promise.all([
+    const [practices, tasks, accomplishments, copilotUsers, projects, lovs, approvedUseCases, licensedToolAdoption] = await Promise.all([
       fetchPracticeSummary(quarterId),
       fetchTasks(quarterId),
       fetchAccomplishments(quarterId),
       fetchCopilotUsers(),
       fetchProjects(),
       fetchLovs(),
-      fetchApprovedUseCases()
+      fetchApprovedUseCases(),
+      fetchLicensedToolAdoption(quarterId)
     ]);
 
     // Compute totals from practice summaries
@@ -446,6 +501,19 @@ const EAS_DB = (() => {
     const qualitySum = practices.reduce((s, p) => s + (p.quality * p.tasks), 0);
     totals.quality = totals.tasks > 0 ? qualitySum / totals.tasks : 0;
 
+    // Compute licensed tool totals
+    const licensedTotals = (licensedToolAdoption || []).reduce((acc, r) => {
+      acc.licensedToolTasks  += r.licensedToolTasks;
+      acc.otherToolTasks     += r.otherToolTasks;
+      acc.licensedHoursSaved += r.licensedHoursSaved;
+      acc.otherHoursSaved    += r.otherHoursSaved;
+      acc.ghCopilotTasks     += r.ghCopilotTasks;
+      acc.m365CopilotTasks   += r.m365CopilotTasks;
+      acc.ghCopilotHours     += r.ghCopilotHours;
+      acc.m365CopilotHours   += r.m365CopilotHours;
+      return acc;
+    }, { licensedToolTasks: 0, otherToolTasks: 0, licensedHoursSaved: 0, otherHoursSaved: 0, ghCopilotTasks: 0, m365CopilotTasks: 0, ghCopilotHours: 0, m365CopilotHours: 0 });
+
     return {
       summary: { practices, totals },
       tasks,
@@ -453,7 +521,9 @@ const EAS_DB = (() => {
       copilotUsers,
       projects,
       lovs,
-      approvedUseCases
+      approvedUseCases,
+      licensedToolAdoption,
+      licensedTotals
     };
   }
 
@@ -1334,7 +1404,12 @@ const EAS_DB = (() => {
     fetchProjects,
     fetchLovs,
     fetchApprovedUseCases,
+    fetchLicensedToolAdoption,
     fetchAllData,
+
+    // Licensed tool helpers
+    isLicensedTool,
+    LICENSED_TOOLS,
 
     // Leaderboard & gamification (Phase 5)
     fetchEmployeeLeaderboard,

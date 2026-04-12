@@ -145,6 +145,7 @@ CREATE TABLE lovs (
   value TEXT NOT NULL,
   sort_order INT DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
+  is_licensed BOOLEAN DEFAULT false, -- true for Ejada-paid tools (GH Copilot, M365 Copilot)
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(category, value)
 );
@@ -319,25 +320,25 @@ INSERT INTO quarters (id, label, start_date, end_date, is_active, targets) VALUE
   ('Q4-2026', 'Q4 2026', '2026-10-01', '2026-12-31', false, '{"tasks": 200, "hours_saved": 1000, "adoption_rate": 0.50}'::jsonb);
 
 -- LOVs
-INSERT INTO lovs (category, value, sort_order) VALUES
-  ('taskCategory', 'Development', 1),
-  ('taskCategory', 'Database', 2),
-  ('taskCategory', 'Documentation', 3),
-  ('taskCategory', 'Testing', 4),
-  ('taskCategory', 'Code Review', 5),
-  ('taskCategory', 'Application Development', 6),
-  ('taskCategory', 'Application configuration', 7),
-  ('aiTool', 'Github Copilot', 1),
-  ('aiTool', 'Cursor', 2),
-  ('aiTool', 'Codex', 3),
-  ('aiTool', 'Claude', 4),
-  ('aiTool', 'ChatGPT', 5),
-  ('aiTool', 'Gemini', 6),
-  ('aiTool', 'M365 Copilot', 7),
-  ('status', 'Completed', 1),
-  ('status', 'In Progress', 2),
-  ('status', 'Pending', 3),
-  ('status', 'Testing', 4);
+INSERT INTO lovs (category, value, sort_order, is_licensed) VALUES
+  ('taskCategory', 'Development', 1, false),
+  ('taskCategory', 'Database', 2, false),
+  ('taskCategory', 'Documentation', 3, false),
+  ('taskCategory', 'Testing', 4, false),
+  ('taskCategory', 'Code Review', 5, false),
+  ('taskCategory', 'Application Development', 6, false),
+  ('taskCategory', 'Application configuration', 7, false),
+  ('aiTool', 'Github Copilot', 1, true),
+  ('aiTool', 'Cursor', 2, false),
+  ('aiTool', 'Codex', 3, false),
+  ('aiTool', 'Claude', 4, false),
+  ('aiTool', 'ChatGPT', 5, false),
+  ('aiTool', 'Gemini', 6, false),
+  ('aiTool', 'M365 Copilot', 7, true),
+  ('status', 'Completed', 1, false),
+  ('status', 'In Progress', 2, false),
+  ('status', 'Pending', 3, false),
+  ('status', 'Testing', 4, false);
 
 -- Admin user (will be linked to auth after signup)
 INSERT INTO users (email, name, role, practice) VALUES

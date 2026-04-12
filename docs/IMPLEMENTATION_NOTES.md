@@ -6,6 +6,33 @@
 
 ## Changes Made
 
+### 0e. April 12, 2026 — Phase 9: Licensed Tool Tracking
+
+- **Business context:** Ejada pays for GitHub Copilot and M365 Copilot (Basic) as primary adoption tools. Other tools (Claude, ChatGPT, Gemini, Cursor, Codex) are allowed but not adoption targets.
+- **SQL migration:** `sql/004_licensed_tool_tracking.sql`
+  - `lovs.is_licensed` boolean column to flag licensed tool LOVs
+  - `copilot_users.github_copilot_status` and `m365_copilot_status` with activation timestamps
+  - `tasks.is_licensed_tool` generated column using `LOWER(ai_tool) LIKE '%github copilot%' OR LOWER(ai_tool) LIKE '%m365 copilot%'`
+  - `get_licensed_tool_adoption(p_quarter_id)` RPC returning per-practice breakdown
+  - Updated `practice_summary` view with `licensed_tool_tasks`, `other_tool_tasks`, `licensed_hours_saved`
+- **db.js changes:**
+  - `LICENSED_TOOLS` constant and `isLicensedTool()` helper for consistent client-side checks
+  - `fetchLovs()` returns `licensedTools[]` and `otherTools[]` arrays
+  - `fetchLicensedToolAdoption(quarterId)` calls the new RPC
+  - `fetchAllData()` returns `licensedToolAdoption` and `licensedTotals` objects
+- **Dashboard KPIs:** New "Licensed Tool Adoption" section with 5 cards: GH Copilot, M365 Copilot, Licensed Share %, Licensed Hours Saved, Other Tools
+- **Charts:** Licensed vs Other split donut, Licensed Tool Adoption by Practice stacked bar, AI Tools donut with licensed tool color distinction (blue/purple)
+- **Form dropdowns:** `<optgroup>` tags separate "Licensed (Ejada-Paid)" from "Other Tools" in task/accomplishment forms and task filter
+- **Tasks table:** "🏢 Licensed" badge on AI Tool column for licensed tools
+- **Use Case Library:** Licensed tool badges, "Licensed Tools Only" filter, Licensed Tool UCs KPI
+- **SPOC Panel:** Practice-level "Licensed Tools %" KPI
+- **Licensed AI Users page:** Renamed from "Copilot Access", per-tool status columns with Active/Inactive badges
+- **Trade-offs:**
+  - Used case-insensitive LIKE matching rather than exact string match to handle "Github Copilot" vs "GitHub Copilot" variants
+  - `is_licensed_tool` is a generated column (not writable) — always derived from `ai_tool` text
+  - Form `<optgroup>` cannot be styled with CSS in many browsers — used emoji prefix as fallback visual distinction
+  - LOV `is_licensed` column needs the migration run to populate; until then, `isLicensedTool()` helper provides client-side fallback
+
 ### 0c. April 12, 2026 — AI Innovation Approved Use Cases
 
 - **New table:** `use_cases` in Supabase — stores AI Innovation approved reference use cases with full metadata (asset_id, name, description, practice, SDLC phase, category, subcategory, AI tools, effort estimates, validation details, implementation guidelines, etc.).

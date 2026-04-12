@@ -97,7 +97,7 @@
   </div>
   <div class="nav-item" data-page="copilot" data-role="admin,spoc,viewer">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    Copilot Access
+    Licensed AI Users
     <span class="badge" id="nav-copilot-count">152</span>
   </div>
   <div class="nav-item" data-page="projects" data-role="admin,spoc,viewer">
@@ -168,7 +168,29 @@
     </div>
     <div class="page-content">
       <div class="kpi-grid" id="kpi-grid"></div>
-      <div class="chart-grid">
+
+      <!-- Licensed Tool Adoption Section -->
+      <div class="licensed-adoption-section" style="margin-top:20px;padding:20px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 style="font-size:16px;margin:0;display:flex;align-items:center;gap:8px">
+            <span style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700">🏢 Licensed Tool Adoption</span>
+            <span style="font-size:11px;color:var(--text-muted);font-weight:400">(Ejada-paid: GitHub Copilot & M365 Copilot)</span>
+          </h3>
+        </div>
+        <div class="kpi-grid" id="licensed-kpi-grid"></div>
+        <div class="chart-grid" style="margin-top:16px">
+          <div class="chart-card">
+            <h3>Licensed vs Other Tools</h3>
+            <div class="chart-container"><canvas id="chart-licensed-split"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Licensed Tool Adoption by Practice</h3>
+            <div class="chart-container"><canvas id="chart-licensed-practice"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-grid" style="margin-top:20px">
         <div class="chart-card">
           <h3>Tasks by Practice</h3>
           <div class="chart-container"><canvas id="chart-tasks-practice"></canvas></div>
@@ -182,7 +204,7 @@
           <div class="chart-container"><canvas id="chart-efficiency"></canvas></div>
         </div>
         <div class="chart-card">
-          <h3>AI Tools Usage</h3>
+          <h3>AI Tools Usage <span style="font-size:11px;color:var(--text-muted);font-weight:400">(all tools)</span></h3>
           <div class="chart-container"><canvas id="chart-tools"></canvas></div>
         </div>
         <div class="chart-card">
@@ -328,8 +350,8 @@
   <div id="page-copilot" class="page hidden">
     <div class="page-header">
       <div>
-        <h2>GitHub Copilot Access</h2>
-        <div class="subtitle">User access management across practices</div>
+        <h2>Licensed AI Tool Access</h2>
+        <div class="subtitle">GitHub Copilot & M365 Copilot user access management across practices</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-secondary" onclick="openExportModal('copilot')" aria-label="Export copilot users">
@@ -354,7 +376,7 @@
         </div>
         <div style="overflow-x:auto">
           <table aria-label="Copilot users">
-            <thead><tr><th>Practice</th><th>Name</th><th>Email</th><th>Role/Skill</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Practice</th><th>Name</th><th>Email</th><th>Role/Skill</th><th>GH Copilot</th><th>M365 Copilot</th><th>Has Logged</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="copilot-tbody"></tbody>
           </table>
         </div>
@@ -576,6 +598,7 @@
           <option value="">All Types</option>
           <option value="approved">AI Innovation Approved</option>
           <option value="community">Community Use Cases</option>
+          <option value="licensed">🏢 Licensed Tools Only</option>
         </select>
         <select class="filter-select" id="uc-filter-practice" aria-label="Filter by practice" onchange="renderUseCases()">
           <option value="">All Practices</option>
@@ -1466,7 +1489,60 @@ function renderDashboard() {
     <div class="kpi-card"><div class="kpi-label">Active Projects</div><div class="kpi-value cyan">${t.projects}</div><div class="kpi-sub">across 6 practices</div></div>
     <div class="kpi-card"><div class="kpi-label">Copilot Users</div><div class="kpi-value pink">${data.copilotUsers.length}</div><div class="kpi-sub">access granted</div></div>
   `;
+
+  // Licensed Tool Adoption KPIs
+  renderLicensedToolKPIs();
+
   renderCharts();
+}
+
+/**
+ * Render KPIs and charts for Licensed Tool Adoption section.
+ * Licensed tools: GitHub Copilot & M365 Copilot (Ejada-paid).
+ * Other tools: Claude, ChatGPT, Gemini, Cursor, etc. (user-choice, informational only).
+ */
+function renderLicensedToolKPIs() {
+  const lt = data.licensedTotals || {};
+  const approvedTasks = (data.tasks || []).filter(t => t.approvalStatus === 'approved');
+  const licensedTasks = approvedTasks.filter(t => t.isLicensedTool);
+  const otherTasks = approvedTasks.filter(t => !t.isLicensedTool);
+  const ghTasks = approvedTasks.filter(t => (t.aiTool || '').toLowerCase().includes('github copilot'));
+  const m365Tasks = approvedTasks.filter(t => (t.aiTool || '').toLowerCase().includes('m365 copilot'));
+
+  const ghHours = ghTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+  const m365Hours = m365Tasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+  const licensedHours = licensedTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+  const otherHours = otherTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
+  const totalTasks = approvedTasks.length;
+  const licensedPct = totalTasks > 0 ? (licensedTasks.length / totalTasks * 100).toFixed(1) : '0.0';
+
+  document.getElementById('licensed-kpi-grid').innerHTML = `
+    <div class="kpi-card" style="border-left:3px solid #3b82f6">
+      <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span style="font-size:14px">\ud83d\udc99</span> GitHub Copilot</div>
+      <div class="kpi-value blue">${ghTasks.length}</div>
+      <div class="kpi-sub">${fmt(ghHours, 1)} hrs saved</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #8b5cf6">
+      <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span style="font-size:14px">\ud83d\udc9c</span> M365 Copilot</div>
+      <div class="kpi-value purple">${m365Tasks.length}</div>
+      <div class="kpi-sub">${fmt(m365Hours, 1)} hrs saved</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #10b981">
+      <div class="kpi-label">Licensed Tool Share</div>
+      <div class="kpi-value green">${licensedPct}%</div>
+      <div class="kpi-sub">${licensedTasks.length} of ${totalTasks} tasks</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #f59e0b">
+      <div class="kpi-label">Licensed Hours Saved</div>
+      <div class="kpi-value" style="color:var(--success)">${fmt(licensedHours, 0)}</div>
+      <div class="kpi-sub">vs ${fmt(otherHours, 0)} hrs (other tools)</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #94a3b8">
+      <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;\u2009color:var(--text-muted)">ℹ️</span> Other Tools</div>
+      <div class="kpi-value" style="color:var(--text-muted)">${otherTasks.length}</div>
+      <div class="kpi-sub" style="font-size:10px">user choice — not adoption goal</div>
+    </div>
+  `;
 }
 
 function renderCharts() {
@@ -1500,18 +1576,77 @@ function renderCharts() {
   const toolCounts = {};
   approvedTasks.forEach(t => { if (t.aiTool) toolCounts[t.aiTool] = (toolCounts[t.aiTool] || 0) + 1; });
   const toolLabels = Object.keys(toolCounts);
-  const toolColors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316'];
-  charts.tools = new Chart(document.getElementById('chart-tools'), {
-    type: 'doughnut', data: { labels: toolLabels, datasets: [{ data: Object.values(toolCounts), backgroundColor: toolColors.slice(0, toolLabels.length), borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right', labels: { color: _tc, font: { size: 11 }, padding: 12 } } } }
+  // Color licensed tools distinctly: blue for GH Copilot, purple for M365 Copilot, muted for others
+  const toolChartColors = toolLabels.map(label => {
+    if (EAS_DB.isLicensedTool(label)) {
+      return label.toLowerCase().includes('github') ? '#3b82f6' : '#8b5cf6';
+    }
+    return '#94a3b8'; // muted gray for non-licensed tools
   });
+  charts.tools = new Chart(document.getElementById('chart-tools'), {
+    type: 'doughnut', data: { labels: toolLabels, datasets: [{ data: Object.values(toolCounts), backgroundColor: toolChartColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right', labels: { color: _tc, font: { size: 11 }, padding: 12, generateLabels: function(chart) {
+      const data = chart.data;
+      return data.labels.map((label, i) => {
+        const isLic = EAS_DB.isLicensedTool(label);
+        return {
+          text: isLic ? '🏢 ' + label : label,
+          fillStyle: data.datasets[0].backgroundColor[i],
+          hidden: false,
+          index: i,
+          fontColor: isLic ? (_tc) : '#6b7280'
+        };
+      });
+    } } } } }
+  });
+
+  // Licensed vs Other Tools split — donut
+  const licensedTaskCount = approvedTasks.filter(t => t.isLicensedTool).length;
+  const otherTaskCount = approvedTasks.filter(t => !t.isLicensedTool).length;
+  if (licensedTaskCount > 0 || otherTaskCount > 0) {
+    charts.licensedSplit = new Chart(document.getElementById('chart-licensed-split'), {
+      type: 'doughnut',
+      data: {
+        labels: ['🏢 GitHub Copilot', '🏢 M365 Copilot', 'Other Tools (user choice)'],
+        datasets: [{
+          data: [
+            approvedTasks.filter(t => (t.aiTool || '').toLowerCase().includes('github copilot')).length,
+            approvedTasks.filter(t => (t.aiTool || '').toLowerCase().includes('m365 copilot')).length,
+            otherTaskCount
+          ],
+          backgroundColor: ['#3b82f6', '#8b5cf6', '#94a3b8'],
+          borderWidth: 0
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: _tc, font: { size: 11 }, padding: 12 } } } }
+    });
+  }
+
+  // Licensed Tool Adoption by Practice — stacked bar
+  const lta = data.licensedToolAdoption || [];
+  if (lta.length > 0) {
+    const ltaLabels = lta.map(r => r.practice.replace('Solutions','').replace('Financial Services','BFSI').replace('Customer Engagement','CES').replace('Enterprise Portfolio & Content','EPCS').replace('Payments','EPS').trim());
+    charts.licensedPractice = new Chart(document.getElementById('chart-licensed-practice'), {
+      type: 'bar',
+      data: {
+        labels: ltaLabels,
+        datasets: [
+          { label: 'GitHub Copilot', data: lta.map(r => r.ghCopilotTasks), backgroundColor: '#3b82f6', borderRadius: 4, borderSkipped: false },
+          { label: 'M365 Copilot', data: lta.map(r => r.m365CopilotTasks), backgroundColor: '#8b5cf6', borderRadius: 4, borderSkipped: false },
+          { label: 'Other Tools', data: lta.map(r => r.otherToolTasks), backgroundColor: '#94a3b8', borderRadius: 4, borderSkipped: false }
+        ]
+      },
+      options: { ...chartOpts, indexAxis: 'x', plugins: { legend: { display: true, labels: { color: _tc, font: { size: 11 } } } }, scales: { ...chartOpts.scales, x: { ...chartOpts.scales.x, stacked: true }, y: { ...chartOpts.scales.y, stacked: true } } }
+    });
+  }
 
   // Categories donut — only count approved tasks
   const catCounts = {};
   approvedTasks.forEach(t => { if (t.category) catCounts[t.category] = (catCounts[t.category] || 0) + 1; });
   const catLabels = Object.keys(catCounts);
+  const catColors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316'];
   charts.categories = new Chart(document.getElementById('chart-categories'), {
-    type: 'doughnut', data: { labels: catLabels, datasets: [{ data: Object.values(catCounts), backgroundColor: toolColors.slice(0, catLabels.length), borderWidth: 0 }] },
+    type: 'doughnut', data: { labels: catLabels, datasets: [{ data: Object.values(catCounts), backgroundColor: catColors.slice(0, catLabels.length), borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right', labels: { color: _tc, font: { size: 11 }, padding: 12 } } } }
   });
 
@@ -1746,7 +1881,7 @@ function renderTasks() {
       <td>${t.employee}</td>
       <td>${t.task}</td>
       <td>${t.category}</td>
-      <td>${t.aiTool}</td>
+      <td>${t.aiTool}${EAS_DB.isLicensedTool(t.aiTool) ? ' <span style="background:#3b82f6;color:#fff;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600">🏢 Licensed</span>' : ''}</td>
       <td>${fmt(t.timeWithout)}</td>
       <td>${fmt(t.timeWith)}</td>
       <td style="color:var(--success);font-weight:600">${fmt(t.timeSaved)}</td>
@@ -1847,27 +1982,46 @@ function renderCopilot() {
     return true;
   });
 
-  // KPIs
-  const byPractice = {};
-  data.copilotUsers.forEach(u => { byPractice[u.practice] = (byPractice[u.practice] || 0) + 1; });
-  document.getElementById('copilot-kpis').innerHTML = Object.entries(byPractice).map(([p, c]) =>
-    `<div class="kpi-card"><div class="kpi-label">${p}</div><div class="kpi-value" style="color:${practiceColors[p] || '#94a3b8'}">${c}</div><div class="kpi-sub">users</div></div>`
-  ).join('');
+  // KPIs — show licensed tool adoption breakdown
+  const totalUsers = data.copilotUsers.length;
+  const hasLoggedCount = data.copilotUsers.filter(u => u.hasLoggedTask).length;
+  const ghActive = data.copilotUsers.filter(u => u.githubCopilotStatus === 'active').length;
+  const m365Active = data.copilotUsers.filter(u => u.m365CopilotStatus === 'active').length;
+  const adoptionPct = totalUsers > 0 ? ((hasLoggedCount / totalUsers) * 100).toFixed(1) : '0.0';
+  document.getElementById('copilot-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Licensed Users</div><div class="kpi-value blue">${totalUsers}</div><div class="kpi-sub">across all practices</div></div>
+    <div class="kpi-card"><div class="kpi-label">Has Logged Task</div><div class="kpi-value green">${hasLoggedCount}</div><div class="kpi-sub">${adoptionPct}% adoption</div></div>
+    <div class="kpi-card" style="border-left:3px solid #3b82f6"><div class="kpi-label">💙 GH Copilot Active</div><div class="kpi-value" style="color:#3b82f6">${ghActive}</div><div class="kpi-sub">of ${totalUsers} users</div></div>
+    <div class="kpi-card" style="border-left:3px solid #8b5cf6"><div class="kpi-label">💜 M365 Copilot Active</div><div class="kpi-value purple">${m365Active}</div><div class="kpi-sub">of ${totalUsers} users</div></div>
+  `;
 
   document.getElementById('copilot-count-label').textContent = `Showing ${filtered.length} of ${data.copilotUsers.length} users`;
-  document.getElementById('copilot-tbody').innerHTML = filtered.map(u => `
+  document.getElementById('copilot-tbody').innerHTML = filtered.map(u => {
+    const ghBadge = u.githubCopilotStatus === 'active'
+      ? '<span class="status-badge" style="background:rgba(59,130,246,0.15);color:#3b82f6;font-size:11px">Active</span>'
+      : '<span class="status-badge" style="background:rgba(148,163,184,0.15);color:#94a3b8;font-size:11px">Inactive</span>';
+    const m365Badge = u.m365CopilotStatus === 'active'
+      ? '<span class="status-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6;font-size:11px">Active</span>'
+      : '<span class="status-badge" style="background:rgba(148,163,184,0.15);color:#94a3b8;font-size:11px">Inactive</span>';
+    const loggedBadge = u.hasLoggedTask
+      ? '<span style="color:var(--success);font-weight:600">✓ Yes</span>'
+      : '<span style="color:var(--text-muted)">✗ No</span>';
+    return `
     <tr>
       <td><span style="color:${practiceColors[u.practice] || '#94a3b8'};font-weight:600">${u.practice}</span></td>
       <td>${u.name}</td>
       <td style="color:var(--text-muted)">${u.email}</td>
       <td>${u.skill}</td>
+      <td>${ghBadge}</td>
+      <td>${m365Badge}</td>
+      <td>${loggedBadge}</td>
       <td>${statusBadge(u.remarks === 'access granted' ? 'Completed' : u.remarks)}</td>
       <td class="row-actions">
         ${EAS_Auth.getUserRole() !== 'viewer' ? `<button class="btn-icon btn-edit" onclick="editCopilotUser('${u.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="btn-icon btn-delete" onclick="deleteCopilotUserConfirm('${u.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ======== PROJECTS ========
@@ -2165,11 +2319,18 @@ async function renderMyPractice() {
   const totalTasks = teamData.reduce((s, e) => s + e.tasks, 0);
   const totalSaved = teamData.reduce((s, e) => s + e.timeSaved, 0);
   const avgEff = teamData.length > 0 ? teamData.reduce((s, e) => s + e.efficiency, 0) / teamData.length : 0;
+
+  // Licensed tool stats for this practice
+  const practiceTasks = (data.tasks || []).filter(t => t.practice === practice && t.approvalStatus === 'approved');
+  const licensedCount = practiceTasks.filter(t => t.isLicensedTool).length;
+  const licensedPct = practiceTasks.length > 0 ? (licensedCount / practiceTasks.length * 100).toFixed(0) : '0';
+
   document.getElementById('mypractice-kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-label">Team Members</div><div class="kpi-value blue">${teamData.length}</div><div class="kpi-sub">active contributors</div></div>
     <div class="kpi-card"><div class="kpi-label">Total Tasks</div><div class="kpi-value green">${totalTasks}</div><div class="kpi-sub">${practice}</div></div>
     <div class="kpi-card"><div class="kpi-label">Hours Saved</div><div class="kpi-value yellow">${fmt(totalSaved, 0)}</div><div class="kpi-sub">by the team</div></div>
     <div class="kpi-card"><div class="kpi-label">Avg Efficiency</div><div class="kpi-value purple">${fmt(avgEff, 0)}%</div><div class="kpi-sub">time reduction</div></div>
+    <div class="kpi-card"><div class="kpi-label">🏢 Licensed Tools</div><div class="kpi-value" style="color:#3b82f6">${licensedPct}%</div><div class="kpi-sub">${licensedCount} of ${practiceTasks.length} tasks</div></div>
     <div class="kpi-card"><div class="kpi-label">Inactive</div><div class="kpi-value" style="color:var(--warning)">${inactive.length}</div><div class="kpi-sub">need attention</div></div>
   `;
 
@@ -2448,6 +2609,7 @@ function renderUseCases() {
     // Type filter
     if (fType === 'approved' && !uc.isApproved) return false;
     if (fType === 'community' && uc.isApproved) return false;
+    if (fType === 'licensed' && !EAS_DB.isLicensedTool(uc.aiTool)) return false;
     const ucPractices = uc.practices || [uc.practice];
     if (fPractice && !ucPractices.includes(fPractice)) return false;
     if (fCategory && uc.category !== fCategory) return false;
@@ -2466,10 +2628,12 @@ function renderUseCases() {
   const communityFiltered = allUseCases.filter(uc => !uc.isApproved);
 
   // KPIs
+  const licensedUCs = allUseCases.filter(uc => EAS_DB.isLicensedTool(uc.aiTool));
   document.getElementById('uc-kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-label">AI Innovation Approved</div><div class="kpi-value blue">${approvedFiltered.length}</div></div>
     <div class="kpi-card"><div class="kpi-label">Community Use Cases</div><div class="kpi-value green">${communityFiltered.length}</div></div>
     <div class="kpi-card"><div class="kpi-label">Total Instances</div><div class="kpi-value yellow">${communityFiltered.reduce((s, u) => s + u.count, 0)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">🏢 Licensed Tool UCs</div><div class="kpi-value" style="color:#3b82f6">${licensedUCs.length}</div><div class="kpi-sub">GH Copilot / M365 Copilot</div></div>
     <div class="kpi-card"><div class="kpi-label">Contributors</div><div class="kpi-value purple">${new Set(communityFiltered.flatMap(u => u.employees || [])).size}</div></div>
   `;
 
@@ -2497,7 +2661,13 @@ function renderUseCases() {
         <div class="acc-meta-item">Practice: <span style="color:${practiceColors[uc.practice] || '#94a3b8'};font-weight:600">${uc.practice}</span></div>
         <div class="acc-meta-item">SDLC Phase: <span>${uc.sdlcPhase || '—'}</span></div>
         <div class="acc-meta-item">Category: <span style="color:var(--accent)">${uc.category}${uc.subcategory ? ' / ' + uc.subcategory : ''}</span></div>
-        <div class="acc-meta-item">AI Tools: <span>${uc.aiTool || '—'}</span></div>
+        <div class="acc-meta-item">AI Tools: <span>${(function() {
+          const tool = uc.aiTool || '—';
+          if (EAS_DB.isLicensedTool(tool)) {
+            return '<span class="status-badge" style="background:rgba(59,130,246,0.12);color:#3b82f6;font-size:10px;padding:2px 6px;margin-right:4px">🏢 Licensed</span>' + tool;
+          }
+          return tool;
+        })()}</span></div>
         <div class="acc-meta-item">Owner: <span>${uc.ownerSpoc || '—'}</span></div>
         <div class="acc-meta-item">Status: <span style="color:${statusColor};font-weight:600">${uc.currentStatus || '—'}</span></div>
       </div>
@@ -2511,7 +2681,11 @@ function renderUseCases() {
     </div>`;
   };
 
-  const renderCommunityCard = (uc) => `
+  const renderCommunityCard = (uc) => {
+    const toolBadge = EAS_DB.isLicensedTool(uc.aiTool)
+      ? '<span class="status-badge" style="background:rgba(59,130,246,0.12);color:#3b82f6;font-size:10px;padding:2px 6px;margin-right:4px">🏢 Licensed</span>'
+      : '';
+    return `
     <div class="acc-card">
       <div class="acc-card-header">
         <div class="acc-card-title">${uc.task}</div>
@@ -2519,7 +2693,7 @@ function renderUseCases() {
       </div>
       <div class="acc-meta">
         <div class="acc-meta-item">Category: <span style="color:var(--accent)">${uc.category}</span></div>
-        <div class="acc-meta-item">AI Tool: <span>${uc.aiTool}</span></div>
+        <div class="acc-meta-item">AI Tool: ${toolBadge}<span>${uc.aiTool}</span></div>
         <div class="acc-meta-item">Practices: <span>${(uc.practices || []).map(p => '<span style="color:' + (practiceColors[p] || '#94a3b8') + '">' + p + '</span>').join(', ')}</span></div>
         <div class="acc-meta-item">Contributors: <span>${(uc.employees || []).length}</span></div>
       </div>
@@ -2529,6 +2703,7 @@ function renderUseCases() {
         ${uc.avgQuality > 0 ? '<div><span style="color:var(--purple);font-weight:600">' + fmt(uc.avgQuality, 1) + '/5</span> quality</div>' : ''}
       </div>
     </div>`;
+  };
 
   const allCards = allUseCases.length === 0
     ? '<div class="empty-state"><h3>No use cases found</h3><p>Try adjusting your filters.</p></div>'
@@ -3779,7 +3954,23 @@ function populateFilters() {
   if (catSel) categories.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
 
   const toolSel = document.getElementById('task-filter-tool');
-  if (toolSel) tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; toolSel.appendChild(o); });
+  if (toolSel) {
+    const licensedFilterTools = data.lovs?.licensedTools || [];
+    const otherFilterTools = data.lovs?.otherTools || [];
+    if (licensedFilterTools.length > 0) {
+      const grp = document.createElement('optgroup'); grp.label = '🏢 Licensed';
+      licensedFilterTools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = '🏢 ' + t; grp.appendChild(o); });
+      toolSel.appendChild(grp);
+    }
+    if (otherFilterTools.length > 0) {
+      const grp = document.createElement('optgroup'); grp.label = 'Other';
+      otherFilterTools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; grp.appendChild(o); });
+      toolSel.appendChild(grp);
+    }
+    if (licensedFilterTools.length === 0 && otherFilterTools.length === 0) {
+      tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; toolSel.appendChild(o); });
+    }
+  }
 
   // Form dropdowns — restrict contributors/SPOCs to their own practice
   const userRole = EAS_Auth.getUserRole();
@@ -3803,10 +3994,28 @@ function populateFilters() {
     categories.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; el.appendChild(o); });
   });
 
+  // Tool form dropdowns — group licensed tools first with visual distinction
+  const licensedTools = data.lovs?.licensedTools || [];
+  const otherTools = data.lovs?.otherTools || [];
   ['f-tool', 'fa-tool'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; el.appendChild(o); });
+    if (licensedTools.length > 0) {
+      const grpLicensed = document.createElement('optgroup');
+      grpLicensed.label = '🏢 Licensed (Ejada-Paid)';
+      licensedTools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = '🏢 ' + t; o.style.fontWeight = '600'; grpLicensed.appendChild(o); });
+      el.appendChild(grpLicensed);
+    }
+    if (otherTools.length > 0) {
+      const grpOther = document.createElement('optgroup');
+      grpOther.label = 'Other Tools';
+      otherTools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; grpOther.appendChild(o); });
+      el.appendChild(grpOther);
+    }
+    // Fallback: if no licensed/other split, just add all tools flat
+    if (licensedTools.length === 0 && otherTools.length === 0) {
+      tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; el.appendChild(o); });
+    }
   });
 
   // Use Case Library filter dropdowns — include approved use case categories/tools too

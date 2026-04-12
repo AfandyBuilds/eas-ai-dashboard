@@ -1,6 +1,6 @@
 # Code Architecture — EAS AI Dashboard
 
-> **Last Updated:** April 11, 2026 | **Phase:** 8 (AI-Assisted Approval Workflow)
+> **Last Updated:** April 12, 2026 | **Phase:** 9 (Licensed Tool Tracking)
 >
 > **Layout note (2026-04-11):** All HTML entry points now live under `src/pages/`. Shared assets in `css/` and `js/` are referenced from those pages via `../../css/…` and `../../js/…`. See §2 for the updated tree and §6 for path examples.
 
@@ -232,6 +232,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 `tasks` table has two generated columns:
 - `time_saved = time_without_ai - time_with_ai`
 - `efficiency = (time_without - time_with) / time_without`
+- `is_licensed_tool = LOWER(ai_tool) LIKE '%github copilot%' OR LOWER(ai_tool) LIKE '%m365 copilot%'` (Phase 9)
 
 ### Database Functions
 
@@ -243,6 +244,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `get_practice_summary()` | SECURITY INVOKER | Quarter-aware practice summary (approved-only tasks) |
 | `get_employee_leaderboard()` | SECURITY INVOKER | Employee rankings by approved tasks, hours saved, efficiency |
 | `get_practice_leaderboard()` | SECURITY INVOKER | Practice rankings with weighted scoring (approved-only tasks/accomplishments) |
+| `get_licensed_tool_adoption()` | SECURITY INVOKER | Per-practice licensed vs other tool task/hours breakdown (Phase 9) |
 
 #### `signup_contributor()` Parameters
 
@@ -366,11 +368,21 @@ The `fetchAllData()` function returns an object matching the legacy APP_DATA str
   accomplishments: [...],
   copilotUsers: [...],
   projects: [...],
-  lovs: { taskCategories: [...], aiTools: [...] }
+  lovs: { taskCategories: [...], aiTools: [...], licensedTools: [...], otherTools: [...] },
+  licensedToolAdoption: [...],   // Phase 9: per-practice licensed/other breakdown
+  licensedTotals: { licensedTasks, otherTasks, licensedHours, otherHours }  // Phase 9
 }
 ```
 
 The db.js transform layer converts snake_case DB columns to camelCase, ensuring render functions work unchanged.
+
+### Licensed Tool Constants (Phase 9)
+
+```js
+EAS_DB.LICENSED_TOOLS  // ['Github Copilot', 'M365 Copilot']
+EAS_DB.isLicensedTool('Github Copilot')  // true
+EAS_DB.isLicensedTool('Claude')           // false
+```
 
 ---
 

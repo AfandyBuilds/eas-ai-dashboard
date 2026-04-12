@@ -26,3 +26,9 @@ __pycache__/
 # Legacy / dead folders
 eas-ai-dashboard/
 server/api/
+
+# Supabase temp files
+supabase/.temp/
+
+# Python virtual env
+.venv/

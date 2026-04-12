@@ -23,6 +23,7 @@
 | 2.2 | Apr 11, 2026 | Omar Ibrahim | Phase 7 — Export Center: Excel/PDF/PPT with role-based access and per-page export |
 | 2.3 | Apr 11, 2026 | Omar Ibrahim | Phase 8 Complete — AI-Assisted Approval Workflow: AI suggestions, validation, multi-layer routing |
 | 2.4 | Apr 12, 2026 | Omar Ibrahim | Approval gating: approved-only metrics/exports and re-approval on edits |
+| 2.5 | Apr 12, 2026 | Omar Ibrahim | Phase 9 — Licensed Tool Tracking: GitHub Copilot & M365 Copilot as primary adoption KPIs |
 
 ---
 
@@ -38,6 +39,7 @@
 | 6 | Polish & Advanced Features | ✅ Complete | `fad8237` | PDF export, forecasting, accessibility, dark/light mode |
 | 7 | Export Center | ✅ Complete | `—` | Excel/PDF/PPT export, per-page buttons, role-based access |
 | 8 | AI-Assisted Approval Workflow | ✅ Complete | `—` | Edge Functions, AI validation, multi-layer routing, admin approvals tab |
+| 9 | Licensed Tool Tracking | ✅ Complete | `—` | Licensed vs Other tool KPIs, adoption by practice, form optgroups, badges |
 
 ---
 
@@ -285,7 +287,9 @@
 | Phase 5 | 38h | ✅ Complete | 4 new pages, 7 badges, 2 RPCs |
 | Phase 6 | 41h | ✅ Complete | PDF, forecast, a11y, dark/light mode |
 | Phase 7 | 20h | ✅ Complete | Export Center: Excel/PDF/PPT, per-page exports |
-| **Total** | **232h** | **✅ All Complete** | **7 phases delivered** |
+| Phase 8 | — | ✅ Complete | AI-assisted approval workflow |
+| Phase 9 | 12h | ✅ Complete | Licensed Tool Tracking: 1 migration, 1 RPC, 5 KPIs, 3 charts |
+| **Total** | **244h** | **✅ All Complete** | **9 phases delivered** |
 
 ---
 
@@ -318,6 +322,41 @@
 
 *See [BRD.md](BRD.md) for full business requirements.*  
 *See [HLD.md](HLD.md) for system architecture design.*
+
+---
+
+## Phase 9: Licensed Tool Tracking ✅
+
+**Status:** Complete | **Date:** April 12, 2026
+
+### Context
+
+Ejada pays for two AI tools: **GitHub Copilot** and **M365 Copilot (Basic)**. Other tools (Claude, ChatGPT, Gemini, Cursor, Codex) are used voluntarily but are not adoption targets. Phase 9 adds end-to-end visibility into licensed tool adoption versus organic usage of other tools.
+
+### Deliverables
+
+- [x] SQL migration (`sql/004_licensed_tool_tracking.sql`): `is_licensed` column on `lovs`, per-tool status on `copilot_users`, generated `is_licensed_tool` on `tasks`, `get_licensed_tool_adoption()` RPC
+- [x] `db.js` updates: `LICENSED_TOOLS` constant, `isLicensedTool()` helper, `fetchLicensedToolAdoption()`, enhanced `fetchAllData()` returns
+- [x] Dashboard: Licensed Tool Adoption section with 5 KPI cards (GH Copilot, M365 Copilot, Licensed Share %, Licensed Hours Saved, Other Tools)
+- [x] Charts: Licensed vs Other split donut, Licensed Tool Adoption by Practice stacked bar, enhanced AI Tools donut with licensed tool color distinction
+- [x] Tasks table: "🏢 Licensed" badges on AI Tool column for licensed tools
+- [x] Form dropdowns: `<optgroup>` separation — "🏢 Licensed (Ejada-Paid)" vs "Other Tools" in task and accomplishment forms
+- [x] Filter dropdowns: Grouped tool options in task filter with licensed/other distinction
+- [x] Use Case Library: Licensed tool badges on approved/community cards, "Licensed Tools Only" filter option, Licensed Tool UCs KPI
+- [x] SPOC Panel: Practice-level Licensed Tools % KPI
+- [x] Licensed AI Users page: Renamed from "Copilot Access", added per-tool status columns (GH Copilot, M365 Copilot, Has Logged Task), status badges
+
+### Architecture Changes
+
+| Component | Change |
+|-----------|--------|
+| `lovs` table | New `is_licensed BOOLEAN DEFAULT false` column |
+| `copilot_users` table | New `github_copilot_status`, `m365_copilot_status`, activation timestamp columns |
+| `tasks` table | New generated column `is_licensed_tool` |
+| `get_licensed_tool_adoption()` | New RPC returning per-practice licensed/other task & hours breakdown |
+| `db.js` fetchLovs | Returns `licensedTools[]` and `otherTools[]` alongside `aiTools[]` |
+| `db.js` fetchAllData | Returns `licensedToolAdoption` and `licensedTotals` |
+| `index.html` populateFilters | Uses `<optgroup>` for tool dropdowns |
 
 ---
 
