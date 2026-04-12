@@ -247,6 +247,12 @@ CREATE POLICY "tasks_spoc_delete" ON tasks FOR DELETE USING (
 CREATE POLICY "tasks_contributor_insert" ON tasks FOR INSERT WITH CHECK (
   get_user_role() = 'contributor' AND practice = get_user_practice()
 );
+-- Contributor: update own practice tasks (for approval workflow)
+CREATE POLICY "tasks_contributor_update" ON tasks FOR UPDATE USING (
+  get_user_role() = 'contributor' AND practice = get_user_practice()
+) WITH CHECK (
+  get_user_role() = 'contributor' AND practice = get_user_practice()
+);
 
 -- ---- ACCOMPLISHMENTS ----
 CREATE POLICY "acc_admin_all" ON accomplishments FOR ALL USING (get_user_role() = 'admin');

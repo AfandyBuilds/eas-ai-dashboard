@@ -129,6 +129,11 @@ CREATE POLICY IF NOT EXISTS "submission_approvals_spoc_update" ON submission_app
   get_user_role() = 'spoc' AND practice = get_user_practice()
 );
 
+-- SPOC can insert approvals for submissions in their practice
+CREATE POLICY IF NOT EXISTS "submission_approvals_spoc_insert" ON submission_approvals FOR INSERT WITH CHECK (
+  get_user_role() = 'spoc' AND practice = get_user_practice()
+);
+
 -- ---- PRACTICE SPOC POLICIES ----
 -- Admin: full access
 CREATE POLICY IF NOT EXISTS "practice_spoc_admin_all" ON practice_spoc FOR ALL USING (get_user_role() = 'admin');

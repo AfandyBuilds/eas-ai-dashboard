@@ -3113,7 +3113,7 @@ function exportExcel() {
       exportTasks.forEach(t => rows.push([t.week, t.weekStart, t.weekEnd, t.project, t.task, t.category, t.aiTool, t.timeWithout, t.timeWith, t.timeSaved, t.efficiency, t.quality, t.status]));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'My Tasks');
     } else {
-      const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
+      const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
       practiceList.forEach(p => {
         const tasks = exportTasks.filter(t => t.practice === p);
         const rows = [['Week #', 'Week Start', 'Week End', 'Project', 'Code', 'Employee', 'Task', 'Category', 'AI Tool', 'Prompt', 'Without AI (hrs)', 'With AI (hrs)', 'Saved (hrs)', 'Efficiency', 'Quality', 'Status', 'Notes']];
@@ -3278,7 +3278,7 @@ async function exportPDF() {
     cols.forEach((col, i) => { doc.text(col, cx, y + 6); cx += colW[i]; });
     y += 8;
 
-    const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
+    const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
     doc.setFont('helvetica', 'normal');
     practiceList.forEach((p, idx) => {
       const pTasks = exportTasks.filter(t => t.practice === p);
@@ -3308,7 +3308,7 @@ async function exportPDF() {
     doc.setTextColor(15, 23, 42);
     doc.text('Practice Details', M, y); y += 10;
 
-    ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'].forEach(p => {
+    ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'].forEach(p => {
       if (y > H - 40) { doc.addPage(); y = M; }
       const pTasks = exportTasks.filter(t => t.practice === p);
       const pSaved = pTasks.reduce((s, t) => s + (t.timeSaved || 0), 0);
@@ -3591,7 +3591,7 @@ async function exportPPT() {
     slide = pptx.addSlide();
     slide.addText('Practice Performance', { x: 0.5, y: 0.3, w: 9, h: 0.6, fontSize: 24, fontFace: 'Arial', bold: true, color: DARK });
 
-    const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
+    const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
 
     if (pptStyle === 'executive') {
       // Practice cards
@@ -3763,7 +3763,7 @@ async function exportPPT() {
 // ======== INIT ========
 function populateFilters() {
   if (!data) return;
-  const practices = ['BFSI', 'CES', 'ERP', 'EPS', 'EPCS', 'GRC'];
+  const practices = ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
   const categories = data.lovs?.taskCategories || [];
   const tools = data.lovs?.aiTools || [];
 
@@ -3781,11 +3781,20 @@ function populateFilters() {
   const toolSel = document.getElementById('task-filter-tool');
   if (toolSel) tools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; toolSel.appendChild(o); });
 
-  // Form dropdowns
+  // Form dropdowns — restrict contributors/SPOCs to their own practice
+  const userRole = EAS_Auth.getUserRole();
+  const userPractice = EAS_Auth.getUserPractice();
+  const formPractices = (userRole === 'contributor' || userRole === 'spoc') && userPractice
+    ? practices.filter(p => p === userPractice)
+    : practices;
   ['f-practice', 'fa-practice', 'fc-practice'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    practices.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; el.appendChild(o); });
+    formPractices.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; el.appendChild(o); });
+    // Auto-select practice for non-admin users
+    if ((userRole === 'contributor' || userRole === 'spoc') && userPractice) {
+      el.value = userPractice;
+    }
   });
 
   ['f-category', 'fa-category'].forEach(id => {
