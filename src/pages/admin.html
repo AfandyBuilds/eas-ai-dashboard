@@ -1938,18 +1938,6 @@ async function renderApprovals() {
     document.getElementById('approval-history-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Unable to load history</td></tr>';
   }
 }
-            </div>
-            <button class="btn btn-primary" onclick="location.reload()">🔄 Refresh Page</button>
-          </td>
-        </tr>
-      `;
-      document.getElementById('pending-approvals-tbody').innerHTML = html;
-      document.getElementById('approval-history-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Run migration to see history</td></tr>';
-    } else {
-      showToast('Failed to load approvals: ' + err.message, 'error');
-    }
-  }
-}
 
 function renderPendingApprovals(approvals = []) {
   const statusFilter = document.getElementById('approval-filter-status').value;
