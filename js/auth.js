@@ -85,6 +85,10 @@ const EAS_Auth = (() => {
     return _userProfile?.role === 'contributor';
   }
 
+  function isViewer() {
+    return _userProfile?.role === 'viewer';
+  }
+
   function getUserRole() {
     return _userProfile?.role || 'contributor';
   }
@@ -144,7 +148,7 @@ const EAS_Auth = (() => {
 
     if (nameEl) nameEl.textContent = getUserName();
     if (roleEl) {
-      const roleLabels = { admin: 'Administrator', spoc: 'AI SPOC', contributor: 'Contributor' };
+      const roleLabels = { admin: 'Administrator', spoc: 'AI SPOC', contributor: 'Contributor', viewer: 'Viewer' };
       roleEl.textContent = roleLabels[getUserRole()] || getUserRole();
     }
     if (practiceEl) practiceEl.textContent = getUserPractice();
@@ -171,6 +175,7 @@ const EAS_Auth = (() => {
     isAdmin,
     isSPOC,
     isContributor,
+    isViewer,
     getUserRole,
     getUserPractice,
     getUserName,

@@ -57,17 +57,17 @@
     Leaderboard
   </div>
 
-  <div class="nav-section" data-role="admin,spoc">Practices</div>
+  <div class="nav-section" data-role="admin,spoc,viewer">Practices</div>
   <div class="nav-item" data-page="mypractice" data-role="spoc">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
     My Practice
   </div>
-  <div class="nav-item" data-page="practices" data-role="admin">
+  <div class="nav-item" data-page="practices" data-role="admin,viewer">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     All Practices
     <span class="badge">6</span>
   </div>
-  <div class="nav-item" data-page="tasks" data-role="admin,spoc">
+  <div class="nav-item" data-page="tasks" data-role="admin,spoc,viewer">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     All Tasks
     <span class="badge" id="nav-task-count">50</span>
@@ -95,12 +95,12 @@
     Approvals
     <span class="badge" id="nav-approval-count">0</span>
   </div>
-  <div class="nav-item" data-page="copilot" data-role="admin,spoc">
+  <div class="nav-item" data-page="copilot" data-role="admin,spoc,viewer">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     Copilot Access
     <span class="badge" id="nav-copilot-count">152</span>
   </div>
-  <div class="nav-item" data-page="projects" data-role="admin,spoc">
+  <div class="nav-item" data-page="projects" data-role="admin,spoc,viewer">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     Projects
     <span class="badge" id="nav-project-count">25</span>
@@ -158,8 +158,8 @@
           <label for="quarter-selector">Quarter</label>
           <select class="quarter-selector" id="quarter-selector"></select>
         </div>
-        <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
-        <button class="btn btn-secondary" onclick="openModal('accomplishment')">+ Add Win</button>
+        <button class="btn btn-primary" onclick="openModal('task')" data-hide-role="viewer">+ Log Task</button>
+        <button class="btn btn-secondary" onclick="openModal('accomplishment')" data-hide-role="viewer">+ Add Win</button>
         <button class="btn btn-secondary" onclick="openExportModal('dashboard')" aria-label="Export this page">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
@@ -219,7 +219,7 @@
         <h2>Practice Tracking</h2>
         <div class="subtitle">AI adoption progress by practice</div>
       </div>
-      <button class="btn btn-secondary" onclick="openExportModal('practices')" aria-label="Export practices" data-role="admin">
+      <button class="btn btn-secondary" onclick="openExportModal('practices')" aria-label="Export practices" data-role="admin,viewer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export
       </button>
@@ -242,7 +242,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
-        <button class="btn btn-primary" onclick="openModal('task')">+ Log Task</button>
+        <button class="btn btn-primary" onclick="openModal('task')" data-hide-role="viewer">+ Log Task</button>
       </div>
     </div>
     <div class="page-content">
@@ -306,7 +306,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
-        <button class="btn btn-primary" onclick="openModal('accomplishment')">+ Add Accomplishment</button>
+        <button class="btn btn-primary" onclick="openModal('accomplishment')" data-hide-role="viewer">+ Add Accomplishment</button>
       </div>
     </div>
     <div class="page-content">
@@ -336,7 +336,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
         </button>
-        <button class="btn btn-primary" onclick="openModal('copilot')">+ Add User</button>
+        <button class="btn btn-primary" onclick="openModal('copilot')" data-hide-role="viewer">+ Add User</button>
       </div>
     </div>
     <div class="page-content">
@@ -369,7 +369,7 @@
         <h2>AI Projects</h2>
         <div class="subtitle">Projects tracked for AI adoption</div>
       </div>
-      <button class="btn btn-secondary" onclick="openExportModal('projects')" aria-label="Export projects" data-role="admin,spoc">
+      <button class="btn btn-secondary" onclick="openExportModal('projects')" aria-label="Export projects" data-role="admin,spoc,viewer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export
       </button>
@@ -1232,7 +1232,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         PDF
       </button>
-      <button class="export-tab" role="tab" aria-selected="false" data-format="ppt" onclick="switchExportTab('ppt')" data-role="admin,spoc">
+      <button class="export-tab" role="tab" aria-selected="false" data-format="ppt" onclick="switchExportTab('ppt')" data-role="admin,spoc,viewer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
         PowerPoint
       </button>
@@ -1250,13 +1250,13 @@
         <label class="export-check-label">
           <input type="checkbox" id="exp-xl-accomplishments" checked> Accomplishments
         </label>
-        <label class="export-check-label" data-role="admin,spoc">
+        <label class="export-check-label" data-role="admin,spoc,viewer">
           <input type="checkbox" id="exp-xl-copilot" checked> Copilot Users
         </label>
-        <label class="export-check-label" data-role="admin,spoc">
+        <label class="export-check-label" data-role="admin,spoc,viewer">
           <input type="checkbox" id="exp-xl-projects" checked> Projects
         </label>
-        <label class="export-check-label" data-role="admin,spoc">
+        <label class="export-check-label" data-role="admin,spoc,viewer">
           <input type="checkbox" id="exp-xl-leaderboard" checked> Leaderboard
         </label>
       </div>
@@ -1268,7 +1268,7 @@
         <label class="export-check-label">
           <input type="checkbox" id="exp-pdf-dashboard" checked> Dashboard (KPIs + Practice Breakdown)
         </label>
-        <label class="export-check-label" data-role="admin">
+        <label class="export-check-label" data-role="admin,viewer">
           <input type="checkbox" id="exp-pdf-practices" checked> Practice Detail Cards
         </label>
         <label class="export-check-label" data-role="spoc">
@@ -1754,8 +1754,8 @@ function renderTasks() {
       <td>${statusBadge(t.status)}</td>
       <td>${approvalBadge(t.approvalStatus)}</td>
       <td class="row-actions">
-        <button class="btn-icon btn-edit" onclick="editTask('${t.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button class="btn-icon btn-delete" onclick="deleteTaskConfirm('${t.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        ${EAS_Auth.getUserRole() !== 'viewer' ? `<button class="btn-icon btn-edit" onclick="editTask('${t.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-icon btn-delete" onclick="deleteTaskConfirm('${t.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -1805,8 +1805,8 @@ function renderAccomplishments() {
         <div style="display:flex;gap:8px;align-items:center">
           ${statusBadge(a.status)}
           ${approvalBadge(a.approvalStatus)}
-          <button class="btn-icon btn-edit" onclick="editAccomplishment('${a.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="btn-icon btn-delete" onclick="deleteAccomplishmentConfirm('${a.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          ${EAS_Auth.getUserRole() !== 'viewer' ? `<button class="btn-icon btn-edit" onclick="editAccomplishment('${a.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn-icon btn-delete" onclick="deleteAccomplishmentConfirm('${a.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
         </div>
       </div>
       <div class="acc-meta">
@@ -1863,8 +1863,8 @@ function renderCopilot() {
       <td>${u.skill}</td>
       <td>${statusBadge(u.remarks === 'access granted' ? 'Completed' : u.remarks)}</td>
       <td class="row-actions">
-        <button class="btn-icon btn-edit" onclick="editCopilotUser('${u.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button class="btn-icon btn-delete" onclick="deleteCopilotUserConfirm('${u.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        ${EAS_Auth.getUserRole() !== 'viewer' ? `<button class="btn-icon btn-edit" onclick="editCopilotUser('${u.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-icon btn-delete" onclick="deleteCopilotUserConfirm('${u.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
       </td>
     </tr>
   `).join('');

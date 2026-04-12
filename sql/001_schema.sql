@@ -16,6 +16,7 @@ CREATE TABLE practices (
   name TEXT UNIQUE NOT NULL,
   head TEXT NOT NULL DEFAULT '',
   spoc TEXT NOT NULL DEFAULT '',
+  department TEXT NOT NULL DEFAULT 'EAS',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -37,7 +38,7 @@ CREATE TABLE users (
   auth_id UUID UNIQUE, -- links to auth.users.id
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'contributor' CHECK (role IN ('admin', 'spoc', 'contributor')),
+  role TEXT NOT NULL DEFAULT 'contributor' CHECK (role IN ('admin', 'spoc', 'contributor', 'viewer')),
   practice TEXT REFERENCES practices(name),
   is_active BOOLEAN DEFAULT true,
   last_login TIMESTAMPTZ,
@@ -216,8 +217,8 @@ RETURNS TEXT AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE
    SET search_path = public;
 
--- ---- PRACTICES: authenticated users can read ----
-CREATE POLICY "practices_read" ON practices FOR SELECT USING (auth.uid() IS NOT NULL);
+-- ---- PRACTICES: anyone can read (signup needs anonymous access) ----
+CREATE POLICY "practices_read" ON practices FOR SELECT USING (true);
 CREATE POLICY "practices_admin_write" ON practices FOR ALL USING (get_user_role() = 'admin');
 
 -- ---- QUARTERS: authenticated users can read, admin can write ----
@@ -301,13 +302,14 @@ CREATE POLICY "activity_insert" ON activity_log FOR INSERT WITH CHECK (auth.uid(
 -- ===================== SEED BASE DATA =====================
 
 -- Practices
-INSERT INTO practices (name, head, spoc) VALUES
-  ('BFSI', 'Mohab ElHaddad', 'Omar Ibrahim'),
-  ('CES', 'Osama Nagdy', 'Norah Al Wabel'),
-  ('ERP Solutions', 'Amer Farghaly', 'Reham Ibrahim'),
-  ('EPS', 'Mohamed Ziaudin', 'Yousef Milhem'),
-  ('GRC', 'Ahmed Madkour', 'Mohamed Essam'),
-  ('EPCS', 'Mohamed Mobarak', 'Ahmed Shaheen');
+INSERT INTO practices (name, head, spoc, department) VALUES
+  ('BFSI', 'Mohab ElHaddad', 'Omar Ibrahim', 'EAS'),
+  ('CES', 'Osama Nagdy', 'Norah Al Wabel', 'EAS'),
+  ('ERP Solutions', 'Amer Farghaly', 'Reham Ibrahim', 'EAS'),
+  ('EPS', 'Mohamed Ziaudin', 'Yousef Milhem', 'EAS'),
+  ('GRC', 'Ahmed Madkour', 'Mohamed Essam', 'EAS'),
+  ('EPCS', 'Mohamed Mobarak', 'Ahmed Shaheen', 'EAS'),
+  ('SE', 'Neraaj Goel', 'Neeraj Goel', 'Service Excellence');
 
 -- Quarters
 INSERT INTO quarters (id, label, start_date, end_date, is_active, targets) VALUES

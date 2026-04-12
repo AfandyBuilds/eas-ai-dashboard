@@ -418,16 +418,15 @@ body {
 
       <div class="form-group">
         <label for="su-department">Department <span class="required">*</span></label>
-        <select id="su-department" required>
-          <option value="EAS" selected>EAS — Enterprise Application Solutions</option>
+        <select id="su-department" required onchange="filterPracticesByDepartment()">
+          <option value="" disabled selected>Select your department...</option>
         </select>
-        <p class="hint">Currently limited to EAS department</p>
       </div>
 
       <div class="form-group">
         <label for="su-practice">Practice <span class="required">*</span></label>
         <select id="su-practice" required>
-          <option value="" disabled selected>Select your practice...</option>
+          <option value="" disabled selected>Select department first...</option>
         </select>
       </div>
 
@@ -569,27 +568,60 @@ body {
     if (session) window.location.href = 'index.html';
   })();
 
-  // ---- Load practices from DB ----
+  // ---- Load departments & practices from DB ----
+  let _allPractices = [];
+
   (async () => {
-    const sel = document.getElementById('su-practice');
-    const { data, error } = await sb.from('practices').select('name').order('name');
+    const deptSel = document.getElementById('su-department');
+    const pracSel = document.getElementById('su-practice');
+    const { data, error } = await sb.from('practices').select('name, department').order('name');
+
     if (data && data.length) {
-      data.forEach(p => {
+      _allPractices = data;
+      // Populate unique departments
+      const departments = [...new Set(data.map(p => p.department))].sort();
+      departments.forEach(d => {
         const opt = document.createElement('option');
-        opt.value = p.name;
-        opt.textContent = p.name;
-        sel.appendChild(opt);
+        opt.value = d;
+        opt.textContent = d;
+        deptSel.appendChild(opt);
       });
     } else {
       // Fallback if query fails
-      ['BFSI','CES','EPCS','EPS','ERP Solutions','GRC'].forEach(n => {
+      _allPractices = [
+        { name: 'BFSI', department: 'EAS' },
+        { name: 'CES', department: 'EAS' },
+        { name: 'EPCS', department: 'EAS' },
+        { name: 'EPS', department: 'EAS' },
+        { name: 'ERP Solutions', department: 'EAS' },
+        { name: 'GRC', department: 'EAS' },
+        { name: 'SE', department: 'Service Excellence' }
+      ];
+      ['EAS', 'Service Excellence'].forEach(d => {
         const opt = document.createElement('option');
-        opt.value = n;
-        opt.textContent = n;
-        sel.appendChild(opt);
+        opt.value = d;
+        opt.textContent = d;
+        deptSel.appendChild(opt);
       });
     }
   })();
+
+  function filterPracticesByDepartment() {
+    const dept = document.getElementById('su-department').value;
+    const sel = document.getElementById('su-practice');
+    sel.innerHTML = '<option value="" disabled selected>Select your practice...</option>';
+    const filtered = _allPractices.filter(p => p.department === dept);
+    filtered.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name;
+      opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+    // Auto-select if only one practice in this department
+    if (filtered.length === 1) {
+      sel.value = filtered[0].name;
+    }
+  }
 
   // ---- Copilot toggle ----
   function selectCopilot(val) {
@@ -603,11 +635,13 @@ body {
   function goToStep2() {
     hideError();
     // Validate Step 1
+    const dept     = document.getElementById('su-department').value;
     const name     = document.getElementById('su-name').value.trim();
     const email    = document.getElementById('su-email').value.trim();
     const practice = document.getElementById('su-practice').value;
     const skill    = document.getElementById('su-skill').value.trim();
 
+    if (!dept)       { showError('Please select your department.');          return; }
     if (!name)       { showError('Please enter your full name.');           return; }
     if (!email)      { showError('Please enter your email address.');       return; }
     if (!email.includes('@')) { showError('Please enter a valid email address.'); return; }
