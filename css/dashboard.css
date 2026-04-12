@@ -1171,4 +1171,181 @@ tr:hover td { background: var(--bg-translucent); }
   .guide-card-highlight { flex-direction: column; align-items: center; text-align: center; }
   .guide-tabs { gap: 2px; }
   .guide-tab { padding: 8px 14px; font-size: 12px; }
+  .prompt-role-filters { gap: 4px; }
+  .prompt-role-pill { padding: 6px 10px; font-size: 11px; }
+  .prompt-card { padding: 14px; }
+}
+
+/* ===== PROMPT LIBRARY ===== */
+
+/* Role filter pills */
+.prompt-role-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.prompt-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.prompt-role-pill:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--bg-translucent-hover);
+}
+.prompt-role-pill.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(59,130,246,0.25);
+}
+.prompt-role-pill svg { flex-shrink: 0; }
+
+/* Prompt library grid */
+.prompt-library-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Role sections */
+.prompt-role-section {
+  animation: guideFadeIn 0.3s ease;
+}
+.prompt-role-section.prompt-hidden {
+  display: none;
+}
+.prompt-role-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+.prompt-role-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.prompt-role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.prompt-role-badge.pm { background: rgba(236,72,153,0.15); color: var(--pink); }
+.prompt-role-badge.sa { background: rgba(139,92,246,0.15); color: var(--purple); }
+.prompt-role-badge.ba { background: rgba(59,130,246,0.15); color: var(--accent); }
+.prompt-role-badge.dev { background: rgba(16,185,129,0.15); color: var(--success); }
+.prompt-role-badge.dba { background: rgba(245,158,11,0.15); color: var(--warning); }
+.prompt-role-badge.admin { background: rgba(239,68,68,0.15); color: var(--danger); }
+.prompt-role-badge.dm { background: rgba(6,182,212,0.15); color: var(--info); }
+.prompt-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Prompt categories */
+.prompt-category {
+  margin-bottom: 20px;
+}
+.prompt-category-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+  padding-left: 2px;
+}
+
+/* Prompt cards */
+.prompt-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.prompt-card:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg-card), rgba(59,130,246,0.04));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.prompt-card:active {
+  transform: translateY(0);
+}
+.prompt-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  font-family: inherit;
+}
+.prompt-text code {
+  background: rgba(59,130,246,0.1);
+  color: var(--accent);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+.prompt-copy-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-translucent);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 2px;
+}
+.prompt-copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(59,130,246,0.1);
+}
+.prompt-card.prompt-copied {
+  border-color: var(--success);
+  background: rgba(16,185,129,0.06);
+}
+.prompt-card.prompt-copied .prompt-copy-btn {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(16,185,129,0.1);
 }
