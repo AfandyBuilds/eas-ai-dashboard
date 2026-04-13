@@ -6,6 +6,7 @@ Both Supabase Edge Functions are now deployed and ready for production use:
 
 - ✅ **ai-suggestions** - ACTIVE - Generates AI suggestions for task/accomplishment descriptions
 - ✅ **ai-validate** - ACTIVE - Validates submissions against quality rules
+- ✅ **admin-magic-link** - ACTIVE - Admin-only: generates one-time magic login links for any user
 
 ## Live Endpoints
 
@@ -14,6 +15,7 @@ BASE: https://apcfnzbiylhgiutcjigg.supabase.co/functions/v1
 
 POST /ai-suggestions → Generate 3 AI suggestions (GPT-4)
 POST /ai-validate → Validate submission with quality scoring (GPT-4)
+POST /admin-magic-link → Generate one-time login link for any user (admin-only, JWT required)
 ```
 
 ## Final Step: Set OpenAI API Key Secret

@@ -1435,7 +1435,9 @@ npm run compile</code></pre>
     </div>
     <div class="form-group">
       <label>Project</label>
-      <select id="f-project"></select>
+      <select id="f-project" onchange="handleProjectSelectChange()"></select>
+      <input type="text" id="f-project-manual" placeholder="Enter project name manually…" style="display:none;margin-top:6px">
+      <span id="f-project-hint" style="font-size:11px;color:var(--text-muted);display:none">Project not listed? Select "Other" to type manually</span>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -4090,13 +4092,24 @@ async function saveTask() {
   let weekEnd = document.getElementById('f-weekend').value || weekRange.end;
   let weekNum = EAS_Utils.getQuarterWeekNumber(weekStart, EAS_DB.getQuarters());
 
+  // Resolve project name: use manual input if "__other__" is selected
+  const projSelect = document.getElementById('f-project');
+  const projManual = document.getElementById('f-project-manual');
+  let projectName = projSelect.value === '__other__' ? (projManual.value || '').trim() : projSelect.value;
+  // Find project code from projects table if a known project was selected
+  let projectCode = '';
+  if (projSelect.value !== '__other__' && projSelect.value && data.projects) {
+    const matchedProj = data.projects.find(p => p.projectName === projSelect.value && p.practice === practice);
+    if (matchedProj) projectCode = matchedProj.projectCode || '';
+  }
+
   const taskData = {
     practice,
     week: weekNum,
     weekStart: weekStart,
     weekEnd: weekEnd,
-    project: document.getElementById('f-project').value,
-    projectCode: '',
+    project: projectName,
+    projectCode: projectCode,
     employee: employee,
     task: taskDesc,
     category: document.getElementById('f-category').value,
@@ -4150,6 +4163,10 @@ async function saveTask() {
   document.getElementById('f-quality').value = '';
   document.getElementById('f-notes').value = '';
   document.getElementById('f-bypass-approval').checked = false;
+  // Reset project fields
+  updateProjectDropdown();
+  const projManual = document.getElementById('f-project-manual');
+  if (projManual) { projManual.style.display = 'none'; projManual.value = ''; }
   // Also re-render My Tasks if contributor
   renderMyTasks();
 }
@@ -4489,7 +4506,22 @@ function editTask(id) {
   document.getElementById('f-week').value = task.week || '';
   document.getElementById('f-weekstart').value = task.weekStart || '';
   document.getElementById('f-weekend').value = task.weekEnd || '';
-  document.getElementById('f-project').value = task.project || '';
+  // Update project dropdown for the selected practice, then set value
+  updateProjectDropdown();
+  const projSel = document.getElementById('f-project');
+  const projManual = document.getElementById('f-project-manual');
+  if (task.project) {
+    // Check if the project exists in the dropdown options
+    const optionExists = Array.from(projSel.options).some(o => o.value === task.project);
+    if (optionExists) {
+      projSel.value = task.project;
+      if (projManual) { projManual.style.display = 'none'; projManual.value = ''; }
+    } else {
+      // Project not in the list — switch to manual input
+      projSel.value = '__other__';
+      if (projManual) { projManual.style.display = 'block'; projManual.value = task.project; }
+    }
+  }
   document.getElementById('f-employee').value = task.employee || '';
   document.getElementById('f-task').value = task.task || '';
   document.getElementById('f-category').value = task.category || '';
@@ -5362,6 +5394,83 @@ async function exportPPT() {
   }
 }
 
+/**
+ * Update the project dropdown based on selected practice.
+ * Populates from data.projects (the projects table), filtered by practice.
+ * Includes an "Other (manual input)" option for unlisted projects.
+ */
+function updateProjectDropdown() {
+  const projSel = document.getElementById('f-project');
+  const projManual = document.getElementById('f-project-manual');
+  const projHint = document.getElementById('f-project-hint');
+  if (!projSel || !data) return;
+
+  const selectedPractice = (document.getElementById('f-practice')?.value || '').trim();
+
+  // Clear existing options
+  projSel.innerHTML = '';
+
+  // Default empty option
+  const emptyOpt = document.createElement('option');
+  emptyOpt.value = '';
+  emptyOpt.textContent = '— Select Project —';
+  projSel.appendChild(emptyOpt);
+
+  // Filter projects by practice if one is selected
+  let filteredProjects = (data.projects || []).filter(p => p.isActive !== false);
+  if (selectedPractice) {
+    filteredProjects = filteredProjects.filter(p => p.practice === selectedPractice);
+  }
+
+  // Add projects from the projects table
+  filteredProjects.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.projectName;
+    o.textContent = p.projectCode ? `${p.projectName} (${p.projectCode})` : p.projectName;
+    projSel.appendChild(o);
+  });
+
+  // Add separator + "Other" option for manual input
+  if (filteredProjects.length > 0) {
+    const sep = document.createElement('option');
+    sep.disabled = true;
+    sep.textContent = '────────────────';
+    projSel.appendChild(sep);
+  }
+  const otherOpt = document.createElement('option');
+  otherOpt.value = '__other__';
+  otherOpt.textContent = '✏️ Other (type manually)';
+  projSel.appendChild(otherOpt);
+
+  // Show hint
+  if (projHint) {
+    projHint.style.display = filteredProjects.length === 0 && selectedPractice ? 'block' : 'none';
+  }
+
+  // Reset manual input
+  if (projManual) {
+    projManual.style.display = 'none';
+    projManual.value = '';
+  }
+}
+
+/**
+ * Handle project dropdown change — show/hide manual input when "Other" is selected.
+ */
+function handleProjectSelectChange() {
+  const projSel = document.getElementById('f-project');
+  const projManual = document.getElementById('f-project-manual');
+  if (!projSel || !projManual) return;
+
+  if (projSel.value === '__other__') {
+    projManual.style.display = 'block';
+    projManual.focus();
+  } else {
+    projManual.style.display = 'none';
+    projManual.value = '';
+  }
+}
+
 // ======== INIT ========
 function populateFilters() {
   if (!data) return;
@@ -5455,11 +5564,19 @@ function populateFilters() {
   const ucToolSel = document.getElementById('uc-filter-tool');
   if (ucToolSel) ucAllTools.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; ucToolSel.appendChild(o); });
 
-  // Project dropdown for task form
+  // Project dropdown for task form — populated from projects table, filtered by practice
   const projSel = document.getElementById('f-project');
   if (projSel) {
-    const projNames = [...new Set(data.tasks.map(t => t.project).filter(Boolean))];
-    projNames.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; projSel.appendChild(o); });
+    // Attach practice→project cascading filter
+    const fPractice = document.getElementById('f-practice');
+    if (fPractice) {
+      fPractice.addEventListener('change', () => updateProjectDropdown());
+      // Trigger initial population based on current practice selection
+      updateProjectDropdown();
+    } else {
+      // Fallback: populate with all projects
+      updateProjectDropdown();
+    }
   }
 }
 

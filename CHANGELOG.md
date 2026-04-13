@@ -10,6 +10,10 @@ This changelog is **append-only**. Every task, regardless of origin, must add an
 
 ## [Unreleased]
 
+- 2026-04-13 (copilot) — **Admin Magic Link Generator** — New `admin-magic-link` Supabase Edge Function + admin UI. Admins can generate a one-time magic login link for any user directly from the Manage Users table. The Edge Function verifies the caller is an authenticated admin, then uses the service-role key to call `auth.admin.generateLink({ type: 'magiclink' })`. Result is shown in a modal with copy-to-clipboard and open-in-new-tab options. Security: link icon button per user row, confirmation dialog, audit logging, and a security warning in the modal. Registered in `supabase.json`. (feat)
+
+- 2026-04-13 (copilot) — **Fix: Project-Practice mapping in task form** — Task form project dropdown now loads from the `projects` table (instead of historical task data), filtered by the selected practice. Changing practice cascades to show only that practice's projects. Added "Other (type manually)" option so users can enter a project name if their project isn't in the database. Edit task flow properly restores the project value (or falls back to manual input for unregistered projects). Project code is auto-resolved from the projects table when a known project is selected. (fix)
+
 - 2026-04-13 (copilot) — Fix My Practice inactive members to derive activity from tasks and filter access-granted users (fix)
 
 - 2026-04-13 (copilot) — **Fix: Executive Dashboard graphs crash + All Time calculation** — Fixed two bugs in the Executive Summary page: (1) "All Time" quarter selection passed literal `'all'` string to `get_executive_summary` RPC instead of `NULL`, causing zero results and blank charts. Now converts `'all'` to `null` before RPC call. (2) Charts showed blank canvases when data was empty (no "no data" feedback). Added empty-state text messages on each chart canvas. (3) Global quarter-changed event handler was missing `exec-summary` re-render. (fix)

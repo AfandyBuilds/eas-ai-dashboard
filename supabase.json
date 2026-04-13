@@ -2,6 +2,10 @@
   "project_id": "apcfnzbiylhgiutcjigg",
   "functions": [
     {
+      "slug": "admin-magic-link",
+      "importmap_path": "functions/admin-magic-link/import_map.json"
+    },
+    {
       "slug": "ai-suggestions",
       "importmap_path": "functions/ai-suggestions/import_map.json"
     },

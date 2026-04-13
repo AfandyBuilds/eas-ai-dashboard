@@ -113,6 +113,7 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │
 ├── supabase/                # Supabase Edge Functions
 │   └── functions/
+│       ├── admin-magic-link/         # Admin-only: generate magic login links for any user
 │       ├── ai-suggestions/          # GPT-4 suggestion generation
 │       ├── ai-validate/             # AI submission validation
 │       └── ide-task-log/            # Phase 10: IDE Task Logger API (JWT auth, task submission)
