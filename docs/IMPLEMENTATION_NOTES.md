@@ -6,6 +6,15 @@
 
 ## Changes Made
 
+### 0m. April 13, 2026 — Inactive Members: practice list reflects task activity
+
+**Problem:** The My Practice "Inactive Members" list showed many users as "Never logged" even after tasks were submitted. The list relied on `copilot_users.has_logged_task` and `copilot_users.last_task_date`, which are not consistently updated for contributor-submitted tasks due to RLS.
+
+**Fix (js/db.js):** Reworked `fetchInactiveMembers()` to derive activity directly from the `tasks` table by matching `employee_email` + `practice`, then computing the latest `created_at` per user. The list now filters to `copilot_users.status = 'access granted'` and marks inactive when the latest task is older than the inactivity threshold.
+
+**Files changed:** `js/db.js`
+**Docs impact:** BRD/HLD/CODE_ARCHITECTURE/IMPLEMENTATION_PLAN unchanged — data derivation only.
+
 ### 0l. April 13, 2026 — Executive Dashboard: Graphs crash + All Time calculation fix
 
 **Problems:**

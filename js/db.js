@@ -1162,36 +1162,75 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Fetch inactive team members (copilot users who haven't logged tasks recently).
+  * Fetch inactive team members (copilot users whose task activity is stale).
    * @param {string} practice — practice to check
    * @param {number} daysSince — inactivity threshold in days (default 14)
    */
   async function fetchInactiveMembers(practice, daysSince = 14) {
-    const { data, error } = await sb
+    const { data: users, error } = await sb
       .from('copilot_users')
-      .select('id, name, email, practice, has_logged_task, last_task_date, nudged_at, status')
+      .select('id, name, email, practice, nudged_at, status')
       .eq('practice', practice)
-      .order('last_task_date', { ascending: true, nullsFirst: true });
+      .eq('status', 'access granted')
+      .order('name', { ascending: true });
     if (error) { console.error('fetchInactiveMembers error:', error.message); return []; }
+
+    const emails = (users || [])
+      .map(u => (u.email || '').trim())
+      .filter(email => email.length > 0);
+
+    const lastTaskByEmail = new Map();
+    if (emails.length > 0) {
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data: tasks, error: taskError } = await sb
+          .from('tasks')
+          .select('employee_email, created_at')
+          .eq('practice', practice)
+          .in('employee_email', emails)
+          .order('created_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (taskError) {
+          console.error('fetchInactiveMembers tasks error:', taskError.message);
+          break;
+        }
+        (tasks || []).forEach(t => {
+          const emailKey = (t.employee_email || '').trim().toLowerCase();
+          if (!emailKey) return;
+          const existing = lastTaskByEmail.get(emailKey);
+          if (!existing || new Date(t.created_at) > new Date(existing)) {
+            lastTaskByEmail.set(emailKey, t.created_at);
+          }
+        });
+        if (!tasks || tasks.length < pageSize) break;
+      }
+    }
+
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - daysSince);
-    return (data || []).filter(u => {
-      if (!u.has_logged_task) return true; // Never logged
-      if (!u.last_task_date) return true;
-      return new Date(u.last_task_date) < cutoff;
-    }).map(u => ({
-      id:           u.id,
-      name:         u.name,
-      email:        u.email,
-      practice:     u.practice,
-      hasLoggedTask: u.has_logged_task,
-      lastTaskDate: u.last_task_date,
-      nudgedAt:     u.nudged_at,
-      status:       u.status,
-      daysSinceTask: u.last_task_date
-        ? Math.floor((Date.now() - new Date(u.last_task_date).getTime()) / 86400000)
-        : null
-    }));
+
+    return (users || []).filter(u => {
+      const emailKey = (u.email || '').trim().toLowerCase();
+      const lastTask = emailKey ? lastTaskByEmail.get(emailKey) : null;
+      if (!lastTask) return true;
+      return new Date(lastTask) < cutoff;
+    }).map(u => {
+      const emailKey = (u.email || '').trim().toLowerCase();
+      const lastTask = emailKey ? lastTaskByEmail.get(emailKey) : null;
+      return {
+        id:           u.id,
+        name:         u.name,
+        email:        u.email,
+        practice:     u.practice,
+        hasLoggedTask: Boolean(lastTask),
+        lastTaskDate: lastTask || null,
+        nudgedAt:     u.nudged_at,
+        status:       u.status,
+        daysSinceTask: lastTask
+          ? Math.floor((Date.now() - new Date(lastTask).getTime()) / 86400000)
+          : null
+      };
+    });
   }
 
   /**
