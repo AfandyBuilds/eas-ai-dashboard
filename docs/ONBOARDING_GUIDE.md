@@ -2,7 +2,7 @@
 
 # EAS AI Adoption Dashboard
 
-> **Version:** 2.1 | **Last Updated:** April 11, 2026 (Phase 8 Complete)
+> **Version:** 2.2 | **Last Updated:** April 13, 2026 (Contributor Rollout Guide added)
 
 ---
 
@@ -15,6 +15,7 @@
 | **Dashboard** | https://omarhelal1234.github.io/eas-ai-dashboard/ |
 | **Login Page** | https://omarhelal1234.github.io/eas-ai-dashboard/login.html |
 | **Signup Page** | https://omarhelal1234.github.io/eas-ai-dashboard/signup.html |
+| **Contributor Rollout Guide (PPTX)** | `EAS_AI_Dashboard_Contributor_Rollout_Guide.pptx` (16 slides — sign-up through full feature walkthrough, Prompt Library, Copilot Onboarding, VS Code Extension) |
 
 ### Default Credentials
 
