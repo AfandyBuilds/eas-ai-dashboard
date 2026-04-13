@@ -4165,8 +4165,8 @@ async function saveTask() {
   document.getElementById('f-bypass-approval').checked = false;
   // Reset project fields
   updateProjectDropdown();
-  const projManual = document.getElementById('f-project-manual');
-  if (projManual) { projManual.style.display = 'none'; projManual.value = ''; }
+  const projManualReset = document.getElementById('f-project-manual');
+  if (projManualReset) { projManualReset.style.display = 'none'; projManualReset.value = ''; }
   // Also re-render My Tasks if contributor
   renderMyTasks();
 }
