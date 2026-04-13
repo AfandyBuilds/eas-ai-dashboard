@@ -6,6 +6,55 @@
 
 ## Changes Made
 
+### 0l. April 13, 2026 — Executive Dashboard: Graphs crash + All Time calculation fix
+
+**Problems:**
+1. Executive Summary charts appeared blank/"crashed" — no visual feedback when chart data is empty
+2. "All Time" quarter selection returned zero data because `'all'` was passed as-is to the `get_executive_summary` RPC, which treats `p_quarter_id = 'all'` as a literal quarter_id filter (matching nothing) instead of the intended all-time aggregation (requires `NULL`)
+3. Global quarter-changed event handler did not re-render the exec-summary page
+
+**Root Cause:** The exec-specific quarter selector value was passed directly without converting `'all'` → `null`. The SQL RPC `get_executive_summary` uses `(p_quarter_id IS NULL OR quarter_id = p_quarter_id)` — so `NULL` means "all quarters" but `'all'` matches no real quarter_id.
+
+**Fix (src/pages/index.html):**
+- `renderExecSummary()`: Convert `rawQuarter === 'all'` to `null` before calling the RPC
+- `renderExecCharts()`: Added canvas-based "No data available" messages for each of the 4 charts when their datasets are empty (weekly trend, copilot adoption, approval pipeline, tools usage)
+- `quarter-changed` event listener: Added `if (activePage === 'exec-summary') renderExecSummary()` so global quarter changes re-render the exec page
+
+**Files changed:** `src/pages/index.html`  
+**Docs impact:** BRD/HLD unchanged — bug fix only, no architectural change.
+
+### 0k. April 13, 2026 — Issues/Blockers, SPOC Project CRUD, Password Reset
+
+**Problem:** Three gaps identified:
+1. Contributors had no way to report AI adoption issues or blockers
+2. SPOCs could not add projects from the dashboard (only admin via legacy localStorage-based admin panel)
+3. Users could not reset/change passwords without email delivery (email not configured)
+
+**Solution:**
+
+**1. Reported Issues / Blockers:**
+- New `reported_issues` table with title, description, severity (low/medium/high/critical), AI tool reference, practice, status (open/in_progress/resolved/closed), resolution tracking
+- RLS policies: admin full access, authenticated read, SPOC write for own practice, contributor insert for own practice + update own issues
+- New Issues/Blockers page in dashboard with KPI cards, severity/status badges, search + filters, full CRUD
+- New `fetchReportedIssues`, `insertReportedIssue`, `updateReportedIssue`, `deleteReportedIssue` in `db.js`
+
+**2. SPOC Project CRUD:**
+- New `insertProject`, `updateProject`, `deleteProject` functions in `db.js` (previously only admin via localStorage)
+- "+ Add Project" button visible to admin + SPOC on Dashboard Projects page
+- Project modal with all fields: practice, department, name, code, customer, PM, dates, value, revenue type
+- Edit/delete actions on project rows for admin/SPOC users
+- Projects now persist to Supabase directly (existing RLS already supports SPOC insert/update)
+
+**3. Password Reset:**
+- In-app Change Password form accessible from sidebar footer (all users)
+- Verifies current password by re-authenticating, then uses `supabase.auth.updateUser({ password })` to change
+- Admin password reset: Not possible client-side (requires service_role key). Directs admin to Supabase dashboard for now
+
+**Design Decisions:**
+- **Issue severity as CHECK constraint enum:** Used `CHECK (severity IN ('low','medium','high','critical'))` rather than LOV table for simplicity and validation at DB level
+- **Password change without email:** Since email delivery isn't working, implemented a "change password" flow (user knows current password) rather than "forgot password" (which requires email). Admin reset deferred to Supabase dashboard since it needs service_role.
+- **Project CRUD via Supabase:** Replaced the admin.html localStorage pattern with proper Supabase CRUD. The dashboard project modal now writes to the `projects` table directly.
+
 ### 0j. April 13, 2026 — Executive Role Implementation
 
 **Problem:** Senior directors needed cross-practice, read-only visibility into AI adoption metrics without the noise of task logging, approval, or management views.

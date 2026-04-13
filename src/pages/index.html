@@ -5523,7 +5523,9 @@ async function renderExecSummary() {
 
   // Determine quarter from the exec-specific selector
   const execQSel = document.getElementById('exec-quarter-selector');
-  const quarterId = execQSel?.value || EAS_DB.getSelectedQuarter() || null;
+  const rawQuarter = execQSel?.value || EAS_DB.getSelectedQuarter() || null;
+  // Convert 'all' to null — the RPC uses NULL to mean "aggregate across all quarters"
+  const quarterId = (rawQuarter === 'all') ? null : rawQuarter;
 
   try {
     const { data: summary, error } = await sb.rpc('get_executive_summary', {
@@ -5625,6 +5627,14 @@ function renderExecCharts(summary) {
   // 1. Weekly Trend (combo: bars=tasks, line=hours)
   const weeklyData = summary.weekly_trend || [];
   const weeklyCanvas = document.getElementById('exec-chart-weekly');
+  if (weeklyCanvas && weeklyData.length === 0) {
+    const ctx = weeklyCanvas.getContext('2d');
+    ctx.clearRect(0, 0, weeklyCanvas.width, weeklyCanvas.height);
+    ctx.fillStyle = tickColor;
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No weekly data available', weeklyCanvas.width / 2, weeklyCanvas.height / 2);
+  }
   if (weeklyCanvas && weeklyData.length > 0) {
     execCharts.weekly = new Chart(weeklyCanvas.getContext('2d'), {
       type: 'bar',
@@ -5672,6 +5682,14 @@ function renderExecCharts(summary) {
   // 2. Copilot Adoption by Practice (horizontal bar)
   const copilotData = summary.copilot_adoption || [];
   const copilotCanvas = document.getElementById('exec-chart-copilot');
+  if (copilotCanvas && copilotData.length === 0) {
+    const ctx = copilotCanvas.getContext('2d');
+    ctx.clearRect(0, 0, copilotCanvas.width, copilotCanvas.height);
+    ctx.fillStyle = tickColor;
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No copilot adoption data', copilotCanvas.width / 2, copilotCanvas.height / 2);
+  }
   if (copilotCanvas && copilotData.length > 0) {
     execCharts.copilot = new Chart(copilotCanvas.getContext('2d'), {
       type: 'bar',
@@ -5702,6 +5720,14 @@ function renderExecCharts(summary) {
   // 3. Approval Pipeline (doughnut)
   const approvalData = summary.approval_stats || [];
   const approvalCanvas = document.getElementById('exec-chart-approvals');
+  if (approvalCanvas && approvalData.length === 0) {
+    const ctx = approvalCanvas.getContext('2d');
+    ctx.clearRect(0, 0, approvalCanvas.width, approvalCanvas.height);
+    ctx.fillStyle = tickColor;
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No approval data', approvalCanvas.width / 2, approvalCanvas.height / 2);
+  }
   if (approvalCanvas && approvalData.length > 0) {
     const statusColors = {
       'pending': '#f59e0b',
@@ -5734,6 +5760,14 @@ function renderExecCharts(summary) {
   // 4. AI Tools Usage (bar)
   const toolData = summary.tool_usage || [];
   const toolsCanvas = document.getElementById('exec-chart-tools');
+  if (toolsCanvas && toolData.length === 0) {
+    const ctx = toolsCanvas.getContext('2d');
+    ctx.clearRect(0, 0, toolsCanvas.width, toolsCanvas.height);
+    ctx.fillStyle = tickColor;
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No tool usage data', toolsCanvas.width / 2, toolsCanvas.height / 2);
+  }
   if (toolsCanvas && toolData.length > 0) {
     execCharts.tools = new Chart(toolsCanvas.getContext('2d'), {
       type: 'bar',
@@ -5868,6 +5902,7 @@ async function boot() {
     if (activePage === 'leaderboard') renderLeaderboard();
     if (activePage === 'mytasks') renderMyTasks();
     if (activePage === 'usecases') renderUseCases();
+    if (activePage === 'exec-summary') renderExecSummary();
     updateNavCounts();
   });
   

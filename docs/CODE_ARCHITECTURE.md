@@ -92,6 +92,7 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │   └── 008_web_view_permissions.sql   # Web dashboard view permissions (17 views × 4 roles)
 │   └── 009_departments.sql  # Departments table + practice enhancements (department_id, description, status)
 │   └── 010_executive_role.sql # Executive role, executive_practices table, RPC, view permissions
+│   └── 011_reported_issues.sql # Issues/blockers tracking table + RLS policies
 │
 ├── scripts/                # Node.js admin/migration scripts
 │   ├── create-auth-users.mjs   # One-time auth user creation
@@ -231,7 +232,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 
 ## 4. Database Schema
 
-### Tables (12)
+### Tables (13)
 
 | Table | Purpose | Row Count (Phase 1) |
 |-------|---------|---------------------|
@@ -247,6 +248,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `data_dumps` | JSON backup snapshots (admin) | Dynamic |
 | `role_view_permissions` | Controls per-role sidebar section visibility (deny-list) | 126 (5 roles × 26 views: 18 web + 8 ext) |
 | `executive_practices` | Maps executive users to their assigned practices (junction) | Dynamic |
+| `reported_issues` | Issues/blockers reported by contributors and SPOCs | Dynamic |
 
 ### Computed Columns
 
