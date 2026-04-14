@@ -6,6 +6,44 @@
 
 ## Changes Made
 
+### 0p. April 14, 2026 — SPOC Mandatory Approval + Employee Dropdown + Duplicate Fix
+
+**Three critical fixes implemented in a single iteration:**
+
+#### Fix 1: Duplicate-on-Edit Bug (Critical)
+**Problem:** Editing any task, accomplishment, copilot user, or issue created a duplicate instead of updating. Root cause: `closeModal(type)` clears `_editingId`/`_editingType` in all save functions, but it was called BEFORE the `if (_editingId && _editingType === 'task')` check — so the check was always false, always inserting.
+
+**Fix:** Capture `_editingId` and `_editingType` into local `const editId`/`const editType` before `closeModal()`. Use local vars for the edit-vs-insert branch. Applied to `saveTask()`, `saveAccomplishment()`, `saveCopilotUser()`, `saveIssue()`.
+
+**Orphan fix:** `updateTask()` and `updateAccomplishment()` now delete the old `submission_approvals` record (by `data.approval_id`) before creating a new approval workflow entry, preventing orphaned approval rows.
+
+**Cleanup:** New `sql/012_cleanup_duplicates.sql` removes existing duplicates (same employee+description within 1 minute) and orphaned approval records.
+
+**Files:** `src/pages/index.html`, `js/db.js`, `sql/012_cleanup_duplicates.sql`
+
+#### Fix 2: SPOC Mandatory Approval (AI → SPOC → Admin)
+**Problem:** SPOCs only saw tasks when AI validation failed. The routing sent most tasks directly through AI review, bypassing SPOCs entirely.
+
+**Fix:** Rewrote `determineApprovalRouting()` to always start at `ai_review`, then mandatory `spoc_review`, then `admin_review` only if hours ≥ 15. Rewrote `approveSubmission()` as a state machine — each approval advances to the next layer instead of jumping to `approved`. SPOC self-approval is allowed per requirement.
+
+**State machine:**
+```
+ai_review → spoc_review → (admin_review if ≥15h) → approved
+                        → approved (if <15h)
+Any layer reject → rejected
+```
+
+**Files:** `js/db.js` (determineApprovalRouting, approveSubmission), `js/phase8-submission.js` (tier display, badge), `src/pages/index.html` (handleApprovalAction, updateApprovalTierDisplay)
+
+#### Fix 3: Mandatory Employee Dropdown
+**Problem:** Employee name was a free-text input. Users could type any name, and `employee_email` was never stored from the autocomplete selection (a data gap).
+
+**Fix:** Replaced `<input type="text" id="f-employee">` with a searchable dropdown (text input + floating list) populated from `copilot_users` with `status = 'access granted'`. Mandatory: validation blocks submission unless an employee is selected from the list (checks `data-selectedUserId`). Admin sees all practices, SPOC sees own practice only. Selected employee's ID, email, and name are stored with the task via hidden fields.
+
+**Files:** `src/pages/index.html` (HTML + saveTask + editTask + form reset), `js/phase8-submission.js` (initEmployeeDropdown replacing initEmployeeAutocomplete)
+
+**Docs impact:** HLD updated (approval pipeline section), CODE_ARCHITECTURE unchanged (same public interfaces, just new behavior).
+
 ### 0m. April 13, 2026 — Inactive Members: practice list reflects task activity
 
 **Problem:** The My Practice "Inactive Members" list showed many users as "Never logged" even after tasks were submitted. The list relied on `copilot_users.has_logged_task` and `copilot_users.last_task_date`, which are not consistently updated for contributor-submitted tasks due to RLS.

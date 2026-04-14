@@ -22,100 +22,170 @@ window.Phase8 = (() => {
     selectedSuggestion: null,
   };
 
-  // ========== EMPLOYEE AUTOCOMPLETE ==========
+  // ========== EMPLOYEE SEARCHABLE DROPDOWN ==========
   
   /**
-   * Initialize employee autocomplete in a text input
-   * @param {string} inputId - ID of employee input field
+   * Initialize a searchable employee dropdown from licensed Copilot users.
+   * Admin sees all practices; SPOC sees own practice only.
+   * @param {string} searchInputId - ID of the search text input
    * @param {string} practiceId - ID of practice select field
    */
-  async function initEmployeeAutocomplete(inputId, practiceId) {
-    const input = document.getElementById(inputId);
+  async function initEmployeeDropdown(searchInputId, practiceId) {
+    const searchInput = document.getElementById(searchInputId);
     const practiceSelect = document.getElementById(practiceId);
-    if (!input || !practiceSelect) return;
+    if (!searchInput || !practiceSelect) return;
 
-    let currentList = [];
+    let allUsers = [];
+    const userRole = typeof EAS_Auth !== 'undefined' ? EAS_Auth.getUserRole() : 'contributor';
 
-    // On practice change, update employee list
+    // Helper: fetch users based on role and practice
+    async function loadUsers(practice) {
+      if (userRole === 'admin') {
+        // Admin can log tasks for anyone; if practice selected, filter by it
+        allUsers = await EAS_DB.fetchCopilotUsersByPractice(practice || null);
+      } else {
+        // SPOC/contributor: only their own practice
+        allUsers = practice ? await EAS_DB.fetchCopilotUsersByPractice(practice) : [];
+      }
+      renderDropdownOptions('');
+    }
+
+    // Helper: render filtered options
+    function renderDropdownOptions(filter) {
+      const dropdown = document.getElementById(searchInputId.replace('-search', '') + '-dropdown-list');
+      if (!dropdown) return;
+
+      const term = filter.toLowerCase();
+      const filtered = term
+        ? allUsers.filter(u => u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term))
+        : allUsers;
+
+      dropdown.innerHTML = '';
+      if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'padding:10px 12px;color:var(--text-muted);font-size:13px;text-align:center';
+        empty.textContent = allUsers.length === 0 ? 'Select a practice first' : 'No matching employees found';
+        dropdown.appendChild(empty);
+      } else {
+        filtered.slice(0, 20).forEach(user => {
+          const item = document.createElement('div');
+          item.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s';
+          item.innerHTML = `<div style="font-weight:500">${user.name}</div><div style="font-size:12px;color:var(--text-muted)">${user.email}${user.practice ? ' — ' + user.practice : ''}</div>`;
+          item.addEventListener('mouseenter', () => item.style.background = 'var(--hover-bg)');
+          item.addEventListener('mouseleave', () => item.style.background = 'transparent');
+          item.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // prevent blur before click completes
+            selectEmployee(user);
+          });
+          dropdown.appendChild(item);
+        });
+        if (filtered.length > 20) {
+          const more = document.createElement('div');
+          more.style.cssText = 'padding:6px 12px;color:var(--text-muted);font-size:12px;text-align:center';
+          more.textContent = `...and ${filtered.length - 20} more. Type to narrow results.`;
+          dropdown.appendChild(more);
+        }
+      }
+    }
+
+    // Helper: select an employee
+    function selectEmployee(user) {
+      searchInput.value = user.name;
+      document.getElementById('f-employee-id').value = user.id;
+      document.getElementById('f-employee-email').value = user.email;
+      searchInput.dataset.selectedUserId = user.id;
+      searchInput.dataset.selectedEmail = user.email;
+      searchInput.dataset.selectedName = user.name;
+      hideDropdown();
+    }
+
+    // Create and attach the dropdown container
+    function ensureDropdown() {
+      const existingDropdown = document.getElementById(searchInputId.replace('-search', '') + '-dropdown-list');
+      if (existingDropdown) return existingDropdown;
+
+      const container = searchInput.parentElement;
+      const dropdown = document.createElement('div');
+      dropdown.id = searchInputId.replace('-search', '') + '-dropdown-list';
+      dropdown.style.cssText = `
+        display:none; position:absolute; top:100%; left:0; right:0; z-index:1001;
+        max-height:220px; overflow-y:auto; background:var(--surface); 
+        border:1px solid var(--primary); border-top:none; border-radius:0 0 6px 6px;
+        box-shadow:0 4px 12px rgba(0,0,0,0.15);
+      `;
+      container.appendChild(dropdown);
+      return dropdown;
+    }
+
+    function showDropdown() {
+      const dropdown = ensureDropdown();
+      dropdown.style.display = 'block';
+    }
+
+    function hideDropdown() {
+      const dropdown = document.getElementById(searchInputId.replace('-search', '') + '-dropdown-list');
+      if (dropdown) dropdown.style.display = 'none';
+    }
+
+    // On practice change, reload users
     practiceSelect.addEventListener('change', async () => {
       const practice = practiceSelect.value;
-      currentList = practice ? await EAS_DB.fetchCopilotUsersByPractice(practice) : [];
+      searchInput.value = '';
+      searchInput.dataset.selectedUserId = '';
+      searchInput.dataset.selectedEmail = '';
+      searchInput.dataset.selectedName = '';
+      document.getElementById('f-employee-id').value = '';
+      document.getElementById('f-employee-email').value = '';
+      await loadUsers(practice);
     });
 
-    // On input, show autocomplete dropdown
-    input.addEventListener('input', async (e) => {
-      const practice = practiceSelect.value;
-      const searchTerm = e.target.value.toLowerCase();
-
-      if (!searchTerm) {
-        hideAutocompleteSuggestions(inputId);
-        return;
-      }
-
-      if (!currentList.length && practice) {
-        currentList = await EAS_DB.fetchCopilotUsersByPractice(practice);
-      }
-
-      const filtered = currentList.filter(u => 
-        u.name.toLowerCase().includes(searchTerm) || 
-        u.email.toLowerCase().includes(searchTerm)
-      );
-
-      showAutocompleteSuggestions(inputId, filtered, (user) => {
-        input.value = user.name;
-        input.dataset.selectedUserId = user.id;
-        input.dataset.selectedEmail = user.email;
-        hideAutocompleteSuggestions(inputId);
-      });
+    // On search input focus, show dropdown
+    searchInput.addEventListener('focus', () => {
+      ensureDropdown();
+      renderDropdownOptions(searchInput.value);
+      showDropdown();
     });
 
-    // Handle manual entry (not in Copilot users)
-    input.addEventListener('blur', () => {
+    // On search input typing, filter
+    searchInput.addEventListener('input', () => {
+      // Clear selected state when user types
+      searchInput.dataset.selectedUserId = '';
+      searchInput.dataset.selectedEmail = '';
+      searchInput.dataset.selectedName = '';
+      document.getElementById('f-employee-id').value = '';
+      document.getElementById('f-employee-email').value = '';
+      renderDropdownOptions(searchInput.value);
+      showDropdown();
+    });
+
+    // On blur, hide dropdown and validate selection
+    searchInput.addEventListener('blur', () => {
       setTimeout(() => {
-        if (!input.dataset.selectedUserId && input.value.trim()) {
-          // User manually typed a name not in Copilot users
-          // Show prompt to add user
-          showToast('Employee not found in Copilot users. Click "Add New Employee" to register.', 'info');
+        hideDropdown();
+        // If typed value doesn't match a selection, warn
+        if (searchInput.value.trim() && !searchInput.dataset.selectedUserId) {
+          searchInput.style.borderColor = 'var(--danger)';
+        } else if (searchInput.dataset.selectedUserId) {
+          searchInput.style.borderColor = 'var(--success)';
+        } else {
+          searchInput.style.borderColor = '';
         }
       }, 200);
     });
+
+    // Pre-load users if practice is already selected
+    if (practiceSelect.value) {
+      await loadUsers(practiceSelect.value);
+    }
   }
 
-  function showAutocompleteSuggestions(inputId, users, onSelect) {
-    // Remove existing dropdown
-    const existing = document.getElementById(inputId + '-dropdown');
-    if (existing) existing.remove();
-
-    if (!users.length) return;
-
-    const container = document.getElementById(inputId).parentElement;
-    const dropdown = document.createElement('div');
-    dropdown.id = inputId + '-dropdown';
-    dropdown.style.cssText = `
-      position: absolute; top: 100%; left: 0; right: 0; 
-      background: var(--surface); border: 1px solid var(--border); 
-      border-radius: 4px; max-height: 200px; overflow-y: auto; 
-      z-index: 1000; margin-top: -2px;
-    `;
-
-    users.slice(0, 10).forEach(user => {
-      const item = document.createElement('div');
-      item.style.cssText = `
-        padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border);
-        hover: background: var(--hover-bg);
-      `;
-      item.innerHTML = `<div style="font-weight:500">${user.name}</div><div style="font-size:12px;color:var(--text-muted)">${user.email}</div>`;
-      item.onclick = () => onSelect(user);
-      dropdown.appendChild(item);
-    });
-
-    container.style.position = 'relative';
-    container.appendChild(dropdown);
-  }
-
-  function hideAutocompleteSuggestions(inputId) {
-    const dropdown = document.getElementById(inputId + '-dropdown');
-    if (dropdown) dropdown.remove();
+  /**
+   * Legacy wrapper — calls the new dropdown initializer
+   */
+  function initEmployeeAutocomplete(inputId, practiceId) {
+    // Map old input ID to new search input ID
+    const searchId = inputId + '-search';
+    initEmployeeDropdown(searchId, practiceId);
   }
 
   // ========== SAVED HOURS CALCULATION ==========
@@ -463,9 +533,9 @@ window.Phase8 = (() => {
 
         // Determine approval routing based on saved_hours
         const savedHours = (formData.timeWithout || 0) - (formData.timeWith || 0);
-        const approvalLayer = savedHours >= 15 ? 'admin' : 'ai';
+        const approvalMsg = savedHours >= 15 ? 'AI → SPOC → Admin' : 'AI → SPOC';
 
-        showToast(`Task submitted for ${approvalLayer} review (${savedHours.toFixed(1)} hrs saved)`, 'success');
+        showToast(`Task submitted for ${approvalMsg} review (${savedHours.toFixed(1)} hrs saved)`, 'success');
         return { id: taskId, approval };
       } else if (submissionType === 'accomplishment') {
         const result = isAdmin && formData.bypassApproval
@@ -494,6 +564,7 @@ window.Phase8 = (() => {
       'pending': { label: 'Pending', color: '#FFA500', icon: '⏳' },
       'ai_review': { label: 'AI Reviewing', color: '#4A90E2', icon: '🤖' },
       'spoc_review': { label: 'SPOC Reviewing', color: '#6C5CE7', icon: '👤' },
+      'admin_review': { label: 'Admin Reviewing', color: '#8B5CF6', icon: '👑' },
       'approved': { label: 'Approved', color: '#27AE60', icon: '✅' },
       'rejected': { label: 'Rejected', color: '#E74C3C', icon: '❌' },
     };
@@ -506,6 +577,7 @@ window.Phase8 = (() => {
   const api = {
     // Initialization
     initEmployeeAutocomplete,
+    initEmployeeDropdown,
     initSavedHoursCalculation,
 
     // AI Features

@@ -165,6 +165,23 @@ All database tables have RLS enabled with policies that enforce:
 - **Analytics and KPIs** (dashboard, forecasts, exports) use **approved-only** tasks/accomplishments.
 - **Pending submissions** remain visible in lists with approval badges but are excluded from calculations.
 
+### Approval Pipeline (AI → SPOC → Admin)
+
+All task/accomplishment submissions follow a mandatory multi-layer approval state machine:
+
+1. **AI Review** (`ai_review`): Automated AI validation runs first. If AI validation fails, skips to SPOC.
+2. **SPOC Review** (`spoc_review`): **Mandatory for all submissions.** The practice SPOC must review and approve every member's submission. If no SPOC is configured, falls back to admin.
+3. **Admin Review** (`admin_review`): Required only when `saved_hours ≥ 15`. Otherwise, SPOC approval is the final gate.
+4. **Approved** (`approved`): Submission passes all required layers.
+5. **Rejected** (`rejected`): Any layer can reject, stopping the pipeline.
+
+State transitions in `approveSubmission()`:
+- `ai_review` → `spoc_review`
+- `spoc_review` → `admin_review` (if ≥15h) OR `approved` (if <15h)
+- `admin_review` → `approved`
+
+Employee selection in the task form is mandatory — users must pick from the `copilot_users` dropdown (licensed users with `access granted` status). Admin sees all practices; SPOC sees own practice only.
+
 ---
 
 ## 5. Data Architecture

@@ -1440,10 +1440,16 @@ npm run compile</code></pre>
       <span id="f-project-hint" style="font-size:11px;color:var(--text-muted);display:none">Project not listed? Select "Other" to type manually</span>
     </div>
     <div class="form-row">
-      <div class="form-group">
+      <div class="form-group" style="position:relative">
         <label>Employee Name <span class="required">*</span></label>
-        <input type="text" id="f-employee" required>
-        <span style="font-size:11px;color:var(--text-muted)">Type to search Copilot users</span>
+        <div style="position:relative">
+          <input type="text" id="f-employee-search" placeholder="Type to search employees..." autocomplete="off" style="margin-bottom:0">
+          <select id="f-employee" size="1" style="display:none">
+          </select>
+          <input type="hidden" id="f-employee-id">
+          <input type="hidden" id="f-employee-email">
+        </div>
+        <span style="font-size:11px;color:var(--text-muted)">Select from licensed Copilot users (choose practice first)</span>
       </div>
       <div class="form-group">
         <label>Task / Activity <span class="required">*</span></label>
@@ -2961,7 +2967,23 @@ async function handleApprovalAction(approvalId, action) {
     }
 
     if (result) {
-      showToast(`Submission ${action === 'approve' ? 'approved' : 'rejected'} successfully`, 'success');
+      // The state machine may advance to next layer instead of fully approving
+      const newStatus = result.approval_status;
+      let msg;
+      if (action === 'approve') {
+        if (newStatus === 'spoc_review') {
+          msg = 'AI review passed — forwarded to SPOC for review';
+        } else if (newStatus === 'admin_review') {
+          msg = 'SPOC approved — forwarded to Admin for final review (≥15h saved)';
+        } else if (newStatus === 'approved') {
+          msg = 'Submission fully approved!';
+        } else {
+          msg = 'Submission advanced to next review stage';
+        }
+      } else {
+        msg = 'Submission rejected';
+      }
+      showToast(msg, 'success');
       closeModal('approval-detail');
       await renderApprovals();
     } else {
@@ -3966,13 +3988,13 @@ function openModal(type) {
         document.getElementById('f-week').value = weekNum;
         document.getElementById('f-weekstart').value = weekRange.start;
         document.getElementById('f-weekend').value = weekRange.end;
-        // Auto-fill employee name for contributors
+        // Auto-fill employee name for contributors (uses new search input)
         const userName = EAS_Auth.getUserName();
-        const empField = document.getElementById('f-employee');
-        if (userName && (!empField.value || empField.value === '')) {
-          empField.value = userName;
+        const empSearchField = document.getElementById('f-employee-search');
+        if (userName && empSearchField && (!empSearchField.value || empSearchField.value === '')) {
+          empSearchField.value = userName;
         }
-        // Phase 8: Initialize AI features
+        // Phase 8: Initialize AI features (employee dropdown)
         console.log('  → Initializing Phase8...');
         Phase8.setCurrentSubmission('task');
         Phase8.initEmployeeAutocomplete('f-employee', 'f-practice');
@@ -4061,13 +4083,13 @@ function updateApprovalTierDisplay() {
     tierDisplay.textContent = '🔐 Skipping approval (admin)';
     tierDisplay.style.color = 'var(--warning)';
   } else if (savedHours >= 15) {
-    tierDisplay.textContent = '👤 → Will route to Admin/Omar only';
+    tierDisplay.textContent = '🤖→👤→👑 AI → SPOC → Admin review';
     tierDisplay.style.color = 'var(--purple)';
   } else if (savedHours > 0) {
-    tierDisplay.textContent = '🤖 → Will route to AI validator first';
+    tierDisplay.textContent = '🤖→👤 AI → SPOC review';
     tierDisplay.style.color = 'var(--info)';
   } else if (savedHours === 0) {
-    tierDisplay.textContent = '✓ Zero hours saved - still valid';
+    tierDisplay.textContent = '🤖→👤 AI → SPOC review (zero hours)';
     tierDisplay.style.color = 'var(--success)';
   } else {
     tierDisplay.textContent = '⚠️ Negative time saved';
@@ -4078,8 +4100,19 @@ function updateApprovalTierDisplay() {
 async function saveTask() {
   const practice = document.getElementById('f-practice').value;
   if (!practice) { showToast('Please select a practice', 'error'); return; }
-  const employee = document.getElementById('f-employee').value;
-  if (!employee) { showToast('Please select or enter employee name', 'error'); return; }
+
+  // Employee must be selected from the dropdown (mandatory)
+  const empSearch = document.getElementById('f-employee-search');
+  const employeeId = document.getElementById('f-employee-id').value || empSearch?.dataset?.selectedUserId || '';
+  const employeeEmail = document.getElementById('f-employee-email').value || empSearch?.dataset?.selectedEmail || '';
+  const employeeName = empSearch?.dataset?.selectedName || empSearch?.value || '';
+  if (!employeeId || !employeeName) {
+    showToast('Please select an employee from the dropdown list', 'error');
+    if (empSearch) empSearch.style.borderColor = 'var(--danger)';
+    empSearch?.focus();
+    return;
+  }
+
   const taskDesc = document.getElementById('f-task').value;
   if (!taskDesc) { showToast('Please enter task description', 'error'); return; }
   const timeWithout = parseFloat(document.getElementById('f-time-without').value) || 0;
@@ -4110,7 +4143,9 @@ async function saveTask() {
     weekEnd: weekEnd,
     project: projectName,
     projectCode: projectCode,
-    employee: employee,
+    employee: employeeName,
+    employeeEmail: employeeEmail,
+    employeeId: employeeId,
     task: taskDesc,
     category: document.getElementById('f-category').value,
     aiTool: document.getElementById('f-tool').value,
@@ -4122,14 +4157,18 @@ async function saveTask() {
     notes: document.getElementById('f-notes').value,
     bypassApproval: document.getElementById('f-bypass-approval') ? document.getElementById('f-bypass-approval').checked : false
   };
+
+  // Capture editing state BEFORE closeModal clears it
+  const editId = _editingId;
+  const editType = _editingType;
   closeModal('task');
 
   let result;
   let isEdit = false;
-  if (_editingId && _editingType === 'task') {
+  if (editId && editType === 'task') {
     isEdit = true;
     showToast('Updating task (will require re-approval)...');
-    result = await EAS_DB.updateTask(_editingId, taskData);
+    result = await EAS_DB.updateTask(editId, taskData);
     _editingId = null; _editingType = null;
     document.querySelector('#modal-task .modal h3').textContent = 'Log AI Task';
     document.querySelector('#modal-task .btn-primary').textContent = 'Save Task';
@@ -4155,7 +4194,17 @@ async function saveTask() {
   document.getElementById('f-week').value = resetWeekNum;
   document.getElementById('f-weekstart').value = resetWeek.start;
   document.getElementById('f-weekend').value = resetWeek.end;
-  document.getElementById('f-employee').value = '';
+  // Reset employee dropdown fields
+  const empSearchReset = document.getElementById('f-employee-search');
+  if (empSearchReset) {
+    empSearchReset.value = '';
+    empSearchReset.dataset.selectedUserId = '';
+    empSearchReset.dataset.selectedEmail = '';
+    empSearchReset.dataset.selectedName = '';
+    empSearchReset.style.borderColor = '';
+  }
+  document.getElementById('f-employee-id').value = '';
+  document.getElementById('f-employee-email').value = '';
   document.getElementById('f-task').value = '';
   document.getElementById('f-task-why').value = '';
   document.getElementById('f-time-without').value = '';
@@ -4195,14 +4244,18 @@ async function saveAccomplishment() {
     evidence: '',
     notes: ''
   };
+
+  // Capture editing state BEFORE closeModal clears it
+  const editId = _editingId;
+  const editType = _editingType;
   closeModal('accomplishment');
 
   let result;
   let isEdit = false;
-  if (_editingId && _editingType === 'accomplishment') {
+  if (editId && editType === 'accomplishment') {
     isEdit = true;
     showToast('Updating accomplishment (will require re-approval)...');
-    result = await EAS_DB.updateAccomplishment(_editingId, acc);
+    result = await EAS_DB.updateAccomplishment(editId, acc);
     _editingId = null; _editingType = null;
     document.querySelector('#modal-accomplishment .modal h3').textContent = 'Log Accomplishment';
     document.querySelector('#modal-accomplishment .btn-primary').textContent = 'Save';
@@ -4243,14 +4296,18 @@ async function saveCopilotUser() {
     remarks: document.getElementById('fc-status').value,
     status: document.getElementById('fc-status').value
   };
+
+  // Capture editing state BEFORE closeModal clears it
+  const editId = _editingId;
+  const editType = _editingType;
   closeModal('copilot');
 
   let result;
   let isEdit = false;
-  if (_editingId && _editingType === 'copilot') {
+  if (editId && editType === 'copilot') {
     isEdit = true;
     showToast('Updating copilot user...');
-    result = await EAS_DB.updateCopilotUser(_editingId, user);
+    result = await EAS_DB.updateCopilotUser(editId, user);
     _editingId = null; _editingType = null;
     document.querySelector('#modal-copilot .modal h3').textContent = 'Add Copilot User';
     document.querySelector('#modal-copilot .btn-primary').textContent = 'Save';
@@ -4288,12 +4345,15 @@ async function saveIssue() {
 
   if (!issueData.practice) { showToast('Please select a practice', 'error'); return; }
 
+  // Capture editing state BEFORE closeModal clears it
+  const editId = _editingId;
+  const editType = _editingType;
   closeModal('issue');
 
   let result;
-  if (_editingId && _editingType === 'issue') {
+  if (editId && editType === 'issue') {
     showToast('Updating issue...');
-    result = await EAS_DB.updateReportedIssue(_editingId, issueData);
+    result = await EAS_DB.updateReportedIssue(editId, issueData);
     _editingId = null; _editingType = null;
     document.querySelector('#modal-issue .modal h3').textContent = 'Report Issue / Blocker';
     document.querySelector('#modal-issue .btn-primary').textContent = 'Submit Issue';
@@ -4522,7 +4582,17 @@ function editTask(id) {
       if (projManual) { projManual.style.display = 'block'; projManual.value = task.project; }
     }
   }
-  document.getElementById('f-employee').value = task.employee || '';
+  // Populate the new employee search + hidden fields for editing
+  const empSearchEdit = document.getElementById('f-employee-search');
+  if (empSearchEdit) {
+    empSearchEdit.value = task.employee || '';
+    empSearchEdit.dataset.selectedUserId = task.employeeId || task.id || 'legacy';
+    empSearchEdit.dataset.selectedEmail = task.employeeEmail || '';
+    empSearchEdit.dataset.selectedName = task.employee || '';
+    empSearchEdit.style.borderColor = task.employee ? 'var(--success)' : '';
+  }
+  document.getElementById('f-employee-id').value = task.employeeId || 'legacy';
+  document.getElementById('f-employee-email').value = task.employeeEmail || '';
   document.getElementById('f-task').value = task.task || '';
   document.getElementById('f-category').value = task.category || '';
   document.getElementById('f-tool').value = task.aiTool || '';

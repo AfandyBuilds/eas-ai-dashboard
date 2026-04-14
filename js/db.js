@@ -610,6 +610,10 @@ const EAS_DB = (() => {
 
     // Create new approval workflow for the update (unless admin)
     if (!isAdmin && data) {
+      // Delete the old approval record to prevent orphans
+      if (data.approval_id) {
+        await sb.from('submission_approvals').delete().eq('id', data.approval_id);
+      }
       const savedHours = (data.time_without_ai || 0) - (data.time_with_ai || 0);
       const approval = await createSubmissionApproval('task', data.id, savedHours, null, data.practice, false);
       if (approval) {
@@ -711,6 +715,10 @@ const EAS_DB = (() => {
 
     // Create new approval workflow for the update (unless admin)
     if (!isAdmin && data) {
+      // Delete the old approval record to prevent orphans
+      if (data.approval_id) {
+        await sb.from('submission_approvals').delete().eq('id', data.approval_id);
+      }
       const savedHours = data.effort_saved || 0;
       const approval = await createSubmissionApproval('accomplishment', data.id, savedHours, null, data.practice, false);
       if (approval) {
@@ -1286,39 +1294,33 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Determine approval routing based on business rules
-   * - If saved_hours >= 15: Always goes to admin (Omar Ibrahim)
-   * - If AI validation fails: Goes to SPOC for that practice
-   * - Otherwise: AI validation first, then SPOC approval if AI passes
+   * Determine approval routing based on business rules.
+   * NEW FLOW: AI → SPOC (mandatory) → Admin (if saved_hours ≥ 15)
+   * Every member task MUST pass through their practice SPOC.
+   * - Initial submission: always starts at 'ai_review'
+   * - After AI pass/fail: advances to 'spoc_review' (SPOC is mandatory for all)
+   * - After SPOC approves: if saved_hours ≥ 15, advances to 'admin_review'; otherwise 'approved'
+   * - On any rejection at any layer: status becomes 'rejected'
    */
   async function determineApprovalRouting(practice, savedHours, aiValidationFailed) {
-    let approvalStatus = 'pending';
+    let approvalStatus = 'ai_review';
     let approvalLayer = 'ai';
     let spocId = null;
     let adminId = null;
+    let needsAdminReview = savedHours >= 15;
 
-    // Always go to admin if saved_hours >= 15
-    if (savedHours >= 15) {
-      approvalStatus = 'admin_review';
-      approvalLayer = 'admin';
-      // Get admin user (Omar Ibrahim for now - hardcoded for BFSI admin)
-      const { data: adminData } = await sb
-        .from('users')
-        .select('id')
-        .eq('role', 'admin')
-        .limit(1)
-        .single();
-      adminId = adminData?.id || null;
-    } 
-    // If AI validation failed, go to SPOC
-    else if (aiValidationFailed) {
+    // Always look up SPOC for later stages
+    const spocData = await getSpocForPractice(practice);
+    if (spocData?.spoc_id) {
+      spocId = spocData.spoc_id;
+    }
+
+    // If AI validation already failed, skip AI review and go directly to SPOC
+    if (aiValidationFailed) {
       approvalStatus = 'spoc_review';
       approvalLayer = 'spoc';
-      const spocData = await getSpocForPractice(practice);
-      if (spocData?.spoc_id) {
-        spocId = spocData.spoc_id;
-      } else {
-        // Fallback to admin if SPOC not found
+      if (!spocId) {
+        // Fallback to admin if no SPOC configured
         const { data: adminData } = await sb
           .from('users')
           .select('id')
@@ -1329,14 +1331,20 @@ const EAS_DB = (() => {
         approvalLayer = 'admin';
         approvalStatus = 'admin_review';
       }
-    } 
-    // Default: AI review first
-    else {
-      approvalStatus = 'ai_review';
-      approvalLayer = 'ai';
     }
 
-    return { approvalStatus, approvalLayer, spocId, adminId };
+    // Pre-fetch admin ID if high-hours task (will need it after SPOC approves)
+    if (needsAdminReview) {
+      const { data: adminData } = await sb
+        .from('users')
+        .select('id')
+        .eq('role', 'admin')
+        .limit(1)
+        .single();
+      adminId = adminData?.id || null;
+    }
+
+    return { approvalStatus, approvalLayer, spocId, adminId, needsAdminReview };
   }
 
   /**
@@ -1519,19 +1527,82 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Approve a task/accomplishment
+   * Approve a task/accomplishment — implements state machine:
+   * AI → SPOC (mandatory) → Admin (if ≥15h) → approved
+   * Each approval advances to the next layer, not directly to 'approved'.
    */
   async function approveSubmission(approvalId, approvalNotes = '') {
     const profile = await EAS_Auth.getUserProfile();
+    const userRole = profile?.role;
+
+    // Fetch current approval state
+    const { data: current, error: fetchErr } = await sb
+      .from('submission_approvals')
+      .select('*')
+      .eq('id', approvalId)
+      .single();
+    if (fetchErr || !current) {
+      console.error('approveSubmission: could not fetch approval', fetchErr);
+      return null;
+    }
+
+    const currentStatus = current.approval_status;
+    const savedHours = current.saved_hours || 0;
+    let nextStatus = 'approved';
+    let nextLayer = null;
+
+    // State machine: determine next state
+    if (currentStatus === 'ai_review') {
+      // AI reviewed → advance to SPOC review (mandatory for all)
+      nextStatus = 'spoc_review';
+      nextLayer = 'spoc';
+    } else if (currentStatus === 'spoc_review') {
+      // SPOC reviewed → advance to Admin review if ≥15h, otherwise approve
+      if (savedHours >= 15) {
+        nextStatus = 'admin_review';
+        nextLayer = 'admin';
+      } else {
+        nextStatus = 'approved';
+        nextLayer = null;
+      }
+    } else if (currentStatus === 'admin_review') {
+      // Admin reviewed → final approval
+      nextStatus = 'approved';
+      nextLayer = null;
+    }
+
     const payload = {
-      approval_status: 'approved',
-      approved_by: profile?.id,
-      approved_by_name: profile?.name,
-      approved_by_email: profile?.email,
-      approved_at: new Date().toISOString(),
-      admin_approval_notes: approvalNotes || null,
-      admin_reviewed_at: new Date().toISOString()
+      approval_status: nextStatus,
+      approval_layer: nextLayer || current.approval_layer,
     };
+
+    // Track who acted at each layer
+    if (currentStatus === 'ai_review') {
+      payload.ai_reviewed_at = new Date().toISOString();
+      payload.ai_approval_notes = approvalNotes || null;
+    } else if (currentStatus === 'spoc_review') {
+      payload.spoc_reviewed_by = profile?.id;
+      payload.spoc_reviewed_by_name = profile?.name;
+      payload.spoc_reviewed_at = new Date().toISOString();
+      payload.spoc_approval_notes = approvalNotes || null;
+    }
+
+    // Mark final approval metadata
+    if (nextStatus === 'approved') {
+      payload.approved_by = profile?.id;
+      payload.approved_by_name = profile?.name;
+      payload.approved_by_email = profile?.email;
+      payload.approved_at = new Date().toISOString();
+      payload.admin_approval_notes = approvalNotes || null;
+      payload.admin_reviewed_at = new Date().toISOString();
+    } else if (currentStatus === 'admin_review') {
+      payload.approved_by = profile?.id;
+      payload.approved_by_name = profile?.name;
+      payload.approved_by_email = profile?.email;
+      payload.approved_at = new Date().toISOString();
+      payload.admin_approval_notes = approvalNotes || null;
+      payload.admin_reviewed_at = new Date().toISOString();
+    }
 
     const { data: approval, error } = await sb
       .from('submission_approvals')
@@ -1542,19 +1613,23 @@ const EAS_DB = (() => {
     
     if (error) { console.error('approveSubmission error:', error.message); return null; }
 
-    // Update the actual task/accomplishment
+    // Update the actual task/accomplishment status to match
     if (approval) {
       const table = approval.submission_type === 'task' ? 'tasks' : 'accomplishments';
-      await sb.from(table).update({
-        approval_status: 'approved',
-        approved_by: profile?.id,
-        approved_by_name: profile?.name
-      }).eq('id', approval.submission_id);
+      const taskUpdate = { approval_status: nextStatus };
+      if (nextStatus === 'approved') {
+        taskUpdate.approved_by = profile?.id;
+        taskUpdate.approved_by_name = profile?.name;
+      }
+      await sb.from(table).update(taskUpdate).eq('id', approval.submission_id);
 
-      await logActivity('APPROVE', `submission_approvals`, approvalId, { 
+      const actionLabel = nextStatus === 'approved' ? 'APPROVE' : 'ADVANCE';
+      await logActivity(actionLabel, `submission_approvals`, approvalId, { 
         submission_type: approval.submission_type,
         submission_id: approval.submission_id,
-        saved_hours: approval.saved_hours
+        saved_hours: approval.saved_hours,
+        from_status: currentStatus,
+        to_status: nextStatus
       });
     }
 
