@@ -367,7 +367,7 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
       </div>
 
       <div class="form-group">
-        <label for="taskDetails">Task Details <span style="font-size:0.85em;opacity:0.7">(optional)</span></label>
+        <label for="taskDetails">Why is this important? <span style="font-size:0.85em;opacity:0.7">(optional)</span></label>
         <textarea id="taskDetails" rows="2"
           placeholder="Additional context or details about the task..."></textarea>
       </div>
