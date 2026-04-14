@@ -143,6 +143,7 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │
 ├── deploy/                 # Deployment shell scripts (DEPLOYMENT_MIGRATION.sh)
 ├── .github/                # Source-of-truth copilot-instructions.md, agents/, skills/
+│   └── skills/data-sync/   # Weekly data sync skill (tracker + Grafana)
 ├── .env.example            # Environment variable template
 ├── .gitignore              # Ignores: .env, node_modules, logs
 ├── package.json            # Dependencies

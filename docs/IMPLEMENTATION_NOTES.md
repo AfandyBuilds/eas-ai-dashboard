@@ -6,6 +6,39 @@
 
 ## Changes Made
 
+### 0s. April 15, 2026 — Dedup Post-Sync + Data-Sync Skill
+
+**Purpose:** Clean up duplicate records created when tracker_sync data overlapped with existing web-sourced records. Establish a reusable weekly sync skill.
+
+**Duplicate audit results (before cleanup):**
+
+| Table | Dupe Groups | Extra Rows | Pattern |
+|---|---|---|---|
+| tasks | 29 | 37 | web + tracker_sync overlap (some web-web triples) |
+| projects | 20 | 21 | old (no sync_hash) + tracker_sync (has sync_hash) |
+| copilot_users | 0 | 0 | Clean (email unique constraint) |
+| accomplishments | 0 | 0 | Clean |
+| submission_approvals | 1 pair + 4 orphans | 5 | Dupe pair + orphaned test record |
+| activity_log | 10 | 26 | Genuine repeated user actions (different timestamps) — kept |
+
+**Cleanup actions (migration `018_dedup_post_sync.sql`):**
+1. Tasks: Deleted 37 web-sourced records where tracker_sync version existed for same (practice, employee_name, week_number, task_description). Kept tracker_sync (complete, has sync_hash).
+2. Projects: Deleted 21 records without sync_hash where record with sync_hash existed for same (practice, project_name, project_code).
+3. Submission approvals: Deleted 3 (1 dupe admin_review keeping approved, 1 test record, 1 truly orphaned approval). Fixed 1 approval linkage (task ac5c7ed2 → approval 03944f90).
+4. Activity log: Kept as-is — 26 entries are genuine repeated user actions at different timestamps.
+
+**Post-cleanup table counts:**
+| Table | Before | After | Removed |
+|---|---|---|---|
+| tasks | 94 | 57 | 37 |
+| projects | 49 | 28 | 21 |
+| copilot_users | 171 | 171 | 0 |
+| accomplishments | 9 | 9 | 0 |
+| submission_approvals | 13 | 10 | 3 |
+| activity_log | 87 | 87 | 0 |
+
+**Data-sync skill created:** `.github/skills/data-sync/SKILL.md` — documents the full weekly sync procedure (file placement, script execution, MCP SQL order, verification queries, dedup patterns). Designed for weekly reuse with the same set of refreshed files.
+
 ### 0r. April 14, 2026 — Data Sync Phase: Tracker Sheet + Grafana IDE Usage
 
 **Purpose:** Establish a recurring (weekly/bi-weekly) data sync process to keep the database current with the master tracker spreadsheet and Grafana IDE usage telemetry.
