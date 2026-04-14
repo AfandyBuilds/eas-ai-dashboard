@@ -1454,7 +1454,9 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Fetch pending approvals for admin/SPOC
+   * Fetch pending approvals for admin/SPOC.
+   * SPOC matching uses spoc_id first, with practice-based fallback for
+   * legacy records where spoc_id was never backfilled.
    */
   async function fetchPendingApprovals(userRole, userPractice, userId) {
     try {
@@ -1467,10 +1469,12 @@ const EAS_DB = (() => {
         // Admin sees items at their layer (admin_review) + all other pending for visibility
         query = query.in('approval_status', ['pending', 'admin_review', 'ai_review', 'spoc_review']);
       } else if (userRole === 'spoc') {
-        // SPOC sees approvals pending for their practice
+        // SPOC sees approvals pending SPOC review for their practice.
+        // Use .or() to match both spoc_id (preferred) and practice (fallback
+        // for legacy rows where spoc_id is NULL).
         query = query
           .eq('approval_status', 'spoc_review')
-          .eq('spoc_id', userId);
+          .or(`spoc_id.eq.${userId},and(spoc_id.is.null,practice.eq.${userPractice})`);
       }
 
       const { data, error } = await query;

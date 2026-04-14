@@ -4038,6 +4038,14 @@ function openModal(type) {
         document.getElementById('pw-success').style.display = 'none';
       }
     }
+    // For task modals in edit mode, ensure Phase8 saved-hours calculation is initialized
+    if (_editingId && type === 'task') {
+      Phase8.setCurrentSubmission('task');
+      Phase8.initEmployeeAutocomplete('f-employee', 'f-practice');
+      Phase8.initSavedHoursCalculation('f-time-without', 'f-time-with', 'f-saved-hours-display');
+      const role = EAS_Auth.getUserRole();
+      document.getElementById('f-bypass-label').style.display = role === 'admin' ? 'inline' : 'none';
+    }
     const modal = document.getElementById('modal-' + type);
     if (!modal) {
       console.error('❌ Modal not found:', 'modal-' + type);
@@ -4607,6 +4615,8 @@ function editTask(id) {
   document.querySelector('#modal-task .modal h3').textContent = 'Edit Task';
   document.querySelector('#modal-task .btn-primary').textContent = 'Update Task';
   openModal('task');
+  // Trigger saved-hours recalculation after programmatic value set
+  document.getElementById('f-time-without').dispatchEvent(new Event('input'));
 }
 
 function deleteTaskConfirm(id) {
