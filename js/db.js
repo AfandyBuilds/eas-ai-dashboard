@@ -615,7 +615,7 @@ const EAS_DB = (() => {
         await sb.from('submission_approvals').delete().eq('id', data.approval_id);
       }
       const savedHours = (data.time_without_ai || 0) - (data.time_with_ai || 0);
-      const approval = await createSubmissionApproval('task', data.id, savedHours, null, data.practice, false);
+      const approval = await createSubmissionApproval('task', data.id, savedHours, data.practice);
       if (approval) {
         await sb.from('tasks').update({
           approval_id: approval.id
@@ -1290,21 +1290,24 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Determine approval routing based on business rules.
-   * FLOW: SPOC (mandatory first human reviewer) → Admin (only if saved_hours ≥ 15)
-   * AI validation happens inline during submission (edge function), not as a queue stage.
-   * Every member task MUST pass through their practice SPOC.
-   * - Initial submission: always starts at 'spoc_review' (SPOC is mandatory for all)
-   * - After SPOC approves: if saved_hours ≥ 15, advances to 'admin_review'; otherwise 'approved'
-   * - On any rejection: status becomes 'rejected'
+   * Determine approval routing based on saved hours.
+   * RULES (AI validation removed):
+   * - savedHours < 5    → auto-approve (no approval record needed)
+   * - 5 ≤ savedHours ≤ 10 → SPOC review only
+   * - savedHours > 10   → SPOC review first, then Admin review
+   * On any rejection: status becomes 'rejected'
    */
-  async function determineApprovalRouting(practice, savedHours, aiValidationFailed) {
-    // Always start at SPOC review — SPOC is the mandatory first human reviewer
+  async function determineApprovalRouting(practice, savedHours) {
+    // Auto-approve: tasks with less than 5 hours saved
+    if (savedHours < 5) {
+      return { approvalStatus: 'approved', approvalLayer: null, spocId: null, adminId: null, needsAdminReview: false, autoApproved: true };
+    }
+
     let approvalStatus = 'spoc_review';
     let approvalLayer = 'spoc';
     let spocId = null;
     let adminId = null;
-    let needsAdminReview = savedHours >= 15;
+    let needsAdminReview = savedHours > 10;
 
     // Look up SPOC for this practice
     const spocData = await getSpocForPractice(practice);
@@ -1335,17 +1338,23 @@ const EAS_DB = (() => {
       adminId = adminData?.id || null;
     }
 
-    return { approvalStatus, approvalLayer, spocId, adminId, needsAdminReview };
+    return { approvalStatus, approvalLayer, spocId, adminId, needsAdminReview, autoApproved: false };
   }
 
   /**
-   * Create a submission approval workflow entry with proper routing
+   * Create a submission approval workflow entry with proper routing.
+   * AI validation has been removed — routing is purely hours-based.
    */
-  async function createSubmissionApproval(submissionType, submissionId, savedHours, aiValidationResult = null, practice = null, aiValidationFailed = false) {
+  async function createSubmissionApproval(submissionType, submissionId, savedHours, practice = null) {
     const profile = await EAS_Auth.getUserProfile();
     
-    // Determine routing
-    const routing = await determineApprovalRouting(practice, savedHours, aiValidationFailed);
+    // Determine routing (hours-based, no AI)
+    const routing = await determineApprovalRouting(practice, savedHours);
+
+    // Auto-approved tasks skip the approval record entirely
+    if (routing.autoApproved) {
+      return { id: null, autoApproved: true, approval_status: 'approved' };
+    }
     
     const payload = {
       submission_type: submissionType,
@@ -1356,8 +1365,8 @@ const EAS_DB = (() => {
       practice: practice,
       submitted_by: profile?.id,
       submitted_by_email: profile?.email,
-      ai_validation_result: aiValidationResult || null,
-      ai_validation_failed: aiValidationFailed,
+      ai_validation_result: null,
+      ai_validation_failed: false,
       spoc_id: routing.spocId,
       admin_id: routing.adminId
     };
@@ -1411,14 +1420,22 @@ const EAS_DB = (() => {
     const task = await insertTask(taskData);
     if (!task) return null;
 
-    // Create approval workflow with proper routing
+    // Create approval workflow with hours-based routing (no AI validation)
     const savedHours = (taskData.timeWithout || 0) - (taskData.timeWith || 0);
     const practice = taskData.practice;
-    const aiValidationFailed = taskData.aiValidationFailed || false;
     
-    const approval = await createSubmissionApproval('task', task.id, savedHours, null, practice, aiValidationFailed);
+    const approval = await createSubmissionApproval('task', task.id, savedHours, practice);
     
-    // Update task with approval ID and status
+    // Auto-approved: mark task as approved directly, no approval record
+    if (approval?.autoApproved) {
+      await sb.from('tasks').update({ 
+        approval_status: 'approved'
+      }).eq('id', task.id);
+      await logActivity('AUTO_APPROVE', 'tasks', task.id, { saved_hours: savedHours, reason: 'Less than 5 hours saved' });
+      return { task, approval: { autoApproved: true, approval_status: 'approved' } };
+    }
+
+    // Normal approval flow: link approval record to task
     if (approval) {
       await sb.from('tasks').update({ 
         approval_id: approval.id
@@ -1436,14 +1453,22 @@ const EAS_DB = (() => {
     const acc = await insertAccomplishment(accData);
     if (!acc) return null;
 
-    // Create approval workflow with proper routing
+    // Create approval workflow with hours-based routing (no AI validation)
     const savedHours = accData.effortSaved || 0;
     const practice = accData.practice;
-    const aiValidationFailed = accData.aiValidationFailed || false;
     
-    const approval = await createSubmissionApproval('accomplishment', acc.id, savedHours, null, practice, aiValidationFailed);
+    const approval = await createSubmissionApproval('accomplishment', acc.id, savedHours, practice);
     
-    // Update accomplishment with approval ID and status
+    // Auto-approved: mark accomplishment as approved directly
+    if (approval?.autoApproved) {
+      await sb.from('accomplishments').update({ 
+        approval_status: 'approved'
+      }).eq('id', acc.id);
+      await logActivity('AUTO_APPROVE', 'accomplishments', acc.id, { saved_hours: savedHours, reason: 'Less than 5 hours saved' });
+      return { acc, approval: { autoApproved: true, approval_status: 'approved' } };
+    }
+
+    // Normal approval flow: link approval record
     if (approval) {
       await sb.from('accomplishments').update({ 
         approval_id: approval.id
@@ -1467,7 +1492,7 @@ const EAS_DB = (() => {
 
       if (userRole === 'admin') {
         // Admin sees items at their layer (admin_review) + all other pending for visibility
-        query = query.in('approval_status', ['pending', 'admin_review', 'ai_review', 'spoc_review']);
+        query = query.in('approval_status', ['pending', 'admin_review', 'spoc_review']);
       } else if (userRole === 'spoc') {
         // SPOC sees approvals pending SPOC review for their practice.
         // Use .or() to match both spoc_id (preferred) and practice (fallback
@@ -1543,10 +1568,10 @@ const EAS_DB = (() => {
     let nextLayer = null;
 
     // State machine: determine next state
-    // Flow: spoc_review → (admin_review if ≥15h, else approved) → approved
+    // Flow: spoc_review → (admin_review if >10h, else approved) → approved
     if (currentStatus === 'spoc_review') {
-      // SPOC reviewed → advance to Admin review if ≥15h, otherwise approve
-      if (savedHours >= 15) {
+      // SPOC reviewed → advance to Admin review if >10h, otherwise approve
+      if (savedHours > 10) {
         nextStatus = 'admin_review';
         nextLayer = 'admin';
       } else {

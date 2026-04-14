@@ -2056,7 +2056,7 @@ function approvalBadge(approvalStatus) {
   if (!approvalStatus) return '<span style="color:#FFA500;font-weight:600;font-size:12px">⏳ Pending</span>';
   const map = {
     'pending':      { label: 'Pending',         color: '#FFA500', icon: '⏳' },
-    'ai_review':    { label: 'AI Reviewing',     color: '#4A90E2', icon: '🤖' },
+    'ai_review':    { label: 'AI Review (legacy)', color: '#4A90E2', icon: '🤖' },
     'spoc_review':  { label: 'SPOC Review',      color: '#6C5CE7', icon: '👤' },
     'admin_review': { label: 'Admin Review',     color: '#E67E22', icon: '🔒' },
     'approved':     { label: 'Approved',         color: '#27AE60', icon: '✅' },
@@ -4090,18 +4090,18 @@ function updateApprovalTierDisplay() {
   if (bypassChecked) {
     tierDisplay.textContent = '🔐 Skipping approval (admin)';
     tierDisplay.style.color = 'var(--warning)';
-  } else if (savedHours >= 15) {
-    tierDisplay.textContent = '👤→👑 SPOC → Admin review (≥15h saved)';
-    tierDisplay.style.color = 'var(--purple)';
-  } else if (savedHours > 0) {
-    tierDisplay.textContent = '👤 → SPOC review';
-    tierDisplay.style.color = 'var(--info)';
-  } else if (savedHours === 0) {
-    tierDisplay.textContent = '👤 → SPOC review (zero hours)';
-    tierDisplay.style.color = 'var(--success)';
-  } else {
+  } else if (savedHours < 0) {
     tierDisplay.textContent = '⚠️ Negative time saved';
     tierDisplay.style.color = 'var(--error)';
+  } else if (savedHours < 5) {
+    tierDisplay.textContent = '✅ Auto-approved (<5h saved)';
+    tierDisplay.style.color = 'var(--success)';
+  } else if (savedHours <= 10) {
+    tierDisplay.textContent = '👤 → SPOC review (5–10h saved)';
+    tierDisplay.style.color = 'var(--info)';
+  } else {
+    tierDisplay.textContent = '👤→👑 SPOC → Admin review (>10h saved)';
+    tierDisplay.style.color = 'var(--purple)';
   }
 }
 

@@ -762,7 +762,6 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <select class="filter-select" id="approval-filter-status" onchange="renderApprovals()">
             <option value="">All Status</option>
             <option value="pending">Pending Admin</option>
-            <option value="ai_review">AI Review</option>
             <option value="spoc_review">SPOC Review</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
@@ -2144,7 +2143,7 @@ function renderPendingApprovals(approvals = []) {
   filtered.forEach(approval => {
     const statusLabel = {
       'pending': '⏳ Pending Admin',
-      'ai_review': '🤖 AI Review',
+      'ai_review': '🤖 AI Review (legacy)',
       'spoc_review': '👤 SPOC Review',
       'admin_review': '⏳ Admin Review'
     }[approval.approval_status] || approval.approval_status;

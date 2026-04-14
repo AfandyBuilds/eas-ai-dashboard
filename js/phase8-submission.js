@@ -220,97 +220,19 @@ window.Phase8 = (() => {
     updateSavedHours();
   }
 
-  // ========== AI VALIDATION ==========
+  // ========== AI VALIDATION (DISABLED) ==========
 
   /**
-   * Validate submission against quality rules via AI
+   * AI validation has been disabled. Approval routing is now purely hours-based:
+   * - < 5h saved → auto-approved
+   * - 5–10h saved → SPOC review
+   * - > 10h saved → SPOC → Admin review
    */
-  async function validateSubmission(submissionType, savedHours, whyText, whatText, aiTool, category) {
-    if (!whyText?.trim() || !whatText?.trim()) {
-      showToast('Please fill in all required fields', 'warning');
-      return { isValid: false, reason: 'Missing required fields' };
-    }
-
-    try {
-      showToast('Validating submission with AI...', 'info');
-      const response = await fetch(`${API_BASE}/ai-validate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionType, savedHours, whyText, whatText, aiTool, category }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        if (err.fallback) {
-          showToast('AI service unavailable, submission will use SPOC approval', 'warning');
-          return err.fallback;
-        }
-        throw new Error(err.error || 'Validation failed');
-      }
-
-      const result = await response.json();
-      _currentSubmission.aiValidation = result.validation;
-      showValidationResult(result.validation);
-      return result.validation;
-    } catch (err) {
-      console.error('Validation error:', err);
-      showToast('Validation failed, will proceed to SPOC review', 'warning');
-      return { isValid: false, reason: err.message };
-    }
+  async function validateSubmission() {
+    return { isValid: true, reason: 'AI validation disabled — hours-based routing active' };
   }
 
-  function showValidationResult(validation) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.style.zIndex = '2000';
-    modal.innerHTML = `
-      <div class="modal" style="max-width:600px">
-        <h3>Validation Result</h3>
-        <div style="margin:16px 0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-            <div style="font-size:24px">${validation.isValid ? '✅' : '⚠️'}</div>
-            <div>
-              <div style="font-weight:600;font-size:14px">${validation.isValid ? 'Valid' : 'Needs Review'}</div>
-              <div style="font-size:12px;color:var(--text-muted)">${validation.reason || ''}</div>
-            </div>
-          </div>
-          
-          <div style="background:var(--hover-bg);padding:12px;border-radius:4px;margin:12px 0;font-size:13px">
-            <div style="font-weight:600;margin-bottom:8px">Validation Checks:</div>
-            ${validation.passedRules?.length ? `
-              <div style="color:var(--success);margin-bottom:8px">
-                <strong>Passed:</strong> ${validation.passedRules.join(', ')}
-              </div>
-            ` : ''}
-            ${validation.failedRules?.length ? `
-              <div style="color:var(--warning)">
-                <strong>Review:</strong> ${validation.failedRules.join(', ')}
-              </div>
-            ` : ''}
-          </div>
-
-          ${validation.suggestions?.length ? `
-            <div style="margin:12px 0">
-              <div style="font-weight:600;margin-bottom:8px">Suggestions:</div>
-              <ul style="margin-left:16px;font-size:13px">
-                ${validation.suggestions.map(s => `<li>${s}</li>`).join('')}
-              </ul>
-            </div>
-          ` : ''}
-
-          <div style="display:flex;gap:8px;margin-top:16px;font-size:13px">
-            <div>Score: <strong>${validation.overallScore || 0}%</strong></div>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
-          ${!validation.isValid ? `<button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Continue Anyway</button>` : ''}
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-  }
+  // showValidationResult removed — AI validation no longer used
 
   // ========== APPROVAL WORKFLOW ==========
 
@@ -331,11 +253,18 @@ window.Phase8 = (() => {
         const taskId = result.task?.id || result.id;
         const approval = result.approval;
 
-        // Determine approval routing based on saved_hours
+        // Show appropriate message based on hours-based routing
         const savedHours = (formData.timeWithout || 0) - (formData.timeWith || 0);
-        const approvalMsg = savedHours >= 15 ? 'SPOC → Admin' : 'SPOC';
+        let approvalMsg;
+        if (approval?.autoApproved) {
+          approvalMsg = 'Auto-approved';
+        } else if (savedHours > 10) {
+          approvalMsg = 'SPOC → Admin review';
+        } else {
+          approvalMsg = 'SPOC review';
+        }
 
-        showToast(`Task submitted for ${approvalMsg} review (${savedHours.toFixed(1)} hrs saved)`, 'success');
+        showToast(`Task submitted — ${approvalMsg} (${savedHours.toFixed(1)} hrs saved)`, 'success');
         return { id: taskId, approval };
       } else if (submissionType === 'accomplishment') {
         const result = isAdmin && formData.bypassApproval
@@ -346,7 +275,8 @@ window.Phase8 = (() => {
         const accId = result.acc?.id || result.id;
         const approval = result.approval;
 
-        showToast(`Accomplishment submitted for review`, 'success');
+        const msg = approval?.autoApproved ? 'Auto-approved' : 'Submitted for review';
+        showToast(`Accomplishment ${msg}`, 'success');
         return { id: accId, approval };
       }
     } catch (err) {
@@ -362,7 +292,7 @@ window.Phase8 = (() => {
   function getApprovalStatusBadge(status) {
     const statusMap = {
       'pending': { label: 'Pending', color: '#FFA500', icon: '⏳' },
-      'ai_review': { label: 'AI Reviewing', color: '#4A90E2', icon: '🤖' },
+      'ai_review': { label: 'AI Review (legacy)', color: '#4A90E2', icon: '🤖' },
       'spoc_review': { label: 'SPOC Reviewing', color: '#6C5CE7', icon: '👤' },
       'admin_review': { label: 'Admin Reviewing', color: '#8B5CF6', icon: '👑' },
       'approved': { label: 'Approved', color: '#27AE60', icon: '✅' },

@@ -280,24 +280,56 @@ function validateTaskPayload(body: Record<string, unknown>): string[] {
 }
 
 /**
- * Determine approval routing based on business rules.
- * Mirrors the logic in js/db.js → determineApprovalRouting()
+ * Determine approval routing based on saved hours (AI validation removed).
+ * Rules:
+ * - savedHours < 5    → auto-approve (no approval record needed)
+ * - 5 ≤ savedHours ≤ 10 → SPOC review only
+ * - savedHours > 10   → SPOC review first, then Admin review
  */
 async function determineApprovalRouting(
   serviceClient: ReturnType<typeof createClient>,
   practice: string,
-  savedHours: number,
-  aiValidationFailed: boolean
+  savedHours: number
 ) {
   let approvalStatus = "pending";
-  let approvalLayer = "ai";
+  let approvalLayer: string | null = null;
   let spocId: string | null = null;
   let adminId: string | null = null;
+  let autoApproved = false;
 
-  // Always go to admin if saved_hours >= 15
-  if (savedHours >= 15) {
-    approvalStatus = "admin_review";
+  // Auto-approve tasks with less than 5 hours saved
+  if (savedHours < 5) {
+    return { approvalStatus: "approved", approvalLayer: null, spocId: null, adminId: null, autoApproved: true };
+  }
+
+  // 5–10h: SPOC review only; >10h: SPOC then Admin
+  approvalStatus = "spoc_review";
+  approvalLayer = "spoc";
+  const needsAdminReview = savedHours > 10;
+
+  const { data: spocData } = await serviceClient
+    .from("practice_spoc")
+    .select("spoc_id")
+    .eq("practice", practice)
+    .eq("is_active", true)
+    .single();
+  if (spocData?.spoc_id) {
+    spocId = spocData.spoc_id;
+  } else {
+    // Fallback to admin if SPOC not found
+    const { data: adminData } = await serviceClient
+      .from("users")
+      .select("id")
+      .eq("role", "admin")
+      .limit(1)
+      .single();
+    adminId = adminData?.id || null;
     approvalLayer = "admin";
+    approvalStatus = "admin_review";
+  }
+
+  // Pre-fetch admin ID if high-hours task
+  if (needsAdminReview && !adminId) {
     const { data: adminData } = await serviceClient
       .from("users")
       .select("id")
@@ -306,80 +338,12 @@ async function determineApprovalRouting(
       .single();
     adminId = adminData?.id || null;
   }
-  // If AI validation failed, go to SPOC
-  else if (aiValidationFailed) {
-    approvalStatus = "spoc_review";
-    approvalLayer = "spoc";
-    const { data: spocData } = await serviceClient
-      .from("practice_spoc")
-      .select("spoc_id")
-      .eq("practice", practice)
-      .eq("is_active", true)
-      .single();
-    if (spocData?.spoc_id) {
-      spocId = spocData.spoc_id;
-    } else {
-      // Fallback to admin if SPOC not found
-      const { data: adminData } = await serviceClient
-        .from("users")
-        .select("id")
-        .eq("role", "admin")
-        .limit(1)
-        .single();
-      adminId = adminData?.id || null;
-      approvalLayer = "admin";
-      approvalStatus = "admin_review";
-    }
-  }
-  // Default: AI review first
-  else {
-    approvalStatus = "ai_review";
-    approvalLayer = "ai";
-  }
 
-  return { approvalStatus, approvalLayer, spocId, adminId };
+  return { approvalStatus, approvalLayer, spocId, adminId, autoApproved };
 }
 
-/**
- * Call the ai-validate Edge Function for AI validation scoring.
- * This is a service-to-service call within the same Supabase project.
- */
-async function callAiValidation(
-  taskDescription: string,
-  aiTool: string,
-  category: string,
-  savedHours: number
-): Promise<Record<string, unknown> | null> {
-  try {
-    const validateUrl = `${supabaseUrl}/functions/v1/ai-validate`;
-    const response = await fetch(validateUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${supabaseServiceKey}`,
-      },
-      body: JSON.stringify({
-        submissionType: "task",
-        savedHours,
-        whyText: taskDescription,
-        whatText: taskDescription,
-        aiTool,
-        category,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("AI validation HTTP error:", response.status);
-      return null;
-    }
-
-    const result = await response.json();
-    return result?.validation || null;
-  } catch (err) {
-    console.error("AI validation call failed:", err);
-    return null;
-  }
-}
+// callAiValidation removed — AI validation is no longer used.
+// Approval routing is now purely hours-based.
 
 async function handleSubmitTask(
   userClient: ReturnType<typeof createClient>,
@@ -450,26 +414,60 @@ async function handleSubmitTask(
     return errorResponse(`Failed to create task: ${insertError.message}`, 500);
   }
 
-  // --- Approval Workflow ---
-  // Service client for approval routing lookups (needs cross-practice access)
+  // --- Approval Workflow (hours-based, AI validation removed) ---
   const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Call AI validation (fire-and-forget pattern — don't block on failure)
-  const aiValidation = await callAiValidation(
-    taskPayload.task_description as string,
-    taskPayload.ai_tool as string,
-    taskPayload.category as string,
-    savedHours
-  );
-  const aiValidationFailed = aiValidation ? !(aiValidation.isValid) : true;
-
-  // Determine approval routing
+  // Determine approval routing based on saved hours
   const routing = await determineApprovalRouting(
     serviceClient,
     profile.practice as string,
-    savedHours,
-    aiValidationFailed
+    savedHours
   );
+
+  // Auto-approved: mark task directly, skip approval record
+  if (routing.autoApproved) {
+    await userClient.from("tasks").update({
+      approval_status: "approved",
+    }).eq("id", task.id);
+
+    await serviceClient.from("activity_log").insert({
+      user_id: profile.id,
+      action: "AUTO_APPROVE",
+      entity_type: "tasks",
+      entity_id: task.id,
+      details: {
+        task: task.task_description,
+        source: "ide",
+        ai_tool: task.ai_tool,
+        saved_hours: savedHours,
+        reason: "Less than 5 hours saved",
+      },
+    });
+
+    return jsonResponse({
+      success: true,
+      task: {
+        id: task.id,
+        description: task.task_description,
+        category: task.category,
+        aiTool: task.ai_tool,
+        timeWithoutAi: task.time_without_ai,
+        timeWithAi: task.time_with_ai,
+        timeSaved: savedHours,
+        qualityRating: task.quality_rating,
+        source: "ide",
+        quarterId: task.quarter_id,
+        project: task.project,
+        createdAt: task.created_at,
+      },
+      approval: {
+        id: null,
+        status: "approved",
+        layer: null,
+        autoApproved: true,
+      },
+    }, 201);
+  }
 
   // Create submission approval record (using service client for cross-table access)
   const approvalPayload = {
@@ -481,8 +479,8 @@ async function handleSubmitTask(
     practice: profile.practice,
     submitted_by: profile.id,
     submitted_by_email: profile.email,
-    ai_validation_result: aiValidation || null,
-    ai_validation_failed: aiValidationFailed,
+    ai_validation_result: null,
+    ai_validation_failed: false,
     spoc_id: routing.spocId,
     admin_id: routing.adminId,
   };
@@ -548,13 +546,7 @@ async function handleSubmitTask(
       id: approval.id,
       status: approval.approval_status,
       layer: approval.approval_layer,
-      aiValidation: aiValidation
-        ? {
-            isValid: aiValidation.isValid,
-            score: aiValidation.overallScore,
-            reason: aiValidation.reason,
-          }
-        : null,
+      autoApproved: false,
     },
   }, 201);
 }
