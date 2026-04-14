@@ -1893,3 +1893,23 @@ tr:hover td { background: var(--bg-translucent); }
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ======== IDE Usage Stats (page-ide-usage) ======== */
+.ide-period-banner {
+  background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ide-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.ide-sortable:hover { color: var(--accent); }
+.ide-sort-arrow { font-size: 10px; margin-left: 4px; opacity: 0.4; }
+.ide-sortable.sorted .ide-sort-arrow { opacity: 1; color: var(--accent); }
+.ide-metric-th { text-align: right; }
