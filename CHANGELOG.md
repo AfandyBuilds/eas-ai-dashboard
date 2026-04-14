@@ -10,6 +10,8 @@ This changelog is **append-only**. Every task, regardless of origin, must add an
 
 ## [Unreleased]
 
+- 2026-04-14 (copilot) — **IDE Usage Analytics Page in Admin Panel** — Added new "IDE Usage" page to admin panel showing Grafana Copilot IDE telemetry data. Features: 6 KPI summary cards (active users, code generations, acceptances, LOC added, agent days, chat days), filterable/sortable table with 13 columns, practice filter, search by name/username, CSV export. Data queried live from `copilot_users` IDE columns via Supabase. Accessible at `admin.html#ide-usage`. (feat/ui)
+
 - 2026-04-14 (copilot) — **Fix: Task Count Mismatch — Show Both Total & Approved Counts** — Dashboard KPI "Total Tasks" sourced from `practice_summary` (approved-only) while nav badge and All Tasks tab counted all tasks regardless of approval status. Updated all locations to show both: Dashboard KPI now shows total tasks with "X approved" subtitle, nav badges show `N (M ✓)`, All Tasks pagination shows `(X approved)`, and My Tasks badge includes approved count. Applied same fix to admin.html. (fix/ui)
 
 - 2026-04-15 (copilot) — **Dedup Post-Sync + Data-Sync Skill** — Audited and cleaned duplicate records across all tables after Phase 11 data sync. Removed 37 duplicate tasks (web+tracker_sync overlap, kept tracker_sync), 21 duplicate projects (kept version with sync_hash), 3 orphaned/duplicate submission_approvals. Fixed 1 approval linkage (task with null approval_id). Activity log left as-is (genuine repeated user actions). Created reusable `.github/skills/data-sync/SKILL.md` skill for weekly recurring data sync. Migration: `018_dedup_post_sync.sql`. Final counts: tasks 57, projects 28, copilot_users 171, accomplishments 9, approvals 10. (fix/data, feat/skill)

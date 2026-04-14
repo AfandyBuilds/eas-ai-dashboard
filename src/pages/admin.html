@@ -558,6 +558,11 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       Projects
       <span class="badge" id="admin-proj-count">0</span>
     </div>
+    <div class="nav-item" data-page="ide-usage">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      IDE Usage
+      <span class="badge" id="admin-ide-count">0</span>
+    </div>
     <div class="nav-item" data-page="manage-approvals">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 12 15 15 10"/></svg>
       Approvals
@@ -1096,6 +1101,70 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div>
 
+    <!-- IDE Usage Page -->
+    <div id="page-ide-usage" class="page hidden">
+      <div class="page-header">
+        <div>
+          <h2>IDE Usage Analytics</h2>
+          <div class="subtitle">GitHub Copilot IDE activity from Grafana telemetry</div>
+        </div>
+        <button class="btn btn-secondary" onclick="exportIdeUsageCsv()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+      <div class="page-content">
+        <div class="kpi-grid" id="ide-kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">Active Users</div><div class="kpi-value cyan" id="ide-kpi-users">--</div></div>
+          <div class="kpi-card"><div class="kpi-label">Code Generations</div><div class="kpi-value blue" id="ide-kpi-codegens">--</div></div>
+          <div class="kpi-card"><div class="kpi-label">Code Acceptances</div><div class="kpi-value green" id="ide-kpi-acceptances">--</div></div>
+          <div class="kpi-card"><div class="kpi-label">LOC Added</div><div class="kpi-value purple" id="ide-kpi-loc">--</div></div>
+          <div class="kpi-card"><div class="kpi-label">Agent Days</div><div class="kpi-value pink" id="ide-kpi-agent">--</div></div>
+          <div class="kpi-card"><div class="kpi-label">Chat Days</div><div class="kpi-value yellow" id="ide-kpi-chat">--</div></div>
+        </div>
+        <div class="filters-bar">
+          <input type="text" class="search-input" id="ide-usage-search" placeholder="Search by name or username..." oninput="filterIdeTable()">
+          <select class="filter-select" id="ide-usage-filter-practice" onchange="filterIdeTable()"><option value="">All Practices</option></select>
+          <select class="filter-select" id="ide-usage-sort" onchange="filterIdeTable()">
+            <option value="ide_days_active">Sort: Days Active</option>
+            <option value="ide_code_generations">Sort: Code Generations</option>
+            <option value="ide_loc_added">Sort: LOC Added</option>
+            <option value="ide_total_interactions">Sort: Interactions</option>
+            <option value="name">Sort: Name</option>
+          </select>
+        </div>
+        <div class="table-card">
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Practice</th>
+                  <th style="text-align:right">Days Active</th>
+                  <th style="text-align:right">Code Gens</th>
+                  <th style="text-align:right">Acceptances</th>
+                  <th style="text-align:right">Interactions</th>
+                  <th style="text-align:right">LOC Added</th>
+                  <th style="text-align:right">LOC Suggested</th>
+                  <th style="text-align:right">Agent Days</th>
+                  <th style="text-align:right">Chat Days</th>
+                  <th>Last Active</th>
+                  <th>Data Period</th>
+                </tr>
+              </thead>
+              <tbody id="ide-usage-tbody">
+                <tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text-muted)">Loading IDE usage data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted)">
+          <strong>Data source:</strong> Grafana Copilot IDE usage telemetry, synced via <code>scripts/sync_grafana.py</code>. Only users with IDE activity are shown. Data period is shown per user.
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /admin-app -->
 
@@ -1504,6 +1573,7 @@ function renderCurrentPage(page) {
     case 'manage-users': renderAdminUsers(); break;
     case 'manage-executives': renderAdminExecutives(); break;
     case 'manage-permissions': renderAdminPermissions(); break;
+    case 'ide-usage': renderIdeUsage(); break;
   }
 }
 
@@ -3851,6 +3921,120 @@ async function resetAllPermissions() {
 
 // Toggle button click handler
 document.getElementById('adoption-agent-toggle')?.addEventListener('click', toggleAdoptionAgent);
+
+// ============ IDE USAGE ANALYTICS ============
+let _ideUsageData = [];
+
+async function renderIdeUsage() {
+  const sb = getSupabaseClient();
+  const { data: rows, error } = await sb
+    .from('copilot_users')
+    .select('name, username, practice, ide_days_active, ide_total_interactions, ide_code_generations, ide_code_acceptances, ide_agent_days, ide_chat_days, ide_loc_suggested, ide_loc_added, ide_last_active_date, ide_data_period')
+    .not('ide_days_active', 'is', null)
+    .gt('ide_days_active', 0)
+    .order('ide_days_active', { ascending: false });
+
+  if (error) {
+    showToast('Failed to load IDE usage data: ' + error.message, 'error');
+    return;
+  }
+
+  _ideUsageData = rows || [];
+
+  // Update badge
+  const badge = document.getElementById('admin-ide-count');
+  if (badge) badge.textContent = _ideUsageData.length;
+
+  // Populate practice filter
+  const practiceSet = new Set(_ideUsageData.map(r => r.practice).filter(Boolean));
+  const sel = document.getElementById('ide-usage-filter-practice');
+  if (sel) {
+    while (sel.options.length > 1) sel.remove(1);
+    [...practiceSet].sort().forEach(p => {
+      const o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      sel.appendChild(o);
+    });
+  }
+
+  // KPIs
+  const totUsers = _ideUsageData.length;
+  const totCodeGens = _ideUsageData.reduce((s, r) => s + (r.ide_code_generations || 0), 0);
+  const totAcceptances = _ideUsageData.reduce((s, r) => s + (r.ide_code_acceptances || 0), 0);
+  const totLoc = _ideUsageData.reduce((s, r) => s + (r.ide_loc_added || 0), 0);
+  const totAgent = _ideUsageData.reduce((s, r) => s + (r.ide_agent_days || 0), 0);
+  const totChat = _ideUsageData.reduce((s, r) => s + (r.ide_chat_days || 0), 0);
+
+  document.getElementById('ide-kpi-users').textContent = totUsers.toLocaleString();
+  document.getElementById('ide-kpi-codegens').textContent = totCodeGens.toLocaleString();
+  document.getElementById('ide-kpi-acceptances').textContent = totAcceptances.toLocaleString();
+  document.getElementById('ide-kpi-loc').textContent = totLoc.toLocaleString();
+  document.getElementById('ide-kpi-agent').textContent = totAgent.toLocaleString();
+  document.getElementById('ide-kpi-chat').textContent = totChat.toLocaleString();
+
+  filterIdeTable();
+}
+
+function filterIdeTable() {
+  const search = (document.getElementById('ide-usage-search')?.value || '').toLowerCase();
+  const practice = document.getElementById('ide-usage-filter-practice')?.value || '';
+  const sortBy = document.getElementById('ide-usage-sort')?.value || 'ide_days_active';
+
+  let items = _ideUsageData.slice();
+  if (practice) items = items.filter(r => r.practice === practice);
+  if (search) items = items.filter(r =>
+    (r.name || '').toLowerCase().includes(search) ||
+    (r.username || '').toLowerCase().includes(search)
+  );
+
+  // Sort
+  if (sortBy === 'name') {
+    items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  } else {
+    items.sort((a, b) => (b[sortBy] || 0) - (a[sortBy] || 0));
+  }
+
+  let html = '';
+  items.forEach((r, i) => {
+    const lastActive = r.ide_last_active_date ? new Date(r.ide_last_active_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    html += `<tr>
+      <td>${i + 1}</td>
+      <td style="font-weight:500">${r.name || r.username || '—'}</td>
+      <td>${r.practice || '—'}</td>
+      <td style="text-align:right;font-weight:600;color:var(--info)">${(r.ide_days_active || 0).toLocaleString()}</td>
+      <td style="text-align:right">${(r.ide_code_generations || 0).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--success)">${(r.ide_code_acceptances || 0).toLocaleString()}</td>
+      <td style="text-align:right">${(r.ide_total_interactions || 0).toLocaleString()}</td>
+      <td style="text-align:right;font-weight:600;color:var(--purple)">${(r.ide_loc_added || 0).toLocaleString()}</td>
+      <td style="text-align:right">${(r.ide_loc_suggested || 0).toLocaleString()}</td>
+      <td style="text-align:right">${(r.ide_agent_days || 0).toLocaleString()}</td>
+      <td style="text-align:right">${(r.ide_chat_days || 0).toLocaleString()}</td>
+      <td>${lastActive}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${r.ide_data_period || '—'}</td>
+    </tr>`;
+  });
+
+  if (!html) html = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text-muted)">No IDE usage data found</td></tr>';
+  document.getElementById('ide-usage-tbody').innerHTML = html;
+}
+
+function exportIdeUsageCsv() {
+  if (!_ideUsageData.length) { showToast('No IDE data to export', 'warning'); return; }
+  const headers = ['Name','Username','Practice','Days Active','Code Generations','Code Acceptances','Total Interactions','LOC Added','LOC Suggested','Agent Days','Chat Days','Last Active','Data Period'];
+  const rows = _ideUsageData.map(r => [
+    r.name, r.username, r.practice,
+    r.ide_days_active, r.ide_code_generations, r.ide_code_acceptances,
+    r.ide_total_interactions, r.ide_loc_added, r.ide_loc_suggested,
+    r.ide_agent_days, r.ide_chat_days, r.ide_last_active_date, r.ide_data_period
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ide_usage_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('CSV exported');
+}
 </script>
 
 </body>
