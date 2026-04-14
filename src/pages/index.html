@@ -2918,9 +2918,11 @@ async function viewApprovalDetail(approvalId) {
     document.getElementById('approval-detail-title').textContent = `${approval.submission_type === 'task' ? 'Task' : 'Accomplishment'} Submission Detail`;
     document.getElementById('approval-detail-body').innerHTML = detailRows;
 
-    // Show approve/reject actions for pending items (admin or SPOC with matching practice)
+    // Show approve/reject actions ONLY for items at the user's approval layer
+    // Admin can only act on admin_review items (not ai_review or spoc_review)
+    // SPOC can only act on spoc_review items for their practice
     const canAct = isPending && (
-      userRole === 'admin' ||
+      (userRole === 'admin' && approval.approval_status === 'admin_review') ||
       (userRole === 'spoc' && approval.approval_status === 'spoc_review' && approval.practice === EAS_Auth.getUserPractice())
     );
 
@@ -4083,13 +4085,13 @@ function updateApprovalTierDisplay() {
     tierDisplay.textContent = '🔐 Skipping approval (admin)';
     tierDisplay.style.color = 'var(--warning)';
   } else if (savedHours >= 15) {
-    tierDisplay.textContent = '🤖→👤→👑 AI → SPOC → Admin review';
+    tierDisplay.textContent = '👤→👑 SPOC → Admin review (≥15h saved)';
     tierDisplay.style.color = 'var(--purple)';
   } else if (savedHours > 0) {
-    tierDisplay.textContent = '🤖→👤 AI → SPOC review';
+    tierDisplay.textContent = '👤 → SPOC review';
     tierDisplay.style.color = 'var(--info)';
   } else if (savedHours === 0) {
-    tierDisplay.textContent = '🤖→👤 AI → SPOC review (zero hours)';
+    tierDisplay.textContent = '👤 → SPOC review (zero hours)';
     tierDisplay.style.color = 'var(--success)';
   } else {
     tierDisplay.textContent = '⚠️ Negative time saved';

@@ -533,7 +533,7 @@ window.Phase8 = (() => {
 
         // Determine approval routing based on saved_hours
         const savedHours = (formData.timeWithout || 0) - (formData.timeWith || 0);
-        const approvalMsg = savedHours >= 15 ? 'AI → SPOC → Admin' : 'AI → SPOC';
+        const approvalMsg = savedHours >= 15 ? 'SPOC → Admin' : 'SPOC';
 
         showToast(`Task submitted for ${approvalMsg} review (${savedHours.toFixed(1)} hrs saved)`, 'success');
         return { id: taskId, approval };

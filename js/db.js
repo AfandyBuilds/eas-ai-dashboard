@@ -1295,46 +1295,41 @@ const EAS_DB = (() => {
 
   /**
    * Determine approval routing based on business rules.
-   * NEW FLOW: AI → SPOC (mandatory) → Admin (if saved_hours ≥ 15)
+   * FLOW: SPOC (mandatory first human reviewer) → Admin (only if saved_hours ≥ 15)
+   * AI validation happens inline during submission (edge function), not as a queue stage.
    * Every member task MUST pass through their practice SPOC.
-   * - Initial submission: always starts at 'ai_review'
-   * - After AI pass/fail: advances to 'spoc_review' (SPOC is mandatory for all)
+   * - Initial submission: always starts at 'spoc_review' (SPOC is mandatory for all)
    * - After SPOC approves: if saved_hours ≥ 15, advances to 'admin_review'; otherwise 'approved'
-   * - On any rejection at any layer: status becomes 'rejected'
+   * - On any rejection: status becomes 'rejected'
    */
   async function determineApprovalRouting(practice, savedHours, aiValidationFailed) {
-    let approvalStatus = 'ai_review';
-    let approvalLayer = 'ai';
+    // Always start at SPOC review — SPOC is the mandatory first human reviewer
+    let approvalStatus = 'spoc_review';
+    let approvalLayer = 'spoc';
     let spocId = null;
     let adminId = null;
     let needsAdminReview = savedHours >= 15;
 
-    // Always look up SPOC for later stages
+    // Look up SPOC for this practice
     const spocData = await getSpocForPractice(practice);
     if (spocData?.spoc_id) {
       spocId = spocData.spoc_id;
-    }
-
-    // If AI validation already failed, skip AI review and go directly to SPOC
-    if (aiValidationFailed) {
-      approvalStatus = 'spoc_review';
-      approvalLayer = 'spoc';
-      if (!spocId) {
-        // Fallback to admin if no SPOC configured
-        const { data: adminData } = await sb
-          .from('users')
-          .select('id')
-          .eq('role', 'admin')
-          .limit(1)
-          .single();
-        adminId = adminData?.id || null;
-        approvalLayer = 'admin';
-        approvalStatus = 'admin_review';
-      }
+    } else {
+      // No SPOC configured — fall back to admin
+      console.warn(`No SPOC found for practice "${practice}", falling back to admin`);
+      const { data: adminData } = await sb
+        .from('users')
+        .select('id')
+        .eq('role', 'admin')
+        .limit(1)
+        .single();
+      adminId = adminData?.id || null;
+      approvalLayer = 'admin';
+      approvalStatus = 'admin_review';
     }
 
     // Pre-fetch admin ID if high-hours task (will need it after SPOC approves)
-    if (needsAdminReview) {
+    if (needsAdminReview && !adminId) {
       const { data: adminData } = await sb
         .from('users')
         .select('id')
@@ -1477,7 +1472,7 @@ const EAS_DB = (() => {
         .order('submitted_at', { ascending: false });
 
       if (userRole === 'admin') {
-        // Admin sees all pending approvals
+        // Admin sees items at their layer (admin_review) + all other pending for visibility
         query = query.in('approval_status', ['pending', 'admin_review', 'ai_review', 'spoc_review']);
       } else if (userRole === 'spoc') {
         // SPOC sees approvals pending for their practice
@@ -1552,11 +1547,8 @@ const EAS_DB = (() => {
     let nextLayer = null;
 
     // State machine: determine next state
-    if (currentStatus === 'ai_review') {
-      // AI reviewed → advance to SPOC review (mandatory for all)
-      nextStatus = 'spoc_review';
-      nextLayer = 'spoc';
-    } else if (currentStatus === 'spoc_review') {
+    // Flow: spoc_review → (admin_review if ≥15h, else approved) → approved
+    if (currentStatus === 'spoc_review') {
       // SPOC reviewed → advance to Admin review if ≥15h, otherwise approve
       if (savedHours >= 15) {
         nextStatus = 'admin_review';
@@ -1569,6 +1561,10 @@ const EAS_DB = (() => {
       // Admin reviewed → final approval
       nextStatus = 'approved';
       nextLayer = null;
+    } else if (currentStatus === 'ai_review') {
+      // Legacy: if somehow still at ai_review, advance to SPOC
+      nextStatus = 'spoc_review';
+      nextLayer = 'spoc';
     }
 
     const payload = {
