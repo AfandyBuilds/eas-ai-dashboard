@@ -387,6 +387,7 @@ async function handleSubmitTask(
     employee_name: profile.name,
     employee_email: profile.email,
     task_description: (body.taskDescription as string).trim(),
+    task_details: body.taskDetails || null,
     category: body.category,
     ai_tool: body.aiTool,
     prompt_used: body.promptUsed || null,

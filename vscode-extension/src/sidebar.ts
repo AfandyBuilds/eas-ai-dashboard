@@ -112,6 +112,7 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
     try {
       const result = await submitTask({
         taskDescription: data.taskDescription as string,
+        taskDetails: data.taskDetails as string || undefined,
         category: data.category as string,
         aiTool: data.aiTool as string,
         timeWithoutAi: parseFloat(data.timeWithoutAi as string),
@@ -365,6 +366,12 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
           placeholder="Describe what you accomplished using AI...">${this._escapeHtml(suggestedDesc)}</textarea>
       </div>
 
+      <div class="form-group">
+        <label for="taskDetails">Task Details <span style="font-size:0.85em;opacity:0.7">(optional)</span></label>
+        <textarea id="taskDetails" rows="2"
+          placeholder="Additional context or details about the task..."></textarea>
+      </div>
+
       <div class="form-row">
         <div class="form-group">
           <label for="category">Category *</label>
@@ -478,6 +485,7 @@ export class TaskLoggerViewProvider implements vscode.WebviewViewProvider {
         command: 'submitTask',
         data: {
           taskDescription: document.getElementById('taskDescription').value,
+          taskDetails: document.getElementById('taskDetails') ? document.getElementById('taskDetails').value : undefined,
           category: document.getElementById('category').value,
           aiTool: document.getElementById('aiTool').value,
           timeWithoutAi: document.getElementById('timeWithoutAi').value,

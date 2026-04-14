@@ -1499,8 +1499,12 @@ npm run compile</code></pre>
       </div>
     </div>
     <div class="form-group">
-      <label>Why is this important? <span style="font-size:11px;color:var(--text-muted)">(context, helps AI validator)</span></label>
-      <textarea id="f-task-why" rows="2" placeholder="e.g. Reduced manual code review effort..."></textarea>
+      <label>Task Description/Details <span style="font-size:11px;color:var(--text-muted)">(context, helps AI validator)</span></label>
+      <textarea id="f-task-details" rows="2" placeholder="e.g. Reduced manual code review effort by auto-generating tests..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Prompt Used <span style="font-size:11px;color:var(--text-muted)">(optional)</span></label>
+      <textarea id="f-prompt" rows="2" placeholder="Paste the AI prompt you used..."></textarea>
     </div>
     <div class="form-group">
       <label>Notes / Learnings</label>
@@ -2884,6 +2888,7 @@ async function viewApprovalDetail(approvalId) {
     if (submission && approval.submission_type === 'task') {
       detailRows += `<span style="color:var(--text-muted)">Employee</span><span>${submission.employee_name || '-'}</span>`;
       detailRows += `<span style="color:var(--text-muted)">Description</span><span>${submission.task_description || '-'}</span>`;
+      if (submission.task_details) detailRows += `<span style="color:var(--text-muted)">Task Details</span><span style="font-size:12px;max-height:60px;overflow:auto">${submission.task_details}</span>`;
       detailRows += `<span style="color:var(--text-muted)">AI Tool</span><span>${submission.ai_tool || '-'}</span>`;
       detailRows += `<span style="color:var(--text-muted)">Category</span><span>${submission.category || '-'}</span>`;
       detailRows += `<span style="color:var(--text-muted)">Project</span><span>${submission.project || '-'}</span>`;
@@ -4157,7 +4162,8 @@ async function saveTask() {
     task: taskDesc,
     category: document.getElementById('f-category').value,
     aiTool: document.getElementById('f-tool').value,
-    prompt: '',
+    taskDetails: document.getElementById('f-task-details').value,
+    prompt: document.getElementById('f-prompt').value,
     timeWithout: timeWithout,
     timeWith: timeWith,
     quality: parseFloat(document.getElementById('f-quality').value) || 0,
@@ -4214,7 +4220,8 @@ async function saveTask() {
   document.getElementById('f-employee-id').value = '';
   document.getElementById('f-employee-email').value = '';
   document.getElementById('f-task').value = '';
-  document.getElementById('f-task-why').value = '';
+  document.getElementById('f-task-details').value = '';
+  document.getElementById('f-prompt').value = '';
   document.getElementById('f-time-without').value = '';
   document.getElementById('f-time-with').value = '';
   document.getElementById('f-quality').value = '';
@@ -4608,6 +4615,8 @@ function editTask(id) {
   document.getElementById('f-time-with').value = task.timeWith || '';
   document.getElementById('f-quality').value = task.quality || '';
   document.getElementById('f-status').value = task.status || 'Pending';
+  document.getElementById('f-task-details').value = task.taskDetails || '';
+  document.getElementById('f-prompt').value = task.prompt || '';
   document.getElementById('f-notes').value = task.notes || '';
   // Update modal title
   document.querySelector('#modal-task .modal h3').textContent = 'Edit Task';

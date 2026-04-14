@@ -52,6 +52,7 @@ export function isViewPermitted(ctx: EasContext | null, viewKey: string): boolea
 
 export interface TaskSubmission {
   taskDescription: string;
+  taskDetails?: string;
   category: string;
   aiTool: string;
   timeWithoutAi: number;

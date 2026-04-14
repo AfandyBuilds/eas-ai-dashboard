@@ -198,6 +198,7 @@ const EAS_DB = (() => {
       employee:    t.employee_name,
       employeeEmail: t.employee_email,
       task:        t.task_description,
+      taskDetails: t.task_details || '',
       category:    t.category,
       aiTool:      t.ai_tool,
       isLicensedTool: isLicensedTool(t.ai_tool),
@@ -550,6 +551,7 @@ const EAS_DB = (() => {
       employee_name:   taskData.employee || profile?.name || null,
       employee_email:  taskData.employeeEmail || profile?.email || null,
       task_description: taskData.task || null,
+      task_details:    taskData.taskDetails || null,
       category:        taskData.category || null,
       ai_tool:         taskData.aiTool || null,
       prompt_used:     taskData.prompt || null,
@@ -584,6 +586,7 @@ const EAS_DB = (() => {
     if (taskData.employee !== undefined)    payload.employee_name   = taskData.employee;
     if (taskData.employeeEmail !== undefined) payload.employee_email = taskData.employeeEmail;
     if (taskData.task !== undefined)        payload.task_description = taskData.task;
+    if (taskData.taskDetails !== undefined) payload.task_details     = taskData.taskDetails;
     if (taskData.category !== undefined)    payload.category        = taskData.category;
     if (taskData.aiTool !== undefined)      payload.ai_tool         = taskData.aiTool;
     if (taskData.prompt !== undefined)      payload.prompt_used     = taskData.prompt;
