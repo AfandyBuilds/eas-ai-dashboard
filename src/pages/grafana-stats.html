@@ -652,11 +652,8 @@ tbody tr:hover { background: rgba(59, 130, 246, 0.03); }
       return;
     }
 
-    // Collect unique periods — show months only for SPOCs
-    const isSpoc = userRole === 'spoc';
-    const periods = [...new Set(withPeriod.map(u =>
-      isSpoc ? periodToMonths(u.ideDataPeriod) : u.ideDataPeriod
-    ))];
+    // Collect unique periods — always show month-only format
+    const periods = [...new Set(withPeriod.map(u => periodToMonths(u.ideDataPeriod)))];
     document.getElementById('data-period-text').textContent = periods.join(', ');
 
     // Most recent update timestamp
@@ -775,12 +772,11 @@ tbody tr:hover { background: rgba(59, 130, 246, 0.03); }
     }
 
     const headers = ['Name', 'Email', 'Practice', 'Days Active', 'Total Interactions', 'Code Generations', 'Code Acceptances', 'Agent Days', 'Chat Days', 'LOC Suggested', 'LOC Added', 'Last Active', 'Data Period'];
-    const isSpoc = userRole === 'spoc';
     const rows = filteredStats.map(u => [
       u.name, u.email, u.practice, u.ideDaysActive, u.ideTotalInteractions,
       u.ideCodeGenerations, u.ideCodeAcceptances, u.ideAgentDays, u.ideChatDays,
       u.ideLocSuggested, u.ideLocAdded, u.ideLastActiveDate || '',
-      isSpoc ? periodToMonths(u.ideDataPeriod) : (u.ideDataPeriod || '')
+      periodToMonths(u.ideDataPeriod)
     ]);
 
     let csv = headers.join(',') + '\n';
