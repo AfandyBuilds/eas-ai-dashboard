@@ -37,3 +37,6 @@ supabase/.temp/
 vscode-extension/out/
 vscode-extension/node_modules/
 vscode-extension/*.vsix
+
+# Data sync generated files
+scripts/sync_output/

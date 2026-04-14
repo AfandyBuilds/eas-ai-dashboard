@@ -25,6 +25,7 @@
 | 2.4 | Apr 12, 2026 | Omar Ibrahim | Approval gating: approved-only metrics/exports and re-approval on edits |
 | 2.5 | Apr 12, 2026 | Omar Ibrahim | Phase 9 — Licensed Tool Tracking: GitHub Copilot & M365 Copilot as primary adoption KPIs |
 | 2.6 | Apr 13, 2026 | Omar Ibrahim | Phase 10 — IDE Task Logger: VS Code extension + Edge Function API for logging tasks from IDE |
+| 2.7 | Apr 14, 2026 | Omar Ibrahim | Phase 11 — Data Sync: Tracker sheet + Grafana IDE usage recurring sync process |
 
 ---
 
@@ -42,6 +43,7 @@
 | 8 | AI-Assisted Approval Workflow | ✅ Complete | `—` | Edge Functions, AI validation, multi-layer routing, admin approvals tab |
 | 9 | Licensed Tool Tracking | ✅ Complete | `—` | Licensed vs Other tool KPIs, adoption by practice, form optgroups, badges |
 | 10 | IDE Task Logger | 🚧 In Progress | `—` | VS Code extension, Edge Function API, OAuth auth, sidebar + quick-log, approval workflow integration |
+| 11 | Data Sync | ✅ Complete | `—` | Bi-weekly tracker sheet sync, Grafana IDE usage import, username linkage, sync_hash dedup |
 
 ---
 
@@ -406,3 +408,48 @@ Allow developers to log AI adoption tasks directly from their IDE (VS Code) with
 HTML entry points were relocated from the repository root into `src/pages/`. Shared assets in `css/` and `js/` now resolve via `../../css/…` and `../../js/…`. Cross-page navigation between pages in `src/pages/` stays flat (e.g. `window.location.href = 'login.html'`).
 
 See `docs/CODE_ARCHITECTURE.md` §2 for the authoritative tree and path convention, and `.github/copilot-instructions.md` for the mandatory workflow governing future changes (skills, Supabase MCP, full docs sweep, commit & push).
+
+---
+
+## Phase 11: Data Sync ✅
+
+**Status:** Complete | **Date:** April 14, 2026
+
+### Overview
+
+Establishes a recurring (weekly/bi-weekly) data synchronization process to keep the database current with two external data sources:
+
+1. **Tracker Sheet** — The master EAS AI Adoption Weekly Tracker Excel
+2. **Grafana IDE Usage** — Per-employee Copilot IDE activity from Grafana exports
+
+### Deliverables
+
+- [x] SQL migration `017_data_sync_phase.sql` — Grafana IDE columns, username linkage, sync_hash, source constraints
+- [x] `scripts/sync_tracker.py` — Reads tracker Excel → generates SQL (copilot_users, tasks, projects, accomplishments)
+- [x] `scripts/sync_grafana.py` — Reads Grafana IDE exports → generates SQL (copilot_users IDE activity columns)
+- [x] Sync_hash idempotent upsert pattern for all entities
+- [x] Generated `username` column on `copilot_users` for Grafana user_login → email matching
+- [x] First sync executed: 168 users, 44 tasks, 25 projects, 4 accomplishments, 25 users with IDE data
+
+### How to Run (Recurring Process)
+
+```bash
+# 1. Tracker sync (when new Excel is received)
+python scripts/sync_tracker.py "path/to/EAS_AI_Adoption_Weekly_Tracker.xlsx"
+# → Produces scripts/sync_output/sync_*.sql — execute via Supabase MCP
+
+# 2. Grafana IDE sync (when new monthly exports arrive)
+python scripts/sync_grafana.py "path/to/feb.xlsx" "path/to/mar.xlsx" --emails scripts/sync_output/eas_emails.txt
+# → Produces scripts/sync_output/sync_grafana_ide.sql — execute via Supabase MCP
+```
+
+### Schema Changes
+
+| Table | New Columns | Purpose |
+|-------|-------------|---------|
+| `copilot_users` | `ide_days_active`, `ide_total_interactions`, `ide_code_generations`, `ide_code_acceptances`, `ide_agent_days`, `ide_chat_days`, `ide_loc_suggested`, `ide_loc_added`, `ide_last_active_date`, `ide_data_period`, `ide_data_updated_at` | Grafana IDE usage aggregates |
+| `copilot_users` | `username` (generated) | Auto-derived from email for Grafana matching |
+| `copilot_users` | `sync_source`, `last_synced_at` | Track sync origin and timestamp |
+| `tasks` | `sync_hash` | Idempotent dedup for tracker imports |
+| `projects` | `sync_hash` | Idempotent dedup for tracker imports |
+| `accomplishments` | `sync_hash` | Idempotent dedup for tracker imports |

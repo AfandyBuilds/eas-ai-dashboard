@@ -6,6 +6,52 @@
 
 ## Changes Made
 
+### 0r. April 14, 2026 — Data Sync Phase: Tracker Sheet + Grafana IDE Usage
+
+**Purpose:** Establish a recurring (weekly/bi-weekly) data sync process to keep the database current with the master tracker spreadsheet and Grafana IDE usage telemetry.
+
+**Two sync streams:**
+
+**1. Tracker Sheet Sync** (`scripts/sync_tracker.py`)
+- Reads the EAS AI Adoption Weekly Tracker Excel (multi-sheet workbook)
+- Extracts 4 entity types: copilot_users (from "Copliot User Access"), tasks (from practice sheets: BFSI/CES/ERP/EPS/EPCS/GRC), projects (from "Projects"), accomplishments (from "AI Accomplishments")
+- Generates SQL INSERT...ON CONFLICT for upsert behavior (never deletes existing data)
+- Uses MD5 sync_hash for task/project/accomplishment dedup (practice+employee+week+task)
+- Uses email uniqueness for copilot_users dedup
+- CLI: `python scripts/sync_tracker.py <tracker.xlsx> --out scripts/sync_output`
+
+**2. Grafana IDE Usage Sync** (`scripts/sync_grafana.py`)
+- Reads Grafana Copilot IDE usage exports (daily per-user metrics: interactions, code gen, acceptances, agent/chat usage, LOC stats)
+- Filters to EAS employees by matching `user_login` to copilot_users via generated `username` column (email prefix)
+- Aggregates daily data per user → updates `copilot_users` IDE columns
+- CLI: `python scripts/sync_grafana.py <feb.xlsx> <mar.xlsx> --emails eas_emails.txt`
+
+**Schema changes** (migration `017_data_sync_phase.sql`):
+- 12 new columns on `copilot_users`: `ide_days_active`, `ide_total_interactions`, `ide_code_generations`, `ide_code_acceptances`, `ide_agent_days`, `ide_chat_days`, `ide_loc_suggested`, `ide_loc_added`, `ide_last_active_date`, `ide_data_period`, `ide_data_updated_at`, `username` (generated from email)
+- `sync_source`, `last_synced_at` on `copilot_users`
+- `sync_hash` on tasks, accomplishments, projects
+- Unique partial indexes on `sync_hash` columns
+- Unique constraint on `copilot_users.email`
+- Extended `source` CHECK constraints to allow `'tracker_sync'`
+
+**First sync results:**
+
+| Entity | Records Synced | Notes |
+|--------|---------------|-------|
+| Copilot Users | 168 (from 173 rows, 5 dupes) | Upserted by email |
+| Tasks | 44 (from 53 rows, 9 dupes) | Upserted by sync_hash |
+| Projects | 25 | New projects by practice |
+| Accomplishments | 4 | New accomplishments |
+| Grafana IDE data | 25 users | Feb+Mar 2026, avg 7 active days |
+
+**Key design decisions:**
+- Scripts generate SQL files (not direct DB connections) for MCP execution → auditable, repeatable
+- ON CONFLICT upserts ensure idempotent re-runs — same Excel can be synced multiple times safely
+- Grafana user_login matching via generated `username` column avoids manual mapping
+- Tracker-synced records get `source = 'tracker_sync'` and `approval_status = 'approved'` (pre-approved by SPOCs in the tracker)
+
+**Known issue (minor):** The ERP practice sheet may have columns in a different order than other practice sheets, causing 5 ERP tasks to have swapped ai_tool/prompt_used values during the first sync (manually corrected). Future fix: add column-order detection per sheet.
+
 ### 0q. April 14, 2026 — Database Backup & Cross-Table Data Cleanup
 
 **Backup:** Created schema `backup_20260414` with full copies of all 18 public tables (618 total rows). Row counts verified to match live tables exactly.

@@ -92,12 +92,16 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │   └── 008_web_view_permissions.sql   # Web dashboard view permissions (17 views × 4 roles)
 │   └── 009_departments.sql  # Departments table + practice enhancements (department_id, description, status)
 │   └── 010_executive_role.sql # Executive role, executive_practices table, RPC, view permissions
-│   └── 011_reported_issues.sql # Issues/blockers tracking table + RLS policies
+│   ├── 011_reported_issues.sql # Issues/blockers tracking table + RLS policies
+│   └── 017_data_sync_phase.sql # Data Sync: Grafana IDE columns, username linkage, sync_hash, source constraints
 │
-├── scripts/                # Node.js admin/migration scripts
+├── scripts/                # Node.js admin/migration scripts + data sync
 │   ├── create-auth-users.mjs   # One-time auth user creation
 │   ├── run-migration.mjs       # One-time data.js → Supabase migration
-│   └── create-schema.mjs       # Schema execution (superseded by MCP)
+│   ├── create-schema.mjs       # Schema execution (superseded by MCP)
+│   ├── sync_tracker.py         # Recurring: Tracker Excel → SQL (tasks, users, projects, accomplishments)
+│   ├── sync_grafana.py         # Recurring: Grafana IDE usage Excel → SQL (copilot_users IDE columns)
+│   └── sync_output/            # Generated SQL output from sync scripts (gitignored)
 │
 ├── docs/                   # Project documentation
 │   ├── BRD.md                       # Business requirements
