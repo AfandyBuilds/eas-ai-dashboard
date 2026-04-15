@@ -6,6 +6,24 @@
 
 ## Changes Made
 
+### 0v. April 16, 2026 — Team Lead Role
+
+**Purpose:** Allow SPOCs to delegate scoped SPOC-like capabilities to practice contributors by assigning them as "Team Leads" over a subset of members.
+
+**Approach:**
+- **Junction table `team_lead_assignments`** maps team_lead user ID → member_email per practice. UNIQUE on `(member_email, practice)` ensures one team lead per contributor per practice.
+- **Helper functions** `get_current_user_id()` and `get_team_lead_members()` (SECURITY DEFINER) used by RLS policies to scope team_lead access to their assigned members only.
+- **RLS policies** on `tasks`, `accomplishments`, `submission_approvals`, and `copilot_users` extended to allow team_lead read/write for their assigned members.
+- **auth.js**: Added `isTeamLead()` check and `team_lead: 'Team Lead'` to `roleLabels`.
+- **db.js**: `fetchPendingApprovals` and `fetchApprovalHistory` filter by team lead member emails. New CRUD functions: `fetchTeamLeadMemberEmails()` (cached 2min), `fetchTeamLeadAssignments()`, `assignMemberToTeamLead()`, `removeMemberFromTeamLead()`, `removeAllTeamLeadAssignments()`.
+- **index.html**: Sidebar nav updated with `team_lead` data-role, `renderMyPractice()` scopes data to assigned members for team leads, `renderApprovals()` grants team_lead access, Team Lead Management table + assignment modal (SPOC-only), export functions use `_isPracticeScoped(role)` helper.
+- **admin.html**: Role dropdowns/filters include `team_lead`, role badge color added, role change cleanup removes `team_lead_assignments`.
+
+**Trade-offs:**
+- Team lead sees filtered view of existing SPOC pages rather than a separate dashboard — reduces code duplication.
+- Member assignment is per-practice, matching the existing practice-scoped model.
+- `get_team_lead_members()` is called per-request in RLS; acceptable for current scale.
+
 ### 0u. April 15, 2026 — Community Prompt Library: Submit + Like/Dislike Voting
 
 **Purpose:** Allow any authenticated user to contribute prompts to the shared library, and let the community curate quality via like/dislike voting.

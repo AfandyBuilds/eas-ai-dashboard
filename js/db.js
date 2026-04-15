@@ -1503,6 +1503,14 @@ const EAS_DB = (() => {
         query = query
           .eq('approval_status', 'spoc_review')
           .or(`spoc_id.eq.${userId},and(spoc_id.is.null,practice.eq.${userPractice})`);
+      } else if (userRole === 'team_lead') {
+        // Team Lead sees approvals for their assigned members only
+        const memberEmails = await fetchTeamLeadMemberEmails(userId);
+        if (memberEmails.length === 0) return [];
+        query = query
+          .eq('approval_status', 'spoc_review')
+          .eq('practice', userPractice)
+          .in('submitted_by_email', memberEmails);
       }
 
       const { data, error } = await query;
@@ -1531,6 +1539,9 @@ const EAS_DB = (() => {
 
       if (userRole === 'spoc') {
         query = query.eq('practice', userPractice);
+      } else if (userRole === 'team_lead') {
+        query = query.eq('practice', userPractice);
+        // Further filter to assigned members client-side after fetch
       }
 
       const { data, error } = await query;
@@ -1538,6 +1549,14 @@ const EAS_DB = (() => {
         console.error('fetchApprovalHistory error:', error);
         throw new Error(`Failed to fetch approval history: ${error.message}`);
       }
+
+      // For team_lead, filter to only their assigned members
+      if (userRole === 'team_lead') {
+        const profile = await EAS_Auth.getUserProfile();
+        const memberEmails = await fetchTeamLeadMemberEmails(profile?.id);
+        return (data || []).filter(a => memberEmails.includes(a.submitted_by_email));
+      }
+
       return data || [];
     } catch (err) {
       console.error('fetchApprovalHistory exception:', err);
@@ -2065,6 +2084,110 @@ const EAS_DB = (() => {
   }
 
   // ===========================================================
+  // Team Lead Assignments
+  // ===========================================================
+
+  /** Cache for team lead member emails */
+  let _teamLeadMembersCache = null;
+  let _teamLeadMembersCacheTs = 0;
+  const TL_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
+  /**
+   * Fetch emails of members assigned to a specific team lead.
+   * @param {string} teamLeadUserId — the team lead's users.id
+   * @returns {string[]} array of member emails
+   */
+  async function fetchTeamLeadMemberEmails(teamLeadUserId) {
+    if (!teamLeadUserId) return [];
+    // Use cache if fresh
+    if (_teamLeadMembersCache && (Date.now() - _teamLeadMembersCacheTs < TL_CACHE_TTL)) {
+      return _teamLeadMembersCache;
+    }
+    const { data, error } = await sb
+      .from('team_lead_assignments')
+      .select('member_email')
+      .eq('team_lead_id', teamLeadUserId);
+    if (error) { console.error('fetchTeamLeadMemberEmails error:', error.message); return []; }
+    _teamLeadMembersCache = (data || []).map(d => d.member_email);
+    _teamLeadMembersCacheTs = Date.now();
+    return _teamLeadMembersCache;
+  }
+
+  /**
+   * Fetch full team lead assignments for a practice (used by SPOC management UI).
+   * @param {string} practice — the practice name
+   * @returns {Array} assignment records
+   */
+  async function fetchTeamLeadAssignments(practice) {
+    const { data, error } = await sb
+      .from('team_lead_assignments')
+      .select('id, team_lead_id, member_email, practice, assigned_by, created_at')
+      .eq('practice', practice)
+      .order('team_lead_id', { ascending: true })
+      .order('member_email', { ascending: true });
+    if (error) { console.error('fetchTeamLeadAssignments error:', error.message); return []; }
+    return data || [];
+  }
+
+  /**
+   * Assign a member to a team lead.
+   * @param {string} teamLeadId — users.id of the team lead
+   * @param {string} memberEmail — email of the contributor to assign
+   * @param {string} practice — practice name
+   * @returns {object|null} the created assignment
+   */
+  async function assignMemberToTeamLead(teamLeadId, memberEmail, practice) {
+    const profile = await EAS_Auth.getUserProfile();
+    const { data, error } = await sb
+      .from('team_lead_assignments')
+      .upsert({
+        team_lead_id: teamLeadId,
+        member_email: memberEmail,
+        practice: practice,
+        assigned_by: profile?.id
+      }, { onConflict: 'member_email,practice' })
+      .select()
+      .single();
+    if (error) { console.error('assignMemberToTeamLead error:', error.message); return null; }
+    _teamLeadMembersCache = null; // invalidate cache
+    await logActivity('ASSIGN_TEAM_LEAD_MEMBER', 'team_lead_assignments', data?.id, {
+      team_lead_id: teamLeadId, member_email: memberEmail, practice
+    });
+    return data;
+  }
+
+  /**
+   * Remove a member from a team lead.
+   * @param {string} assignmentId — the assignment row id
+   */
+  async function removeMemberFromTeamLead(assignmentId) {
+    const { error } = await sb
+      .from('team_lead_assignments')
+      .delete()
+      .eq('id', assignmentId);
+    if (error) { console.error('removeMemberFromTeamLead error:', error.message); return false; }
+    _teamLeadMembersCache = null; // invalidate cache
+    await logActivity('REMOVE_TEAM_LEAD_MEMBER', 'team_lead_assignments', assignmentId, {});
+    return true;
+  }
+
+  /**
+   * Remove all member assignments for a team lead (used when demoting).
+   * @param {string} teamLeadId — users.id of the team lead
+   * @param {string} practice — practice name
+   */
+  async function removeAllTeamLeadAssignments(teamLeadId, practice) {
+    const { error } = await sb
+      .from('team_lead_assignments')
+      .delete()
+      .eq('team_lead_id', teamLeadId)
+      .eq('practice', practice);
+    if (error) { console.error('removeAllTeamLeadAssignments error:', error.message); return false; }
+    _teamLeadMembersCache = null;
+    return true;
+  }
+
+  // ===========================================================
   // Public API
   // ===========================================================
 
@@ -2168,6 +2291,13 @@ const EAS_DB = (() => {
     insertReportedIssue,
     updateReportedIssue,
     deleteReportedIssue,
+
+    // Team Lead Assignments
+    fetchTeamLeadMemberEmails,
+    fetchTeamLeadAssignments,
+    assignMemberToTeamLead,
+    removeMemberFromTeamLead,
+    removeAllTeamLeadAssignments,
 
     // Password Management (Phase 11)
     changePassword,

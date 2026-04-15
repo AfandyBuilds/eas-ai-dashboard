@@ -3,7 +3,7 @@
 # EAS AI Adoption Dashboard
 
 > **Version:** 2.3 | **Date:** April 13, 2026  
-> **Status:** Phase 10 In Progress - IDE Task Logger + Executive Role
+> **Status:** Phase 10 In Progress - IDE Task Logger + Executive Role + Team Lead Role
 
 ---
 
@@ -12,7 +12,7 @@
 ```
 ┌────────────────────────────────────────────────────────────┐
 │                    USERS (Browser)                         │
-│  Admin · SPOC · Contributor · Viewer · Executive           │
+│  Admin · SPOC · Team Lead · Contributor · Viewer · Executive  │
 ├────────────────────────────────────────────────────────────┤
 │           GitHub Pages (Static Hosting)                    │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐                   │
@@ -136,21 +136,22 @@ User → signup.html (2-step form)
 
 ### Authorization Matrix
 
-| Resource | Admin | SPOC | Contributor |
-|----------|-------|------|-------------|
-| Dashboard (all practices) | ✅ | ✅ (read) | ✅ (read) |
-| Dashboard (own practice) | ✅ | ✅ | ✅ |
-| Task CRUD (all) | ✅ | ✔ | ✖ |
-| Task CRUD (own practice) | ✅ | ✅ | Own tasks only |
-| SPOC panel (My Practice) | ✅ | ✅ | ✖ |
-| My Tasks (personal) | ✅ | ✅ | ✅ |
-| Leaderboard | ✅ | ✅ | ✅ |
-| Use Case Library | ✅ | ✅ | ✅ |
-| Admin panel | ✅ | ✖ | ✖ |
-| User management | ✅ | ✖ | ✖ |
-| Export data | ✅ | ✅ | ✖ |
-| PDF report | ✅ | ✅ | ✖ |
-| Dark/Light toggle | ✅ | ✅ | ✅ |
+| Resource | Admin | SPOC | Team Lead | Contributor |
+|----------|-------|------|-----------|-------------|
+| Dashboard (all practices) | ✅ | ✅ (read) | ✖ | ✅ (read) |
+| Dashboard (own practice) | ✅ | ✅ | ✅ (assigned members) | ✅ |
+| Task CRUD (all) | ✅ | ✔ | ✖ | ✖ |
+| Task CRUD (own practice) | ✅ | ✅ | Assigned members only | Own tasks only |
+| SPOC panel (My Practice) | ✅ | ✅ | ✅ (scoped to assigned) | ✖ |
+| My Tasks (personal) | ✅ | ✅ | ✅ | ✅ |
+| Leaderboard | ✅ | ✅ | ✅ | ✅ |
+| Use Case Library | ✅ | ✅ | ✅ | ✅ |
+| Admin panel | ✅ | ✖ | ✖ | ✖ |
+| User management | ✅ | ✖ | ✖ | ✖ |
+| Export data | ✅ | ✅ | ✅ (scoped) | ✖ |
+| PDF report | ✅ | ✅ | ✅ (scoped) | ✖ |
+| Dark/Light toggle | ✅ | ✅ | ✅ | ✅ |
+| Approval review (spoc_review) | ✅ | ✅ | ✅ (assigned members) | ✖ |
 
 ### Row Level Security (RLS)
 

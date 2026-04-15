@@ -61,8 +61,8 @@
     Executive Summary
   </div>
 
-  <div class="nav-section" data-role="admin,spoc,viewer">Practices</div>
-  <div class="nav-item" data-page="mypractice" data-role="spoc" data-view-key="web.mypractice">
+  <div class="nav-section" data-role="admin,spoc,team_lead,viewer">Practices</div>
+  <div class="nav-item" data-page="mypractice" data-role="spoc,team_lead" data-view-key="web.mypractice">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
     My Practice
   </div>
@@ -71,7 +71,7 @@
     All Practices
     <span class="badge">6</span>
   </div>
-  <div class="nav-item" data-page="tasks" data-role="admin,spoc,viewer" data-view-key="web.tasks">
+  <div class="nav-item" data-page="tasks" data-role="admin,spoc,team_lead,viewer" data-view-key="web.tasks">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     All Tasks
     <span class="badge" id="nav-task-count">50</span>
@@ -94,21 +94,21 @@
     Accomplishments
     <span class="badge" id="nav-acc-count">4</span>
   </div>
-  <div class="nav-item" data-page="approvals" data-role="admin,spoc" data-view-key="web.approvals">
+  <div class="nav-item" data-page="approvals" data-role="admin,spoc,team_lead" data-view-key="web.approvals">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
     Approvals
     <span class="badge" id="nav-approval-count">0</span>
   </div>
-  <div class="nav-item" data-page="copilot" data-role="admin,spoc,viewer" data-view-key="web.copilot">
+  <div class="nav-item" data-page="copilot" data-role="admin,spoc,team_lead,viewer" data-view-key="web.copilot">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     Licensed AI Users
     <span class="badge" id="nav-copilot-count">152</span>
   </div>
-  <div class="nav-item" data-page="ide-usage" data-role="admin,spoc" data-view-key="web.ide_usage">
+  <div class="nav-item" data-page="ide-usage" data-role="admin,spoc,team_lead" data-view-key="web.ide_usage">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6"/><circle cx="7" cy="16" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="19" cy="6" r="1.5"/></svg>
     IDE Usage Stats
   </div>
-  <div class="nav-item" data-page="projects" data-role="admin,spoc,viewer" data-view-key="web.projects">
+  <div class="nav-item" data-page="projects" data-role="admin,spoc,team_lead,viewer" data-view-key="web.projects">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     Projects
     <span class="badge" id="nav-project-count">25</span>
@@ -553,6 +553,44 @@
             <tbody id="mypractice-inactive-tbody"></tbody>
           </table>
         </div>
+      </div>
+      <!-- Team Lead Management (SPOC only) -->
+      <div class="table-card" style="margin-top:20px" data-role="spoc" id="team-lead-mgmt-section">
+        <div class="table-header">
+          <h3>👥 Team Lead Management</h3>
+          <button class="btn btn-primary" onclick="openTeamLeadAssignModal()" style="font-size:13px;padding:6px 14px">+ Assign Team Lead</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table aria-label="Team lead assignments">
+            <thead><tr><th>Team Lead</th><th>Email</th><th>Assigned Members</th><th style="width:120px">Actions</th></tr></thead>
+            <tbody id="team-lead-mgmt-tbody">
+              <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Lead Assignment Modal -->
+  <div class="modal-overlay" id="modal-team-lead-assign">
+    <div class="modal" style="max-width:550px">
+      <h3>Manage Team Lead</h3>
+      <div class="form-group">
+        <label>Select Contributor to promote as Team Lead</label>
+        <select id="tla-team-lead-select" onchange="loadAvailableMembers()">
+          <option value="">— Select a contributor —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Assign Members to this Team Lead</label>
+        <div id="tla-members-checkboxes" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-wrap:wrap;gap:8px">
+          <span style="color:var(--text-muted);font-size:13px">Select a team lead first</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-team-lead-assign')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTeamLeadAssignments()">Save Assignments</button>
       </div>
     </div>
   </div>
@@ -2863,12 +2901,12 @@ async function renderApprovals() {
     const profile = await EAS_Auth.getUserProfile();
     const userId = typeof EAS_Auth.getUserId === 'function' ? EAS_Auth.getUserId() : profile?.id;
     
-    if (!userRole || !['admin', 'spoc'].includes(userRole)) {
+    if (!userRole || !['admin', 'spoc', 'team_lead'].includes(userRole)) {
       document.getElementById('approvals-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px">Access denied</td></tr>';
       return;
     }
 
-    document.getElementById('approvals-subtitle').textContent = userRole === 'admin' ? 'All submissions pending review' : `${userPractice} — Pending approvals`;
+    document.getElementById('approvals-subtitle').textContent = userRole === 'admin' ? 'All submissions pending review' : userRole === 'team_lead' ? `${userPractice} — My Team Approvals` : `${userPractice} — Pending approvals`;
 
     // Fetch pending approvals and history
     const [pending, history] = await Promise.all([
@@ -3046,7 +3084,8 @@ async function viewApprovalDetail(approvalId) {
     // SPOC can only act on spoc_review items for their practice
     const canAct = isPending && (
       (userRole === 'admin' && approval.approval_status === 'admin_review') ||
-      (userRole === 'spoc' && approval.approval_status === 'spoc_review' && approval.practice === EAS_Auth.getUserPractice())
+      (userRole === 'spoc' && approval.approval_status === 'spoc_review' && approval.practice === EAS_Auth.getUserPractice()) ||
+      (userRole === 'team_lead' && approval.approval_status === 'spoc_review' && approval.practice === EAS_Auth.getUserPractice())
     );
 
     if (canAct) {
@@ -3126,14 +3165,29 @@ async function handleApprovalAction(approvalId, action) {
 async function renderMyPractice() {
   const practice = EAS_Auth.getUserPractice();
   if (!practice) return;
+  const userRole = EAS_Auth.getUserRole();
+  const isTeamLead = userRole === 'team_lead';
   const quarterId = document.getElementById('mypractice-filter-quarter')?.value || EAS_DB.getSelectedQuarter();
-  document.getElementById('mypractice-subtitle').textContent = `${practice} — Team Dashboard` + (quarterId && quarterId !== 'all' ? ` (${EAS_DB.getQuarterLabel(quarterId)})` : '');
+
+  // For team leads, get their assigned member emails
+  let teamLeadMemberEmails = [];
+  if (isTeamLead) {
+    const profile = await EAS_Auth.getUserProfile();
+    teamLeadMemberEmails = await EAS_DB.fetchTeamLeadMemberEmails(profile?.id);
+  }
+
+  const scopeLabel = isTeamLead ? 'My Team' : practice;
+  document.getElementById('mypractice-subtitle').textContent = `${scopeLabel} — Team Dashboard` + (quarterId && quarterId !== 'all' ? ` (${EAS_DB.getQuarterLabel(quarterId)})` : '');
 
   // Fetch team leaderboard + inactive members in parallel
-  const [teamData, inactive] = await Promise.all([
+  const [allTeamData, allInactive] = await Promise.all([
     EAS_DB.fetchEmployeeLeaderboard(practice, quarterId),
     EAS_DB.fetchInactiveMembers(practice)
   ]);
+
+  // Scope to team lead's assigned members if applicable
+  const teamData = isTeamLead ? allTeamData.filter(e => teamLeadMemberEmails.includes(e.email)) : allTeamData;
+  const inactive = isTeamLead ? allInactive.filter(u => teamLeadMemberEmails.includes(u.email)) : allInactive;
 
   // KPIs
   const totalTasks = teamData.reduce((s, e) => s + e.tasks, 0);
@@ -3141,7 +3195,8 @@ async function renderMyPractice() {
   const avgEff = teamData.length > 0 ? teamData.reduce((s, e) => s + e.efficiency, 0) / teamData.length : 0;
 
   // Licensed tool stats for this practice (quarter-aware)
-  const practiceTasks = (data.tasks || []).filter(t => t.practice === practice && t.approvalStatus === 'approved' && (quarterId === 'all' || !quarterId || t.quarterId === quarterId));
+  const allPracticeTasks = (data.tasks || []).filter(t => t.practice === practice && t.approvalStatus === 'approved' && (quarterId === 'all' || !quarterId || t.quarterId === quarterId));
+  const practiceTasks = isTeamLead ? allPracticeTasks.filter(t => teamLeadMemberEmails.includes(t.employeeEmail)) : allPracticeTasks;
   const licensedCount = practiceTasks.filter(t => t.isLicensedTool).length;
   const licensedPct = practiceTasks.length > 0 ? (licensedCount / practiceTasks.length * 100).toFixed(0) : '0';
 
@@ -3193,6 +3248,11 @@ async function renderMyPractice() {
         <td><button class="btn btn-secondary" style="font-size:12px;padding:4px 12px" onclick="nudgeInactive('${u.id}','${u.name}')">Nudge</button></td>
       </tr>`;
     }).join('');
+
+  // Render team lead management section (SPOC only)
+  if (EAS_Auth.getUserRole() === 'spoc') {
+    renderTeamLeadManagement();
+  }
 }
 
 async function nudgeInactive(userId, userName) {
@@ -3203,6 +3263,191 @@ async function nudgeInactive(userId, userName) {
   } else {
     showToast('Failed to nudge user', 'error');
   }
+}
+
+// ======== TEAM LEAD MANAGEMENT (SPOC) ========
+
+/** Render team lead table in My Practice page (SPOC only) */
+async function renderTeamLeadManagement() {
+  const section = document.getElementById('team-lead-mgmt-section');
+  if (!section || section.style.display === 'none') return;
+  
+  const practice = EAS_Auth.getUserPractice();
+  if (!practice) return;
+  
+  const assignments = await EAS_DB.fetchTeamLeadAssignments(practice);
+  
+  // Group assignments by team lead
+  const byLead = {};
+  assignments.forEach(a => {
+    if (!byLead[a.team_lead_id]) byLead[a.team_lead_id] = { members: [] };
+    byLead[a.team_lead_id].members.push(a);
+  });
+  
+  // Get team lead user details
+  const sb = getSupabaseClient();
+  const teamLeadIds = Object.keys(byLead);
+  let leadUsers = [];
+  if (teamLeadIds.length > 0) {
+    const { data } = await sb.from('users').select('id, name, email, role').in('id', teamLeadIds);
+    leadUsers = data || [];
+  }
+  
+  const tbody = document.getElementById('team-lead-mgmt-tbody');
+  if (leadUsers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">No team leads assigned yet. Click "+ Assign Team Lead" to get started.</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = leadUsers.map(u => {
+    const members = byLead[u.id]?.members || [];
+    const memberList = members.map(m => `<span class="status-badge status-completed" style="font-size:11px;margin:2px">${escapeHtml(m.member_email)}</span>`).join('');
+    return `<tr>
+      <td style="font-weight:600">${escapeHtml(u.name)}</td>
+      <td style="color:var(--text-muted)">${escapeHtml(u.email)}</td>
+      <td>${memberList || '<span style="color:var(--text-muted)">No members assigned</span>'}</td>
+      <td>
+        <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px" onclick="editTeamLeadAssignment('${u.id}')">Edit</button>
+        <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px;color:var(--danger)" onclick="removeTeamLead('${u.id}','${escapeHtml(u.name)}')">Remove</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/** Open modal to assign/edit a team lead */
+async function openTeamLeadAssignModal(preselectedLeadId) {
+  const practice = EAS_Auth.getUserPractice();
+  const sb = getSupabaseClient();
+  
+  // Get all practice contributors + team leads
+  const { data: practiceUsers } = await sb
+    .from('users')
+    .select('id, name, email, role')
+    .eq('practice', practice)
+    .eq('is_active', true)
+    .in('role', ['contributor', 'team_lead'])
+    .order('name', { ascending: true });
+  
+  const users = practiceUsers || [];
+  
+  // Populate team lead dropdown
+  const select = document.getElementById('tla-team-lead-select');
+  select.innerHTML = '<option value="">— Select a contributor —</option>' + 
+    users.map(u => `<option value="${u.id}" ${u.id === preselectedLeadId ? 'selected' : ''}>${escapeHtml(u.name)} (${escapeHtml(u.email)})${u.role === 'team_lead' ? ' \u2605' : ''}</option>`).join('');
+  
+  openModal('modal-team-lead-assign');
+  
+  if (preselectedLeadId) {
+    await loadAvailableMembers();
+  }
+}
+
+/** Edit existing team lead's member assignments */
+async function editTeamLeadAssignment(teamLeadId) {
+  await openTeamLeadAssignModal(teamLeadId);
+}
+
+/** Load available members for the selected team lead in the modal */
+async function loadAvailableMembers() {
+  const teamLeadId = document.getElementById('tla-team-lead-select').value;
+  const container = document.getElementById('tla-members-checkboxes');
+  
+  if (!teamLeadId) {
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Select a team lead first</span>';
+    return;
+  }
+  
+  const practice = EAS_Auth.getUserPractice();
+  const sb = getSupabaseClient();
+  
+  // Get all copilot users for this practice (team members)
+  const { data: copilotUsers } = await sb
+    .from('copilot_users')
+    .select('name, email')
+    .eq('practice', practice)
+    .eq('status', 'access granted')
+    .order('name', { ascending: true });
+  
+  // Get existing assignments for this practice
+  const assignments = await EAS_DB.fetchTeamLeadAssignments(practice);
+  const currentLeadMembers = assignments.filter(a => a.team_lead_id === teamLeadId).map(a => a.member_email);
+  const otherLeadMembers = assignments.filter(a => a.team_lead_id !== teamLeadId).map(a => a.member_email);
+  
+  // Get the selected team lead's email to exclude from member list
+  const { data: leadUser } = await sb.from('users').select('email').eq('id', teamLeadId).single();
+  const leadEmail = leadUser?.email || '';
+  
+  const members = (copilotUsers || []).filter(u => u.email !== leadEmail);
+  
+  if (members.length === 0) {
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">No available members in this practice</span>';
+    return;
+  }
+  
+  container.innerHTML = members.map(u => {
+    const isAssignedHere = currentLeadMembers.includes(u.email);
+    const isAssignedElsewhere = otherLeadMembers.includes(u.email);
+    const disabled = isAssignedElsewhere ? 'disabled' : '';
+    const title = isAssignedElsewhere ? 'Already assigned to another team lead' : '';
+    return `<label style="display:inline-flex;align-items:center;gap:4px;font-size:13px;padding:4px 8px;border-radius:6px;background:var(--bg-secondary);cursor:${isAssignedElsewhere ? 'not-allowed' : 'pointer'};opacity:${isAssignedElsewhere ? '0.5' : '1'}" title="${title}">
+      <input type="checkbox" class="tla-member-cb" value="${escapeHtml(u.email)}" ${isAssignedHere ? 'checked' : ''} ${disabled}>
+      ${escapeHtml(u.name || u.email)}
+    </label>`;
+  }).join('');
+}
+
+/** Save team lead assignments from modal */
+async function saveTeamLeadAssignments() {
+  const teamLeadId = document.getElementById('tla-team-lead-select').value;
+  if (!teamLeadId) {
+    showToast('Please select a contributor to be team lead', 'error');
+    return;
+  }
+  
+  const practice = EAS_Auth.getUserPractice();
+  const sb = getSupabaseClient();
+  const selectedEmails = [...document.querySelectorAll('.tla-member-cb:checked')].map(cb => cb.value);
+  
+  // First, ensure the user has team_lead role
+  const { data: user } = await sb.from('users').select('role').eq('id', teamLeadId).single();
+  if (user?.role !== 'team_lead') {
+    await sb.from('users').update({ role: 'team_lead' }).eq('id', teamLeadId);
+  }
+  
+  // Remove existing assignments for this team lead in this practice
+  await EAS_DB.removeAllTeamLeadAssignments(teamLeadId, practice);
+  
+  // Create new assignments
+  let errors = 0;
+  for (const email of selectedEmails) {
+    const result = await EAS_DB.assignMemberToTeamLead(teamLeadId, email, practice);
+    if (!result) errors++;
+  }
+  
+  closeModal('modal-team-lead-assign');
+  if (errors > 0) {
+    showToast(`Saved with ${errors} error(s)`, 'error');
+  } else {
+    showToast(`Team lead updated with ${selectedEmails.length} member(s)`, 'success');
+  }
+  renderTeamLeadManagement();
+}
+
+/** Remove a user from team lead role and clear their assignments */
+async function removeTeamLead(userId, userName) {
+  if (!confirm(`Remove ${userName} as Team Lead? This will unassign all their members.`)) return;
+  
+  const practice = EAS_Auth.getUserPractice();
+  const sb = getSupabaseClient();
+  
+  // Remove all assignments
+  await EAS_DB.removeAllTeamLeadAssignments(userId, practice);
+  
+  // Revert role back to contributor
+  await sb.from('users').update({ role: 'contributor' }).eq('id', userId);
+  
+  showToast(`${userName} removed as Team Lead`, 'success');
+  renderTeamLeadManagement();
 }
 
 // ======== LEADERBOARD ========
@@ -5083,11 +5328,16 @@ function _getExportTasks() {
     const userName = EAS_Auth.getUserName();
     return fd.tasks.filter(t => t.approvalStatus === 'approved' && t.employee && t.employee.toLowerCase() === userName.toLowerCase());
   }
-  if (role === 'spoc') {
+  if (role === 'spoc' || role === 'team_lead') {
     const practice = EAS_Auth.getUserPractice();
     return fd.tasks.filter(t => t.approvalStatus === 'approved' && t.practice === practice);
   }
   return fd.tasks.filter(t => t.approvalStatus === 'approved');
+}
+
+/** Check if a role is practice-scoped (SPOC or Team Lead) */
+function _isPracticeScoped(role) {
+  return role === 'spoc' || role === 'team_lead';
 }
 
 // -------- EXCEL EXPORT --------
@@ -5110,7 +5360,7 @@ function exportExcel() {
       [],
       ['Practice', 'Practice Head', 'AI SPOC', 'Total Tasks', 'Time Without AI (hrs)', 'Time With AI (hrs)', 'Time Saved (hrs)', 'Efficiency %', 'Quality (1-5)', 'Completed', 'Projects']
     ];
-    const practices = role === 'spoc' ? fd.summary.practices.filter(p => p.name?.includes(practice) || p.practice === practice) : fd.summary.practices;
+    const practices = _isPracticeScoped(role) ? fd.summary.practices.filter(p => p.name?.includes(practice) || p.practice === practice) : fd.summary.practices;
     practices.forEach(p => {
       summaryData.push([p.name, p.head, p.spoc, p.tasks, p.timeWithout, p.timeWith, p.timeSaved, p.efficiency, p.quality, p.completed, p.projects]);
     });
@@ -5130,7 +5380,7 @@ function exportExcel() {
       exportTasks.forEach(t => rows.push([t.week, t.weekStart, t.weekEnd, t.project, t.task, t.category, t.aiTool, t.timeWithout, t.timeWith, t.timeSaved, t.efficiency, t.quality, t.status]));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'My Tasks');
     } else {
-      const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
+      const practiceList = _isPracticeScoped(role) ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
       practiceList.forEach(p => {
         const tasks = exportTasks.filter(t => t.practice === p);
         const rows = [['Week #', 'Week Start', 'Week End', 'Project', 'Code', 'Employee', 'Task', 'Category', 'AI Tool', 'Prompt', 'Without AI (hrs)', 'With AI (hrs)', 'Saved (hrs)', 'Efficiency', 'Quality', 'Status', 'Notes']];
@@ -5143,14 +5393,14 @@ function exportExcel() {
   // Accomplishments
   if (document.getElementById('exp-xl-accomplishments')?.checked) {
     const accRows = [['#', 'Date', 'Practice', 'Project', 'Code', 'SPOC', 'Employees', 'Title', 'Details', 'AI Tool', 'Category', 'Before', 'After', 'Impact', 'Business Gains', 'Cost', 'Effort Saved', 'Status']];
-    const accs = role === 'spoc' ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
+    const accs = _isPracticeScoped(role) ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
     accs.forEach(a => accRows.push([a.id, a.date, a.practice, a.project, a.projectCode, a.spoc, a.employees, a.title, a.details, a.aiTool, a.category, a.before, a.after, a.impact, a.businessGains, a.cost, a.effortSaved, a.status]));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(accRows), 'Accomplishments');
   }
 
   // Copilot Users (admin & spoc)
   if (document.getElementById('exp-xl-copilot')?.checked && role !== 'contributor') {
-    const copUsers = role === 'spoc' ? data.copilotUsers.filter(u => u.practice === practice) : data.copilotUsers;
+    const copUsers = _isPracticeScoped(role) ? data.copilotUsers.filter(u => u.practice === practice) : data.copilotUsers;
     const copRows = [['Practice', 'Name', 'Email', 'Skill', 'Status']];
     copUsers.forEach(u => copRows.push([u.practice, u.name, u.email, u.skill, u.remarks]));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(copRows), 'Copilot Users');
@@ -5158,7 +5408,7 @@ function exportExcel() {
 
   // Projects (admin & spoc)
   if (document.getElementById('exp-xl-projects')?.checked && role !== 'contributor') {
-    const projs = role === 'spoc' ? data.projects.filter(p => p.practice === practice) : data.projects;
+    const projs = _isPracticeScoped(role) ? data.projects.filter(p => p.practice === practice) : data.projects;
     const projRows = [['Practice', 'Project Name', 'Code', 'Customer', 'Contract Value (SAR)', 'Start', 'End', 'Revenue Type', 'PM']];
     projs.forEach(p => projRows.push([p.practice, p.projectName, p.projectCode, p.customer, p.contractValue, p.startDate, p.endDate, p.revenueType, p.pm]));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(projRows), 'Projects');
@@ -5188,7 +5438,7 @@ function exportExcel() {
 
   if (wb.SheetNames.length === 0) { showToast('No sheets selected for export', 'error'); return; }
 
-  const suffix = role === 'contributor' ? '_MyTasks' : role === 'spoc' ? `_${practice}` : '';
+  const suffix = role === 'contributor' ? '_MyTasks' : _isPracticeScoped(role) ? `_${practice}` : '';
   XLSX.writeFile(wb, `EAS_AI_Export${suffix}_${qLabel.replace(/\s+/g, '_')}.xlsx`);
   showToast('Excel exported successfully!');
 }
@@ -5227,7 +5477,7 @@ async function exportPDF() {
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.text(`${qLabel} — Generated ${new Date().toLocaleDateString()}`, M, 32);
-  if (role === 'spoc') doc.text(`Practice: ${practice}`, W - M, 32, { align: 'right' });
+  if (_isPracticeScoped(role)) doc.text(`Practice: ${practice}`, W - M, 32, { align: 'right' });
   if (role === 'contributor') doc.text(`${EAS_Auth.getUserName()}`, W - M, 32, { align: 'right' });
   doc.setFontSize(9);
   doc.setTextColor(148, 163, 184);
@@ -5295,7 +5545,7 @@ async function exportPDF() {
     cols.forEach((col, i) => { doc.text(col, cx, y + 6); cx += colW[i]; });
     y += 8;
 
-    const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
+    const practiceList = _isPracticeScoped(role) ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
     doc.setFont('helvetica', 'normal');
     practiceList.forEach((p, idx) => {
       const pTasks = exportTasks.filter(t => t.practice === p);
@@ -5349,7 +5599,7 @@ async function exportPDF() {
   }
 
   // === My Practice (SPOC) ===
-  if (document.getElementById('exp-pdf-mypractice')?.checked && role === 'spoc') {
+  if (document.getElementById('exp-pdf-mypractice')?.checked && _isPracticeScoped(role)) {
     if (y > H - 80) { doc.addPage(); y = M; }
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
@@ -5444,7 +5694,7 @@ async function exportPDF() {
 
   // === Accomplishments ===
   if (document.getElementById('exp-pdf-accomplishments')?.checked) {
-    const accs = role === 'spoc' ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
+    const accs = _isPracticeScoped(role) ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
     if (accs.length > 0) {
       if (y > H - 60) { doc.addPage(); y = M; }
       doc.setFont('helvetica', 'bold');
@@ -5522,7 +5772,7 @@ async function exportPDF() {
     doc.text(`EAS AI Adoption Dashboard — ${qLabel} — Page ${i} of ${totalPages}`, W / 2, H - 8, { align: 'center' });
   }
 
-  const suffix = role === 'contributor' ? '_MyTasks' : role === 'spoc' ? `_${practice}` : '';
+  const suffix = role === 'contributor' ? '_MyTasks' : _isPracticeScoped(role) ? `_${practice}` : '';
   doc.save(`EAS_AI_Report${suffix}_${qLabel.replace(/\s+/g, '_')}.pdf`);
   showToast('PDF report downloaded!');
   } catch (err) {
@@ -5566,7 +5816,7 @@ async function exportPPT() {
   slide.background = { color: DARK };
   slide.addText('EAS AI Adoption Report', { x: 0.8, y: 1.5, w: 8, h: 1.2, fontSize: 36, fontFace: 'Arial', bold: true, color: WHITE });
   slide.addText(`${qLabel} — ${new Date().toLocaleDateString()}`, { x: 0.8, y: 2.7, w: 8, h: 0.6, fontSize: 16, fontFace: 'Arial', color: SLATE });
-  if (role === 'spoc') slide.addText(`Practice: ${practice}`, { x: 0.8, y: 3.3, w: 8, h: 0.5, fontSize: 14, fontFace: 'Arial', color: BLUE });
+  if (_isPracticeScoped(role)) slide.addText(`Practice: ${practice}`, { x: 0.8, y: 3.3, w: 8, h: 0.5, fontSize: 14, fontFace: 'Arial', color: BLUE });
   slide.addText('Enterprise Application Solutions · Ejada', { x: 0.8, y: 5.5, w: 8, h: 0.4, fontSize: 12, fontFace: 'Arial', color: SLATE });
 
   // === Dashboard KPIs Slide ===
@@ -5608,7 +5858,7 @@ async function exportPPT() {
     slide = pptx.addSlide();
     slide.addText('Practice Performance', { x: 0.5, y: 0.3, w: 9, h: 0.6, fontSize: 24, fontFace: 'Arial', bold: true, color: DARK });
 
-    const practiceList = role === 'spoc' ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
+    const practiceList = _isPracticeScoped(role) ? [practice] : ['BFSI', 'CES', 'ERP Solutions', 'EPS', 'EPCS', 'GRC'];
 
     if (pptStyle === 'executive') {
       // Practice cards
@@ -5719,7 +5969,7 @@ async function exportPPT() {
 
   // === Accomplishments Slide ===
   if (document.getElementById('exp-ppt-accomplishments')?.checked) {
-    const accs = role === 'spoc' ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
+    const accs = _isPracticeScoped(role) ? fd.accomplishments.filter(a => a.practice === practice) : fd.accomplishments;
     if (accs.length > 0) {
       slide = pptx.addSlide();
       slide.addText('Key Accomplishments', { x: 0.5, y: 0.3, w: 9, h: 0.6, fontSize: 24, fontFace: 'Arial', bold: true, color: DARK });
@@ -5768,7 +6018,7 @@ async function exportPPT() {
   slide.addText('Thank You', { x: 0.5, y: 2.5, w: 9, h: 1, fontSize: 36, fontFace: 'Arial', bold: true, color: WHITE, align: 'center' });
   slide.addText(`EAS AI Adoption Dashboard · ${qLabel}`, { x: 0.5, y: 3.8, w: 9, h: 0.5, fontSize: 14, fontFace: 'Arial', color: SLATE, align: 'center' });
 
-  const suffix = role === 'spoc' ? `_${practice}` : '';
+  const suffix = _isPracticeScoped(role) ? `_${practice}` : '';
   await pptx.writeFile({ fileName: `EAS_AI_Presentation${suffix}_${qLabel.replace(/\s+/g, '_')}.pptx` });
   showToast('PowerPoint presentation downloaded!');
   } catch (err) {
@@ -5894,7 +6144,7 @@ function populateFilters() {
   // Form dropdowns — restrict contributors/SPOCs to their own practice
   const userRole = EAS_Auth.getUserRole();
   const userPractice = EAS_Auth.getUserPractice();
-  const formPractices = (userRole === 'contributor' || userRole === 'spoc') && userPractice
+  const formPractices = (userRole === 'contributor' || userRole === 'spoc' || userRole === 'team_lead') && userPractice
     ? practices.filter(p => p === userPractice)
     : practices;
   ['f-practice', 'fa-practice', 'fc-practice', 'fi-practice', 'fp-practice'].forEach(id => {
@@ -5902,7 +6152,7 @@ function populateFilters() {
     if (!el) return;
     formPractices.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; el.appendChild(o); });
     // Auto-select practice for non-admin users
-    if ((userRole === 'contributor' || userRole === 'spoc') && userPractice) {
+    if ((userRole === 'contributor' || userRole === 'spoc' || userRole === 'team_lead') && userPractice) {
       el.value = userPractice;
     }
   });

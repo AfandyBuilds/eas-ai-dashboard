@@ -1021,6 +1021,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <option value="">All Roles</option>
             <option value="admin">Admin</option>
             <option value="spoc">SPOC</option>
+            <option value="team_lead">Team Lead</option>
             <option value="contributor">Contributor</option>
             <option value="viewer">Viewer</option>
             <option value="executive">Executive</option>
@@ -1340,6 +1341,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <select id="eu-role" onchange="toggleExecPractices()">
           <option value="admin">Admin</option>
           <option value="spoc">SPOC</option>
+          <option value="team_lead">Team Lead</option>
           <option value="contributor">Contributor</option>
           <option value="viewer">Viewer</option>
           <option value="executive">Executive</option>
@@ -3726,7 +3728,7 @@ async function renderAdminUsers() {
   if (badge) badge.textContent = _adminUsers.length;
 
   // Render table
-  const roleBadgeColor = { admin: '#dc3545', spoc: '#fd7e14', contributor: '#0d6efd', viewer: '#6c757d', executive: '#8b5cf6' };
+  const roleBadgeColor = { admin: '#dc3545', spoc: '#fd7e14', team_lead: '#20c997', contributor: '#0d6efd', viewer: '#6c757d', executive: '#8b5cf6' };
   let html = '';
   filtered.forEach((u, i) => {
     const roleColor = roleBadgeColor[u.role] || '#6c757d';
@@ -3741,6 +3743,7 @@ async function renderAdminUsers() {
         <select onchange="quickChangeRole('${u.id}', this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text-primary);font-size:12px;cursor:pointer">
           <option value="admin"${u.role === 'admin' ? ' selected' : ''}>Admin</option>
           <option value="spoc"${u.role === 'spoc' ? ' selected' : ''}>SPOC</option>
+          <option value="team_lead"${u.role === 'team_lead' ? ' selected' : ''}>Team Lead</option>
           <option value="contributor"${u.role === 'contributor' ? ' selected' : ''}>Contributor</option>
           <option value="viewer"${u.role === 'viewer' ? ' selected' : ''}>Viewer</option>
           <option value="executive"${u.role === 'executive' ? ' selected' : ''}>Executive</option>
@@ -3777,6 +3780,10 @@ async function quickChangeRole(userId, newRole) {
   // Clean up executive_practices if role changed away from executive
   if (newRole !== 'executive') {
     await sb.from('executive_practices').delete().eq('user_id', userId);
+  }
+  // Clean up team_lead_assignments if role changed away from team_lead
+  if (newRole !== 'team_lead') {
+    await sb.from('team_lead_assignments').delete().eq('team_lead_id', userId);
   }
   showToast(`Role updated to ${newRole}`, 'success');
 }
@@ -3883,6 +3890,11 @@ async function saveUser() {
   } else {
     // Clean up executive_practices if role changed away from executive
     await sb.from('executive_practices').delete().eq('user_id', id);
+  }
+
+  // Clean up team_lead_assignments if role changed away from team_lead
+  if (role !== 'team_lead') {
+    await sb.from('team_lead_assignments').delete().eq('team_lead_id', id);
   }
 
   closeModal('modal-edit-user');
@@ -4051,7 +4063,7 @@ async function saveExecPractices(userId) {
 
 // ============ MANAGE PERMISSIONS ============
 let _adminPermissions = [];
-const ROLE_ORDER = ['admin', 'spoc', 'contributor', 'viewer', 'executive'];
+const ROLE_ORDER = ['admin', 'spoc', 'team_lead', 'contributor', 'viewer', 'executive'];
 
 async function renderAdminPermissions() {
   const sb = getSupabaseClient();

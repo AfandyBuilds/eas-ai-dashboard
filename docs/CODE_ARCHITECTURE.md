@@ -1,6 +1,6 @@
 # Code Architecture — EAS AI Dashboard
 
-> **Last Updated:** April 13, 2026 | **Phase:** 10 (IDE Task Logger + Executive Role)
+> **Last Updated:** April 16, 2026 | **Phase:** 10 (IDE Task Logger + Executive Role + Team Lead Role)
 >
 > **Layout note (2026-04-11):** All HTML entry points now live under `src/pages/`. Shared assets in `css/` and `js/` are referenced from those pages via `../../css/…` and `../../js/…`. See §2 for the updated tree and §6 for path examples.
 
@@ -95,6 +95,7 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │   └── 010_executive_role.sql # Executive role, executive_practices table, RPC, view permissions
 │   ├── 011_reported_issues.sql # Issues/blockers tracking table + RLS policies
 │   └── 017_data_sync_phase.sql # Data Sync: Grafana IDE columns, username linkage, sync_hash, source constraints
+│   └── 020_team_lead_role.sql  # Team Lead role: team_lead_assignments table, RLS, helper functions
 │
 ├── scripts/                # Node.js admin/migration scripts + data sync
 │   ├── create-auth-users.mjs   # One-time auth user creation
@@ -256,6 +257,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `role_view_permissions` | Controls per-role sidebar section visibility (deny-list) | 126 (5 roles × 26 views: 18 web + 8 ext) |
 | `executive_practices` | Maps executive users to their assigned practices (junction) | Dynamic |
 | `reported_issues` | Issues/blockers reported by contributors and SPOCs | Dynamic |
+| `team_lead_assignments` | Maps team_lead users to their assigned member emails per practice (junction) | Dynamic |
 
 ### Computed Columns
 
@@ -278,6 +280,8 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `get_licensed_tool_adoption()` | SECURITY INVOKER | Per-practice licensed vs other tool task/hours breakdown (Phase 9) |
 | `get_executive_practices()` | SQL, SECURITY DEFINER | Returns TEXT[] of practices assigned to the currently authenticated executive |
 | `get_executive_summary()` | PL/pgSQL, SECURITY DEFINER | Aggregates cross-practice KPIs (tasks, hours, users, trends, adoption) for executive dashboard |
+| `get_current_user_id()` | SQL, SECURITY DEFINER | Returns the `id` from `users` for the currently authenticated user |
+| `get_team_lead_members()` | SQL, SECURITY DEFINER | Returns member emails assigned to the current user as team lead |
 
 #### `signup_contributor()` Parameters
 
@@ -308,6 +312,7 @@ Returns `jsonb` with `{status, user_id, copilot_id?}`. Copilot logic:
 | **Contributor** | Insert own tasks, read own data |
 | **Viewer** | Read-only access (new: controlled by `role_view_permissions`) |
 | **Executive** | Read-only access across assigned practices; scoped via RPC, no write access |
+| **Team Lead** | SPOC-like read/write but scoped to assigned members only (subset of practice contributors) |
 
 ---
 

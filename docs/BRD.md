@@ -42,7 +42,7 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 
 - Dashboard with KPIs, charts, and drill-downs
 - Quarter segregation for all data views
-- Role-based access (Admin, SPOC, Contributor)
+- Role-based access (Admin, SPOC, Team Lead, Contributor, Viewer, Executive)
 - Task logging with **AI suggestions and smart validation** (Phase 8)
 - **Multi-layer approval workflow** (AI → SPOC → Admin) (Phase 8)
 - Accomplishment tracking
@@ -72,7 +72,7 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FR-01.1 | Email/password login via Supabase Auth | P1 |
-| FR-01.2 | Three roles: Admin, SPOC, Contributor | P1 |
+| FR-01.2 | Six roles: Admin, SPOC, Team Lead, Contributor, Viewer, Executive | P1 |
 | FR-01.3 | Role-based page/section visibility | P1 |
 | FR-01.4 | Session persistence across page refreshes | P1 |
 | FR-01.5 | Password change capability | P2 |
