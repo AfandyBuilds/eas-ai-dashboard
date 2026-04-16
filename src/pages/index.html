@@ -11,11 +11,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../css/dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../js/config.js?v=20260416c"></script>
-<script src="../../js/utils.js?v=20260416c"></script>
-<script src="../../js/auth.js?v=20260416c"></script>
-<script src="../../js/db.js?v=20260416c"></script>
-<script src="../../js/phase8-submission.js?v=20260416c"></script>
+<script src="../../js/config.js?v=20260417a"></script>
+<script src="../../js/utils.js?v=20260417a"></script>
+<script src="../../js/auth.js?v=20260417a"></script>
+<script src="../../js/db.js?v=20260417a"></script>
+<script src="../../js/phase8-submission.js?v=20260417a"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
@@ -2276,8 +2276,8 @@ function renderDashboard() {
     <div class="kpi-card"><div class="kpi-label">Copilot Users</div><div class="kpi-value pink">${data.copilotUsers.length}</div><div class="kpi-sub">access granted</div></div>
   `;
 
-  // Featured Banner Spotlight — call BEFORE charts (charts can throw and block subsequent code)
-  initSpotlightBanner().catch(err => console.error('Spotlight banner error:', err));
+  // Featured Banner Spotlight — synchronous, uses already-loaded data
+  try { initSpotlightBanner(); } catch(e) { console.error('Spotlight banner error:', e); }
 
   // Licensed Tool Adoption KPIs
   renderLicensedToolKPIs();
@@ -7491,89 +7491,52 @@ document.addEventListener('click', (e) => {
 /**
  * Initialize the spotlight banner carousel.
  */
-async function initSpotlightBanner() {
-  console.log('[Spotlight] initSpotlightBanner called');
+function initSpotlightBanner() {
   const skeleton = document.getElementById('spotlight-skeleton');
   const banner = document.getElementById('spotlight-banner');
   const track = document.getElementById('spotlight-track');
   const dotsContainer = document.getElementById('spotlight-dots');
-  if (!track || !banner) { console.error('[Spotlight] DOM elements missing: track=', !!track, 'banner=', !!banner); return; }
+  if (!track || !banner || !data) { if (skeleton) skeleton.classList.add('hidden'); return; }
 
   try {
-  // Remove any previous empty state
-  document.querySelectorAll('.spotlight-empty').forEach(el => el.remove());
+  // Build slides directly from already-loaded data (no extra network calls)
+  const approvedTasks = (data.tasks || []).filter(t => t.approvalStatus === 'approved');
+  const approvedAccomp = (data.accomplishments || []).filter(a => a.approvalStatus === 'approved');
+  const useCases = data.approvedUseCases || [];
 
-  const quarterId = EAS_DB.getSelectedQuarter();
-  let slides = [];
+  // Sort tasks by time saved descending, take top 3
+  const topTasks = [...approvedTasks].sort((a, b) => (b.timeSaved || 0) - (a.timeSaved || 0)).slice(0, 3);
+  // Sort accomplishments by effort saved descending, take top 3
+  const topAccomp = [...approvedAccomp].sort((a, b) => (b.effortSaved || 0) - (a.effortSaved || 0)).slice(0, 3);
+  // Top use cases by hours saved, take top 2
+  const topUC = [...useCases].sort((a, b) => (b.hours_saved_per_impl || 0) - (a.hours_saved_per_impl || 0)).slice(0, 2);
 
-  // Check localStorage cache
-  const cacheKey = 'eas_banner_selection';
-  const cacheDateKey = 'eas_banner_date';
-  const today = new Date().toISOString().split('T')[0];
-  const cached = localStorage.getItem(cacheKey);
-  const cachedDate = localStorage.getItem(cacheDateKey);
-  const cachedQuarter = localStorage.getItem('eas_banner_quarter');
-
-  if (cached && cachedDate === today && cachedQuarter === quarterId) {
-    try { slides = JSON.parse(cached); } catch(e) { slides = []; }
-  }
-
-  if (!slides.length) {
-    // Fetch directly via Supabase client (bypass EAS_DB to avoid cache-buster issues)
-    const sb = getSupabaseClient();
-
-    // Fetch candidates
-    let candidateQuery = sb.from('v_banner_candidates').select('*');
-    if (quarterId && quarterId !== 'all') {
-      candidateQuery = candidateQuery.or('quarter_id.eq.' + quarterId + ',quarter_id.is.null');
-    }
-    const { data: rawCandidates, error: cErr } = await candidateQuery;
-    if (cErr) console.error('[Spotlight] candidates error:', cErr.message);
-    const candidates = (rawCandidates || []).sort((a, b) => {
-      if (a.is_pinned && !b.is_pinned) return -1;
-      if (!a.is_pinned && b.is_pinned) return 1;
-      if (b.like_count !== a.like_count) return b.like_count - a.like_count;
-      return (b.metric_value || 0) - (a.metric_value || 0);
-    });
-
-    // Fetch config
-    const { data: rawConfig, error: cfgErr } = await sb.from('featured_banner_config').select('*');
-    if (cfgErr) console.error('[Spotlight] config error:', cfgErr.message);
-    const config = {};
-    (rawConfig || []).forEach(r => { config[r.item_type] = { slots: r.slots, is_active: r.is_active }; });
-
-    console.log('[Spotlight] candidates:', candidates.length, 'config:', JSON.stringify(config));
-
-    // Fallback config if fetch returned empty
-    const defaultSlots = { task: 3, accomplishment: 3, prompt: 2, use_case: 2 };
-
-    // Selection algorithm: per type, take pinned first, then fill remaining slots
-    const types = ['task', 'accomplishment', 'prompt', 'use_case'];
-    types.forEach(type => {
-      const cfg = config[type] || { slots: defaultSlots[type], is_active: true };
-      if (!cfg.is_active) return;
-      const maxSlots = cfg.slots || defaultSlots[type];
-      const items = candidates.filter(c => c.item_type === type);
-      const pinned = items.filter(i => i.is_pinned);
-      const rest = items.filter(i => !i.is_pinned);
-      const selected = [...pinned.slice(0, maxSlots), ...rest.slice(0, maxSlots - Math.min(pinned.length, maxSlots))];
-      slides.push(...selected);
-    });
-
-    // Only cache if we got real data
-    if (slides.length) {
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify(slides));
-        localStorage.setItem(cacheDateKey, today);
-        localStorage.setItem('eas_banner_quarter', quarterId);
-      } catch(e) { /* quota exceeded */ }
-    }
-  }
-
-  // Ensure like data is loaded
-  if (!Object.keys(_myLikes).length && !Object.keys(_myPromptVotes).length) {
-    await loadLikeData();
-  }
+  // Normalize to common slide format
+  const slides = [];
+  topTasks.forEach(t => slides.push({
+    item_type: 'task', item_id: t.id, title: t.task || t.taskDetails || 'Task',
+    subtitle: t.category || '', contributor_name: t.employee || 'Unknown',
+    practice: t.practice || '', department: '', ai_tool: t.aiTool || '',
+    metric_value: t.timeSaved || 0, metric_label: 'hrs saved',
+    metric_value_2: t.efficiency ? Math.round(t.efficiency * 100) : 0, metric_label_2: '% efficiency',
+    like_count: 0, is_pinned: false, pin_label: '', created_at: t.weekStart || ''
+  }));
+  topAccomp.forEach(a => slides.push({
+    item_type: 'accomplishment', item_id: a.id, title: a.title || 'AI Win',
+    subtitle: a.project || '', contributor_name: a.employees || a.spoc || 'Unknown',
+    practice: a.practice || '', department: '', ai_tool: a.aiTool || '',
+    metric_value: a.effortSaved || 0, metric_label: 'hrs saved',
+    metric_value_2: 0, metric_label_2: '',
+    like_count: 0, is_pinned: false, pin_label: '', created_at: a.date || ''
+  }));
+  topUC.forEach(u => slides.push({
+    item_type: 'use_case', item_id: u.id, title: u.name || 'Use Case',
+    subtitle: u.category || '', contributor_name: u.ownerSpoc || 'Unknown',
+    practice: u.practice || '', department: '', ai_tool: u.aiTools || '',
+    metric_value: u.hoursSavedPerImpl || 0, metric_label: 'hrs saved/impl',
+    metric_value_2: 0, metric_label_2: '',
+    like_count: 0, is_pinned: false, pin_label: '', created_at: ''
+  }));
 
   // Hide skeleton
   if (skeleton) skeleton.classList.add('hidden');
@@ -7612,11 +7575,14 @@ async function initSpotlightBanner() {
       <div class="spotlight-contributor">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         ${contributor}
-        <span class="spotlight-separator">&middot;</span>${practice}
-        <span class="spotlight-separator">&middot;</span>${department}
+        ${practice ? '<span class="spotlight-separator">&middot;</span>' + practice : ''}
+        ${department ? '<span class="spotlight-separator">&middot;</span>' + department : ''}
       </div>
       <div class="spotlight-like-row">
-        ${buildLikeBtn(s.item_type, s.item_id, s.like_count)}
+        <button class="like-btn" data-item-type="${s.item_type}" data-item-id="${s.item_id}" data-count="${s.like_count || 0}" onclick="handleLikeClick(this)" aria-label="Like (${s.like_count || 0} likes)" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span class="like-count">${s.like_count || 0}</span>
+        </button>
       </div>
     </div>`;
   }).join('');
