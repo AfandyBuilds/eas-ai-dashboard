@@ -190,6 +190,21 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | FR-12.7 | PowerPoint export (Executive + Data-heavy styles) | P2 ✅ |
 | FR-12.8 | Role-based export access (Admin=full, SPOC=practice, Contributor=own tasks) | P2 ✅ |
 
+### FR-12b: Featured Spotlight Banner & Likes
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-12b.1 | Auto-rotating spotlight banner on dashboard (all roles) | P2 ✅ |
+| FR-12b.2 | Banner shows top tasks, accomplishments, prompts, use cases with contributor/practice/department | P2 ✅ |
+| FR-12b.3 | Hybrid selection: admin pins → user likes → metric fallback | P2 ✅ |
+| FR-12b.4 | Global permanent like system (heart button) on Tasks, Accomplishments, Use Cases | P2 ✅ |
+| FR-12b.5 | Prompt likes reuse existing prompt_votes system | P2 ✅ |
+| FR-12b.6 | Auto-rotate every 5 seconds with pause on hover + manual arrows + dot indicators | P3 ✅ |
+| FR-12b.7 | Admin-configurable slot allocation per content type (default 10 total) | P3 ✅ |
+| FR-12b.8 | Admin can pin/unpin items to banner with custom badge labels | P3 ✅ |
+| FR-12b.9 | Client-side daily cache with calendar-day reset | P3 ✅ |
+| FR-12b.10 | ARIA carousel roles, keyboard navigation, prefers-reduced-motion | P2 ✅ |
+
 ### FR-13: Accessibility & UX
 
 | ID | Requirement | Priority |
@@ -248,6 +263,7 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | `get_practice_summary()` | Quarter-aware practice aggregation |
 | `get_employee_leaderboard()` | Employee rankings by tasks, hours, efficiency |
 | `get_practice_leaderboard()` | Practice rankings with weighted scoring |
+| `toggle_like()` | SECURITY DEFINER — toggles like on task/accomplishment/use_case, returns `{liked, like_count}` |
 
 ---
 
@@ -270,6 +286,9 @@ The EAS AI Adoption Dashboard is a web-based platform to track, measure, and dri
 | 13 | PDF report generates with Executive Summary and charts | ✅ |
 | 14 | Dark/Light theme toggle persists across sessions and pages | ✅ |
 | 15 | Accessibility: skip link, ARIA labels, keyboard nav, focus-visible | ✅ |
+| 16 | Featured spotlight banner auto-rotates with top-liked/pinned content | ✅ |
+| 17 | Like buttons on Tasks, Accomplishments, Use Cases, and Prompt Library | ✅ |
+| 18 | Admin can configure banner slots and pin/unpin items | ✅ |
 
 ---
 

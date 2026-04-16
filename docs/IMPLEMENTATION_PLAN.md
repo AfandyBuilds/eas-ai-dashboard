@@ -26,6 +26,7 @@
 | 2.5 | Apr 12, 2026 | Omar Ibrahim | Phase 9 — Licensed Tool Tracking: GitHub Copilot & M365 Copilot as primary adoption KPIs |
 | 2.6 | Apr 13, 2026 | Omar Ibrahim | Phase 10 — IDE Task Logger: VS Code extension + Edge Function API for logging tasks from IDE |
 | 2.7 | Apr 14, 2026 | Omar Ibrahim | Phase 11 — Data Sync: Tracker sheet + Grafana IDE usage recurring sync process |
+| 2.8 | Apr 16, 2026 | Omar Ibrahim | Phase 12 — Featured Spotlight Banner + Global Likes System |
 
 ---
 
@@ -44,6 +45,7 @@
 | 9 | Licensed Tool Tracking | ✅ Complete | `—` | Licensed vs Other tool KPIs, adoption by practice, form optgroups, badges |
 | 10 | IDE Task Logger | 🚧 In Progress | `—` | VS Code extension, Edge Function API, OAuth auth, sidebar + quick-log, approval workflow integration |
 | 11 | Data Sync | ✅ Complete | `—` | Bi-weekly tracker sheet sync, Grafana IDE usage import, username linkage, sync_hash dedup |
+| 12 | Featured Spotlight Banner & Likes | ✅ Complete | `—` | Spotlight carousel, global likes, admin banner config, pin management, daily cache |
 
 ---
 

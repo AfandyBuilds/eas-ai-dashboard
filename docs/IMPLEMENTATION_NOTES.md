@@ -6,6 +6,33 @@
 
 ## Changes Made
 
+### 0y. April 16, 2026 — Featured Spotlight Banner + Global Likes System
+
+**Purpose:** Add a marketing-style carousel banner to the dashboard spotlighting top-performing content, plus a permanent like system across all content sections.
+
+**Approach:**
+- **Schema (MCP):** 3 new tables (`likes`, `featured_banner_config`, `featured_banner_pins`) + `v_banner_candidates` view (UNION ALL across tasks, accomplishments, prompts, use cases) + `toggle_like` RPC (SECURITY DEFINER). Migration: `sql/022_featured_banner_and_likes.sql`.
+- **Data layer (`db.js`):** 9 new functions — `fetchBannerCandidates`, `fetchBannerConfig`, `updateBannerConfig`, `fetchBannerPins`, `insertBannerPin`, `deleteBannerPin`, `toggleLike`, `fetchMyLikes`, `fetchLikeCounts`.
+- **Banner UI (`index.html`):** Spotlight carousel with ARIA `role="region"` + `aria-roledescription="carousel"`. Skeleton loader during fetch. Auto-rotation (5s) pauses on hover/focus. Manual arrows + dot indicators. Slides show type badge, title, metrics, contributor info, like button.
+- **Like buttons (global):** Heart SVG buttons on Tasks table rows, Accomplishment cards, Use Case cards, and inside banner slides. Optimistic UI with bounce animation. `handleLikeClick()` syncs all instances of the same item across page sections. Prompts reuse the existing `prompt_votes` system.
+- **Selection algorithm (client-side):** Per content type: pinned items first → sort by likes → sort by metric value. Fills slots from `featured_banner_config`. Always fills banner even with zero likes via metric fallback.
+- **Admin config (`admin.html`):** New "Banner Settings" page with slot allocation table, active toggles, pin management list, and "Pin Item" modal with searchable item picker.
+- **Cache:** `localStorage` keys (`eas_banner_selection`, `eas_banner_date`, `eas_banner_quarter`) with calendar-day reset. Cleared on quarter change.
+
+**Key decisions:**
+- **Prompts excluded from `likes` table** — `prompt_votes` already handles like/dislike for prompts, so `v_banner_candidates` joins `prompt_votes WHERE vote_type='like'` for prompt like counts. The `likes` CHECK only allows `task`, `accomplishment`, `use_case`.
+- **Lazy-loaded like data** — `loadLikeData()` runs in parallel with other non-critical boot tasks rather than blocking `fetchAllData()`.
+- **Cross-section sync** — `handleLikeClick()` uses `querySelectorAll` to find and update ALL like buttons for the same item across banner + section pages.
+- **`prefers-reduced-motion`** — disables auto-rotation, transitions, and bounce animations.
+- **SPOC pin permissions** — SPOCs can pin items and delete their own pins; admins have full pin control.
+
+**Files changed:**
+- `sql/022_featured_banner_and_likes.sql` — new migration
+- `js/db.js` — 9 new functions in Phase 12 section
+- `css/dashboard.css` — ~250 lines of carousel + like button styles
+- `src/pages/index.html` — banner HTML, like buttons in Tasks/Accomplishments/Use Cases, spotlight script block
+- `src/pages/admin.html` — Banner Settings nav item + page + pin modal + script block
+
 ### 0x. April 16, 2026 — Multi-SPOC Approval per Practice
 
 **Purpose:** Allow multiple SPOCs per practice, where any SPOC in a practice can approve any task for that practice. Show actual SPOC usernames in the "Pending With" column of the employee task status grid.

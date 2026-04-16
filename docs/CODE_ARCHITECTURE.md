@@ -96,6 +96,7 @@ The EAS AI Dashboard is a **static-first web application** hosted on GitHub Page
 │   ├── 011_reported_issues.sql # Issues/blockers tracking table + RLS policies
 │   └── 017_data_sync_phase.sql # Data Sync: Grafana IDE columns, username linkage, sync_hash, source constraints
 │   └── 020_team_lead_role.sql  # Team Lead role: team_lead_assignments table, RLS, helper functions
+│   └── 022_featured_banner_and_likes.sql  # Phase 12: likes, featured_banner_config, featured_banner_pins, v_banner_candidates, toggle_like RPC
 │
 ├── scripts/                # Node.js admin/migration scripts + data sync
 │   ├── create-auth-users.mjs   # One-time auth user creation
@@ -240,7 +241,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 
 ## 4. Database Schema
 
-### Tables (13)
+### Tables (16)
 
 | Table | Purpose | Row Count (Phase 1) |
 |-------|---------|---------------------|
@@ -258,6 +259,9 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `executive_practices` | Maps executive users to their assigned practices (junction) | Dynamic |
 | `reported_issues` | Issues/blockers reported by contributors and SPOCs | Dynamic |
 | `team_lead_assignments` | Maps team_lead users to their assigned member emails per practice (junction) | Dynamic |
+| `likes` | Global like system — user+item_type+item_id unique constraint | Dynamic |
+| `featured_banner_config` | Admin-configurable slot allocation per content type | 5 (seeded) |
+| `featured_banner_pins` | Admin/SPOC-pinned items for spotlight banner | Dynamic |
 
 ### Computed Columns
 
@@ -282,6 +286,7 @@ All modules use the **Revealing Module Pattern** (IIFE returning a public API):
 | `get_executive_summary()` | PL/pgSQL, SECURITY DEFINER | Aggregates cross-practice KPIs (tasks, hours, users, trends, adoption) for executive dashboard |
 | `get_current_user_id()` | SQL, SECURITY DEFINER | Returns the `id` from `users` for the currently authenticated user |
 | `get_team_lead_members()` | SQL, SECURITY DEFINER | Returns member emails assigned to the current user as team lead |
+| `toggle_like()` | PL/pgSQL, SECURITY DEFINER | Toggles like on task/accomplishment/use_case; returns `{liked, like_count}` |
 
 #### `signup_contributor()` Parameters
 
@@ -302,6 +307,7 @@ Returns `jsonb` with `{status, user_id, copilot_id?}`. Copilot logic:
 
 - `practice_summary` — Aggregated stats per practice (approved-only tasks)
 - `quarter_summary` — Aggregated stats per quarter (approved-only tasks)
+- `v_banner_candidates` — UNION ALL of approved tasks, accomplishments, active prompts, approved use cases with like counts and pin status
 
 ### Row-Level Security
 

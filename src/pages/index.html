@@ -208,6 +208,21 @@
       </div>
     </div>
     <div class="page-content">
+      <!-- Featured Banner Spotlight Carousel -->
+      <div id="spotlight-skeleton" class="spotlight-skeleton" aria-hidden="true"></div>
+      <div id="spotlight-banner" class="spotlight-banner hidden"
+           role="region" aria-roledescription="carousel" aria-label="Featured Spotlight"
+           tabindex="0">
+        <button class="spotlight-arrow spotlight-arrow--prev" aria-label="Previous spotlight">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="spotlight-track" id="spotlight-track" aria-live="polite"></div>
+        <button class="spotlight-arrow spotlight-arrow--next" aria-label="Next spotlight">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="spotlight-dots" id="spotlight-dots" role="tablist" aria-label="Spotlight slides"></div>
+      </div>
+
       <div class="kpi-grid" id="kpi-grid"></div>
 
       <!-- Licensed Tool Adoption Section -->
@@ -346,6 +361,7 @@
                 <th>Eff %</th>
                 <th>Status</th>
                 <th>Approval</th>
+                <th style="text-align:center">Likes</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -2264,6 +2280,9 @@ function renderDashboard() {
   renderLicensedToolKPIs();
 
   renderCharts();
+
+  // Featured Banner Spotlight
+  initSpotlightBanner();
 }
 
 /**
@@ -2659,6 +2678,7 @@ function renderTasks() {
       <td>${t.timeWithout > 0 ? fmt((t.timeSaved / t.timeWithout) * 100, 0) + '%' : '-'}</td>
       <td>${statusBadge(t.status)}</td>
       <td>${approvalBadge(t.approvalStatus)}</td>
+      <td style="text-align:center">${buildLikeBtn('task', t.id, getLikeCount('task', t.id))}</td>
       <td class="row-actions">
         ${EAS_Auth.getUserRole() !== 'viewer' ? `<button class="btn-icon btn-edit" onclick="editTask('${t.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="btn-icon btn-delete" onclick="deleteTaskConfirm('${t.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
@@ -2732,6 +2752,7 @@ function renderAccomplishments() {
         ${a.before ? `<div><span style="color:var(--danger)">Before:</span> <span style="color:var(--text-secondary)">${a.before}</span></div>` : ''}
         ${a.after ? `<div><span style="color:var(--success)">After:</span> <span style="color:var(--text-secondary)">${a.after}</span></div>` : ''}
       </div>` : ''}
+      <div style="margin-top:10px;display:flex;justify-content:flex-end">${buildLikeBtn('accomplishment', a.id, getLikeCount('accomplishment', a.id))}</div>
     </div>
   `).join('');
 
@@ -3675,6 +3696,7 @@ function renderUseCases() {
   const fType = document.getElementById('uc-filter-type')?.value || '';
   // --- 1. Build AI Innovation Approved use cases from DB ---
   const approvedUCs = (data.approvedUseCases || []).map(uc => ({
+    ucId: uc.id,
     task: uc.name,
     description: uc.description,
     category: uc.category || uc.sdlcPhase || '',
@@ -3820,6 +3842,7 @@ function renderUseCases() {
         ${uc.noOfAdoptions ? `<div>Adoptions: <span style="color:var(--purple);font-weight:600">${uc.noOfAdoptions}</span></div>` : ''}
       </div>
       ${uc.businessBenefits ? `<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><strong>Benefits:</strong> ${(uc.businessBenefits || '').substring(0, 150)}${(uc.businessBenefits || '').length > 150 ? '…' : ''}</div>` : ''}
+      ${uc.ucId ? `<div style="margin-top:10px;display:flex;justify-content:flex-end">${buildLikeBtn('use_case', uc.ucId, getLikeCount('use_case', uc.ucId))}</div>` : ''}
     </div>`;
   };
 
@@ -6696,8 +6719,9 @@ async function boot() {
   if (data) {
     populateFilters();
     await updateNavCounts();
-    // Pre-load issues data (not quarter-filtered)
+    // Pre-load issues data and like data (not quarter-filtered)
     loadIssues().catch(err => console.warn('Issues pre-load failed:', err));
+    loadLikeData().catch(err => console.warn('Like data pre-load failed:', err));
   }
   
   // Role-aware default page
@@ -6714,6 +6738,10 @@ async function boot() {
   // 6. Listen for quarter changes — re-fetch from Supabase
   window.addEventListener('quarter-changed', async () => {
     document.getElementById('auth-loading').style.display = 'flex';
+    // Clear banner cache so it refreshes for new quarter
+    localStorage.removeItem('eas_banner_selection');
+    localStorage.removeItem('eas_banner_date');
+    localStorage.removeItem('eas_banner_quarter');
     try {
       const newQuarter = EAS_DB.getSelectedQuarter();
       data = await EAS_DB.fetchAllData(newQuarter);
@@ -7327,6 +7355,329 @@ boot();
   // Also listen for click
   document.getElementById('adoption-agent-toggle')?.addEventListener('click', window.toggleAdoptionAgent);
 })();
+</script>
+
+<!-- ============================================================
+     Featured Banner Spotlight — Carousel + Likes Engine
+     ============================================================ -->
+<script>
+// SVG icon constants (no emoji)
+const HEART_SVG = '<svg class="like-icon" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+
+// Global likes state
+let _myLikes = {};
+let _myPromptVotes = {};
+let _likeCounts = {};   // { task: { id→count }, accomplishment: { id→count }, use_case: { id→count } }
+let _spotlightTimer = null;
+let _spotlightIndex = 0;
+let _spotlightSlides = [];
+let _spotlightPaused = false;
+
+/**
+ * Load all like counts and user likes. Called once during boot.
+ */
+async function loadLikeData() {
+  const [myLikes, myVotes, taskLikes, accLikes, ucLikes] = await Promise.all([
+    EAS_DB.fetchMyLikes(),
+    EAS_DB.fetchMyVotes(),
+    EAS_DB.fetchLikeCounts('task'),
+    EAS_DB.fetchLikeCounts('accomplishment'),
+    EAS_DB.fetchLikeCounts('use_case')
+  ]);
+  _myLikes = myLikes;
+  _myPromptVotes = myVotes;
+  _likeCounts = { task: taskLikes, accomplishment: accLikes, use_case: ucLikes };
+}
+
+/**
+ * Get like count for an item.
+ */
+function getLikeCount(itemType, itemId) {
+  if (itemType === 'prompt') return 0; // prompts use vote system
+  return (_likeCounts[itemType] || {})[itemId] || 0;
+}
+
+/**
+ * Build a like button HTML string.
+ * @param {string} itemType - 'task','accomplishment','use_case','prompt'
+ * @param {string} itemId - UUID
+ * @param {number} likeCount - current like count
+ * @returns {string} HTML
+ */
+function buildLikeBtn(itemType, itemId, likeCount) {
+  const isPrompt = itemType === 'prompt';
+  const key = isPrompt ? itemId : `${itemType}:${itemId}`;
+  const liked = isPrompt ? (_myPromptVotes[itemId] === 'like') : !!_myLikes[key];
+  const cls = liked ? 'like-btn liked' : 'like-btn';
+  return `<button class="${cls}" data-item-type="${EAS_Utils.sanitize(itemType)}" data-item-id="${EAS_Utils.sanitize(itemId)}" data-count="${likeCount}" aria-label="${liked ? 'Unlike' : 'Like'} (${likeCount} likes)" aria-pressed="${liked}">${HEART_SVG}<span class="like-count">${likeCount}</span></button>`;
+}
+
+/**
+ * Handle like button click (delegated).
+ */
+async function handleLikeClick(btn) {
+  if (btn.classList.contains('like-loading')) return;
+  btn.classList.add('like-loading');
+  const itemType = btn.dataset.itemType;
+  const itemId = btn.dataset.itemId;
+  const isPrompt = itemType === 'prompt';
+  const wasLiked = btn.classList.contains('liked');
+
+  // Optimistic UI
+  const countEl = btn.querySelector('.like-count');
+  let count = parseInt(btn.dataset.count) || 0;
+  if (wasLiked) { count = Math.max(0, count - 1); btn.classList.remove('liked'); }
+  else { count++; btn.classList.add('liked', 'bounce'); setTimeout(() => btn.classList.remove('bounce'), 250); }
+  countEl.textContent = count;
+  btn.dataset.count = count;
+  btn.setAttribute('aria-pressed', !wasLiked);
+  btn.setAttribute('aria-label', `${!wasLiked ? 'Unlike' : 'Like'} (${count} likes)`);
+
+  // Sync all buttons for same item
+  document.querySelectorAll(`.like-btn[data-item-type="${itemType}"][data-item-id="${itemId}"]`).forEach(other => {
+    if (other === btn) return;
+    other.querySelector('.like-count').textContent = count;
+    other.dataset.count = count;
+    if (wasLiked) other.classList.remove('liked');
+    else other.classList.add('liked');
+    other.setAttribute('aria-pressed', !wasLiked);
+  });
+
+  // Async DB call
+  try {
+    if (isPrompt) {
+      const voteType = wasLiked ? null : 'like';
+      const result = await EAS_DB.votePrompt(itemId, voteType);
+      if (result) {
+        if (voteType) _myPromptVotes[itemId] = 'like';
+        else delete _myPromptVotes[itemId];
+        const serverCount = result.like_count || 0;
+        document.querySelectorAll(`.like-btn[data-item-type="prompt"][data-item-id="${itemId}"]`).forEach(b => {
+          b.querySelector('.like-count').textContent = serverCount;
+          b.dataset.count = serverCount;
+        });
+      }
+    } else {
+      const result = await EAS_DB.toggleLike(itemType, itemId);
+      if (result) {
+        const key = `${itemType}:${itemId}`;
+        if (result.liked) _myLikes[key] = true;
+        else delete _myLikes[key];
+        document.querySelectorAll(`.like-btn[data-item-type="${itemType}"][data-item-id="${itemId}"]`).forEach(b => {
+          b.querySelector('.like-count').textContent = result.like_count;
+          b.dataset.count = result.like_count;
+        });
+      }
+    }
+  } catch (err) {
+    // Revert on error
+    console.error('Like toggle failed:', err);
+    showToast('Could not save like', 'error');
+    if (wasLiked) { btn.classList.add('liked'); count++; }
+    else { btn.classList.remove('liked'); count = Math.max(0, count - 1); }
+    countEl.textContent = count;
+    btn.dataset.count = count;
+  }
+  btn.classList.remove('like-loading');
+}
+
+// Delegated click handler for all like buttons
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.like-btn');
+  if (btn) { e.preventDefault(); e.stopPropagation(); handleLikeClick(btn); }
+});
+
+/**
+ * Initialize the spotlight banner carousel.
+ */
+async function initSpotlightBanner() {
+  const skeleton = document.getElementById('spotlight-skeleton');
+  const banner = document.getElementById('spotlight-banner');
+  const track = document.getElementById('spotlight-track');
+  const dotsContainer = document.getElementById('spotlight-dots');
+  if (!track || !banner) return;
+
+  // Check localStorage cache
+  const cacheKey = 'eas_banner_selection';
+  const cacheDateKey = 'eas_banner_date';
+  const today = new Date().toISOString().split('T')[0];
+  const quarterId = EAS_DB.getSelectedQuarter();
+
+  let slides = [];
+  const cached = localStorage.getItem(cacheKey);
+  const cachedDate = localStorage.getItem(cacheDateKey);
+  const cachedQuarter = localStorage.getItem('eas_banner_quarter');
+
+  if (cached && cachedDate === today && cachedQuarter === quarterId) {
+    try { slides = JSON.parse(cached); } catch(e) { slides = []; }
+  }
+
+  if (!slides.length) {
+    // Fetch fresh — load my likes in parallel
+    const [candidates, config] = await Promise.all([
+      EAS_DB.fetchBannerCandidates(quarterId),
+      EAS_DB.fetchBannerConfig()
+    ]);
+
+    // Selection algorithm: per type, take pinned first, then fill remaining slots
+    const types = ['task', 'accomplishment', 'prompt', 'use_case'];
+    types.forEach(type => {
+      const cfg = config[type];
+      if (!cfg || !cfg.is_active) return;
+      const maxSlots = cfg.slots || 3;
+      const items = candidates.filter(c => c.item_type === type);
+      const pinned = items.filter(i => i.is_pinned);
+      const rest = items.filter(i => !i.is_pinned);
+      const selected = [...pinned.slice(0, maxSlots), ...rest.slice(0, maxSlots - Math.min(pinned.length, maxSlots))];
+      slides.push(...selected);
+    });
+
+    // Cache
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(slides));
+      localStorage.setItem(cacheDateKey, today);
+      localStorage.setItem('eas_banner_quarter', quarterId);
+    } catch(e) { /* quota exceeded - ignore */ }
+  }
+
+  // Ensure like data is loaded
+  if (!Object.keys(_myLikes).length && !Object.keys(_myPromptVotes).length) {
+    await loadLikeData();
+  }
+
+  // Hide skeleton
+  if (skeleton) skeleton.classList.add('hidden');
+
+  if (!slides.length) {
+    banner.classList.add('hidden');
+    const empty = document.createElement('div');
+    empty.className = 'spotlight-empty';
+    empty.innerHTML = '<span style="font-size:18px;font-weight:600">No spotlight items yet</span><span>Start logging tasks and liking contributions to see them featured here!</span>';
+    banner.parentNode.insertBefore(empty, banner);
+    return;
+  }
+
+  _spotlightSlides = slides;
+  _spotlightIndex = 0;
+
+  // Build slides
+  track.innerHTML = slides.map((s, i) => {
+    const badgeClass = s.is_pinned ? 'spotlight-badge--pinned' : (s.like_count > 0 ? 'spotlight-badge--liked' : 'spotlight-badge--metric');
+    const badgeLabel = s.is_pinned ? (s.pin_label || 'Admin Pick') : (s.like_count > 0 ? 'Top Liked' : getBadgeForType(s.item_type));
+    const typeLabel = { task: 'Task', accomplishment: 'AI Win', prompt: 'Prompt', use_case: 'Use Case' }[s.item_type] || s.item_type;
+    const dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const title = EAS_Utils.sanitize(truncate(s.title || '', 120));
+    const contributor = EAS_Utils.sanitize(s.contributor_name || 'Unknown');
+    const practice = EAS_Utils.sanitize(s.practice || '');
+    const department = EAS_Utils.sanitize(s.department || '');
+    const aiTool = EAS_Utils.sanitize(s.ai_tool || '');
+
+    return `<div class="spotlight-slide" data-type="${s.item_type}" role="tabpanel" aria-label="Slide ${i+1} of ${slides.length}: ${typeLabel}" ${i > 0 ? 'aria-hidden="true"' : ''}>
+      <div class="spotlight-badge-row">
+        <span class="spotlight-badge ${badgeClass}">${EAS_Utils.sanitize(typeLabel)} &middot; ${EAS_Utils.sanitize(badgeLabel)}</span>
+        <span class="spotlight-date">${dateStr}</span>
+      </div>
+      <div class="spotlight-title">${title}</div>
+      <div class="spotlight-metrics">
+        ${s.metric_value ? `<span class="spotlight-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmt(s.metric_value, 1)} ${EAS_Utils.sanitize(s.metric_label || '')}</span>` : ''}
+        ${s.metric_value_2 ? `<span class="spotlight-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>${fmt(s.metric_value_2, 1)}${EAS_Utils.sanitize(s.metric_label_2 || '')}</span>` : ''}
+        ${aiTool ? `<span class="spotlight-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>${aiTool}</span>` : ''}
+      </div>
+      <div class="spotlight-contributor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        ${contributor}
+        <span class="spotlight-separator">&middot;</span>${practice}
+        <span class="spotlight-separator">&middot;</span>${department}
+      </div>
+      <div class="spotlight-like-row">
+        ${buildLikeBtn(s.item_type, s.item_id, s.like_count)}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Build dots
+  dotsContainer.innerHTML = slides.map((_, i) =>
+    `<button class="spotlight-dot${i === 0 ? ' active' : ''}" role="tab" aria-label="Go to slide ${i+1}" aria-selected="${i === 0}" data-index="${i}"></button>`
+  ).join('');
+
+  // Show banner
+  banner.classList.remove('hidden');
+
+  // Wire controls
+  const prevBtn = banner.querySelector('.spotlight-arrow--prev');
+  const nextBtn = banner.querySelector('.spotlight-arrow--next');
+
+  prevBtn.addEventListener('click', () => goToSlide(_spotlightIndex - 1));
+  nextBtn.addEventListener('click', () => goToSlide(_spotlightIndex + 1));
+
+  dotsContainer.addEventListener('click', (e) => {
+    const dot = e.target.closest('.spotlight-dot');
+    if (dot) goToSlide(parseInt(dot.dataset.index));
+  });
+
+  // Keyboard navigation
+  banner.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goToSlide(_spotlightIndex - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); goToSlide(_spotlightIndex + 1); }
+  });
+
+  // Pause on hover / focus
+  banner.addEventListener('mouseenter', () => { _spotlightPaused = true; });
+  banner.addEventListener('mouseleave', () => { _spotlightPaused = false; });
+  banner.addEventListener('focusin', () => { _spotlightPaused = true; });
+  banner.addEventListener('focusout', (e) => { if (!banner.contains(e.relatedTarget)) _spotlightPaused = false; });
+
+  // Start auto-rotation
+  startSpotlightTimer();
+}
+
+function goToSlide(index) {
+  const track = document.getElementById('spotlight-track');
+  const dots = document.querySelectorAll('.spotlight-dot');
+  const slides = track?.querySelectorAll('.spotlight-slide');
+  if (!track || !slides?.length) return;
+
+  // Wrap around
+  if (index < 0) index = slides.length - 1;
+  if (index >= slides.length) index = 0;
+
+  _spotlightIndex = index;
+  track.style.transform = `translateX(-${index * 100}%)`;
+
+  // Update dots
+  dots.forEach((d, i) => {
+    d.classList.toggle('active', i === index);
+    d.setAttribute('aria-selected', i === index);
+  });
+
+  // Update aria-hidden
+  slides.forEach((s, i) => { s.setAttribute('aria-hidden', i !== index); });
+
+  // Reset timer
+  startSpotlightTimer();
+}
+
+function startSpotlightTimer() {
+  if (_spotlightTimer) clearInterval(_spotlightTimer);
+  _spotlightTimer = setInterval(() => {
+    if (!_spotlightPaused && _spotlightSlides.length > 1) {
+      goToSlide(_spotlightIndex + 1);
+    }
+  }, 5000);
+}
+
+function getBadgeForType(type) {
+  return { task: 'Most Efficient', accomplishment: 'Best AI Win', prompt: 'Most Copied', use_case: 'Top Use Case' }[type] || 'Featured';
+}
+
+function truncate(str, max) {
+  return str.length > max ? str.substring(0, max) + '...' : str;
+}
+
+function fmt(val, decimals) {
+  if (val == null || isNaN(val)) return '0';
+  return Number(val).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
 </script>
 
 </body>

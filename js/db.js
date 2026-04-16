@@ -2246,6 +2246,138 @@ const EAS_DB = (() => {
   }
 
   // ===========================================================
+  // Featured Banner & Likes — Phase 12
+  // ===========================================================
+
+  /**
+   * Fetch banner candidates from the v_banner_candidates view.
+   * @param {string|null} quarterId — filter by quarter or null for all
+   * @returns {Array} candidates sorted by pinned, like_count, metric_value
+   */
+  async function fetchBannerCandidates(quarterId) {
+    let query = sb.from('v_banner_candidates').select('*');
+    if (quarterId && quarterId !== 'all') {
+      // Tasks & accomplishments are quarter-scoped; prompts & use cases have null quarter_id
+      query = query.or(`quarter_id.eq.${quarterId},quarter_id.is.null`);
+    }
+    const { data, error } = await query;
+    if (error) { console.error('fetchBannerCandidates error:', error.message); return []; }
+    // Sort: pinned first, then by like_count desc, then metric_value desc
+    return (data || []).sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      if (b.like_count !== a.like_count) return b.like_count - a.like_count;
+      return (b.metric_value || 0) - (a.metric_value || 0);
+    });
+  }
+
+  /**
+   * Fetch banner config (slots per type).
+   * @returns {Object} map of item_type → { slots, is_active }
+   */
+  async function fetchBannerConfig() {
+    const { data, error } = await sb.from('featured_banner_config').select('*');
+    if (error) { console.error('fetchBannerConfig error:', error.message); return {}; }
+    const map = {};
+    (data || []).forEach(r => { map[r.item_type] = { slots: r.slots, is_active: r.is_active, id: r.id }; });
+    return map;
+  }
+
+  /**
+   * Update banner config for a specific item_type.
+   */
+  async function updateBannerConfig(itemType, updates) {
+    const profile = await EAS_Auth.getUserProfile();
+    const { error } = await sb.from('featured_banner_config')
+      .update({ ...updates, updated_by: profile?.id, updated_at: new Date().toISOString() })
+      .eq('item_type', itemType);
+    if (error) { console.error('updateBannerConfig error:', error.message); return false; }
+    return true;
+  }
+
+  /**
+   * Fetch all active banner pins.
+   */
+  async function fetchBannerPins() {
+    const { data, error } = await sb.from('featured_banner_pins')
+      .select('*, pinned_user:users!featured_banner_pins_pinned_by_fkey(name)')
+      .or('expires_at.is.null,expires_at.gte.' + new Date().toISOString().split('T')[0]);
+    if (error) { console.error('fetchBannerPins error:', error.message); return []; }
+    return data || [];
+  }
+
+  /**
+   * Pin an item to the banner.
+   */
+  async function insertBannerPin(itemType, itemId, pinLabel, expiresAt) {
+    const profile = await EAS_Auth.getUserProfile();
+    const { data, error } = await sb.from('featured_banner_pins').insert({
+      item_type: itemType,
+      item_id: itemId,
+      pin_label: pinLabel || 'Admin Pick',
+      pinned_by: profile?.id,
+      expires_at: expiresAt || null
+    }).select().single();
+    if (error) { console.error('insertBannerPin error:', error.message); return null; }
+    return data;
+  }
+
+  /**
+   * Remove a pin from the banner.
+   */
+  async function deleteBannerPin(pinId) {
+    const { error } = await sb.from('featured_banner_pins').delete().eq('id', pinId);
+    if (error) { console.error('deleteBannerPin error:', error.message); return false; }
+    return true;
+  }
+
+  /**
+   * Toggle a like on an item (task, accomplishment, use_case).
+   * Uses the toggle_like RPC function.
+   * @returns {{ liked: boolean, like_count: number } | null}
+   */
+  async function toggleLike(itemType, itemId) {
+    const { data, error } = await sb.rpc('toggle_like', {
+      p_item_type: itemType,
+      p_item_id: itemId
+    });
+    if (error) { console.error('toggleLike error:', error.message); return null; }
+    return data;
+  }
+
+  /**
+   * Fetch the current user's likes (all item types).
+   * @returns {Object} map of "item_type:item_id" → true
+   */
+  async function fetchMyLikes() {
+    const profile = await EAS_Auth.getUserProfile();
+    if (!profile) return {};
+    const { data, error } = await sb.from('likes')
+      .select('item_type, item_id')
+      .eq('user_id', profile.id);
+    if (error) { console.error('fetchMyLikes error:', error.message); return {}; }
+    const map = {};
+    (data || []).forEach(r => { map[`${r.item_type}:${r.item_id}`] = true; });
+    return map;
+  }
+
+  /**
+   * Fetch like counts for a specific item type.
+   * @returns {Object} map of item_id → like_count
+   */
+  async function fetchLikeCounts(itemType) {
+    const { data, error } = await sb.from('likes')
+      .select('item_id')
+      .eq('item_type', itemType);
+    if (error) { console.error('fetchLikeCounts error:', error.message); return {}; }
+    const map = {};
+    (data || []).forEach(r => {
+      map[r.item_id] = (map[r.item_id] || 0) + 1;
+    });
+    return map;
+  }
+
+  // ===========================================================
   // Public API
   // ===========================================================
 
@@ -2361,6 +2493,17 @@ const EAS_DB = (() => {
 
     // Password Management (Phase 11)
     changePassword,
-    adminResetPassword
+    adminResetPassword,
+
+    // Featured Banner & Likes
+    fetchBannerCandidates,
+    fetchBannerConfig,
+    updateBannerConfig,
+    fetchBannerPins,
+    insertBannerPin,
+    deleteBannerPin,
+    toggleLike,
+    fetchMyLikes,
+    fetchLikeCounts
   };
 })();
