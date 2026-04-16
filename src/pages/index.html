@@ -11,11 +11,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../css/dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../js/config.js?v=20260416a"></script>
-<script src="../../js/utils.js?v=20260416a"></script>
-<script src="../../js/auth.js?v=20260416a"></script>
-<script src="../../js/db.js?v=20260416b"></script>
-<script src="../../js/phase8-submission.js?v=20260416a"></script>
+<script src="../../js/config.js?v=20260416c"></script>
+<script src="../../js/utils.js?v=20260416c"></script>
+<script src="../../js/auth.js?v=20260416c"></script>
+<script src="../../js/db.js?v=20260416c"></script>
+<script src="../../js/phase8-submission.js?v=20260416c"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
@@ -2276,13 +2276,13 @@ function renderDashboard() {
     <div class="kpi-card"><div class="kpi-label">Copilot Users</div><div class="kpi-value pink">${data.copilotUsers.length}</div><div class="kpi-sub">access granted</div></div>
   `;
 
+  // Featured Banner Spotlight — call BEFORE charts (charts can throw and block subsequent code)
+  initSpotlightBanner().catch(err => console.error('Spotlight banner error:', err));
+
   // Licensed Tool Adoption KPIs
   renderLicensedToolKPIs();
 
-  renderCharts();
-
-  // Featured Banner Spotlight
-  initSpotlightBanner().catch(err => console.error('Spotlight banner error:', err));
+  try { renderCharts(); } catch (chartErr) { console.error('renderCharts error:', chartErr); }
 }
 
 /**
@@ -2774,11 +2774,12 @@ function renderCopilot() {
     return true;
   });
 
-  // KPIs — show licensed tool adoption breakdown
-  const totalUsers = data.copilotUsers.length;
-  const hasLoggedCount = data.copilotUsers.filter(u => u.hasLoggedTask).length;
-  const ghActive = data.copilotUsers.filter(u => u.githubCopilotStatus === 'active').length;
-  const m365Active = data.copilotUsers.filter(u => u.m365CopilotStatus === 'active').length;
+  // KPIs — only count access-granted users as "licensed"
+  const licensedUsers = data.copilotUsers.filter(u => u.status && u.status.toLowerCase() === 'access granted');
+  const totalUsers = licensedUsers.length;
+  const hasLoggedCount = licensedUsers.filter(u => u.hasLoggedTask).length;
+  const ghActive = licensedUsers.filter(u => u.githubCopilotStatus === 'active').length;
+  const m365Active = licensedUsers.filter(u => u.m365CopilotStatus === 'active').length;
   const adoptionPct = totalUsers > 0 ? ((hasLoggedCount / totalUsers) * 100).toFixed(1) : '0.0';
   document.getElementById('copilot-kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-label">Total Licensed Users</div><div class="kpi-value blue">${totalUsers}</div><div class="kpi-sub">across all practices</div></div>
@@ -7491,11 +7492,12 @@ document.addEventListener('click', (e) => {
  * Initialize the spotlight banner carousel.
  */
 async function initSpotlightBanner() {
+  console.log('[Spotlight] initSpotlightBanner called');
   const skeleton = document.getElementById('spotlight-skeleton');
   const banner = document.getElementById('spotlight-banner');
   const track = document.getElementById('spotlight-track');
   const dotsContainer = document.getElementById('spotlight-dots');
-  if (!track || !banner) return;
+  if (!track || !banner) { console.error('[Spotlight] DOM elements missing: track=', !!track, 'banner=', !!banner); return; }
 
   try {
   // Remove any previous empty state
