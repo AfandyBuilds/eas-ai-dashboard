@@ -6,6 +6,31 @@
 
 ## Changes Made
 
+### 0ab. April 17, 2026 — Fix Accomplishment Approval Workflow (Mandatory SPOC + Admin)
+
+**Problem:** Accomplishments shared the same approval routing as tasks, which meant accomplishments with < 5 saved hours were auto-approved. The business requirement is that accomplishments must **always** be reviewed by both SPOC and Admin — no auto-approval regardless of hours. Additionally, when a SPOC approved an accomplishment, it would be marked as fully approved instead of advancing to admin review.
+
+**Secondary bug:** `updateAccomplishment` called `createSubmissionApproval` with 6 arguments (passing `practice` as the 5th parameter and `false` as 6th), but the function only accepts 4 parameters — so `practice` was silently dropped, causing approval records for edited accomplishments to have `practice = null`.
+
+**Fixes applied:**
+- **`determineApprovalRouting(practice, savedHours, submissionType)`** — New 3rd parameter. Accomplishments skip the `< 5h auto-approve` check and always set `needsAdminReview = true`.
+- **`createSubmissionApproval`** — Passes `submissionType` through to `determineApprovalRouting`.
+- **`submitAccomplishmentWithApproval`** — Removed the `autoApproved` handling block; accomplishments always create an approval record.
+- **`approveSubmission` state machine** — When SPOC approves an accomplishment, `nextStatus` is always `admin_review` (not `approved`). Admin can still bypass and approve directly at any stage.
+- **`updateAccomplishment`** — Fixed the `createSubmissionApproval` call to pass 4 correct arguments: `('accomplishment', data.id, savedHours, data.practice)`.
+- **Admin UI** — Approval tables now show a "Type" column distinguishing tasks from accomplishments. Toast messages reflect the submission type and whether the action was a final approval or advancement to admin review.
+
+**Approval flow comparison:**
+
+| Submission | < 5h saved | 5–10h saved | > 10h saved |
+|---|---|---|---|
+| **Task** | Auto-approve | SPOC → Approved | SPOC → Admin → Approved |
+| **Accomplishment** | SPOC → Admin → Approved | SPOC → Admin → Approved | SPOC → Admin → Approved |
+
+**Files changed:** `js/db.js`, `src/pages/admin.html`
+
+---
+
 ### 0aa. April 17, 2026 — Unify status/remarks Columns + NOT NULL Constraint
 
 **Problem:** `copilot_users` had two columns carrying the same information: `status` and `remarks`. They frequently conflicted (e.g., `status = 'access granted'` but `remarks = 'pending'`). The UI displayed `remarks` while the backend filtered on `status`.

@@ -720,7 +720,7 @@ const EAS_DB = (() => {
         await sb.from('submission_approvals').delete().eq('id', data.approval_id);
       }
       const savedHours = data.effort_saved || 0;
-      const approval = await createSubmissionApproval('accomplishment', data.id, savedHours, null, data.practice, false);
+      const approval = await createSubmissionApproval('accomplishment', data.id, savedHours, data.practice);
       if (approval) {
         await sb.from('accomplishments').update({
           approval_id: approval.id
@@ -1350,9 +1350,9 @@ const EAS_DB = (() => {
    * - savedHours > 10   → SPOC review first, then Admin review
    * On any rejection: status becomes 'rejected'
    */
-  async function determineApprovalRouting(practice, savedHours) {
-    // Auto-approve: tasks with less than 5 hours saved
-    if (savedHours < 5) {
+  async function determineApprovalRouting(practice, savedHours, submissionType = 'task') {
+    // Auto-approve: tasks with less than 5 hours saved (accomplishments never auto-approve)
+    if (submissionType === 'task' && savedHours < 5) {
       return { approvalStatus: 'approved', approvalLayer: null, spocId: null, adminId: null, needsAdminReview: false, autoApproved: true };
     }
 
@@ -1360,7 +1360,8 @@ const EAS_DB = (() => {
     let approvalLayer = 'spoc';
     let spocId = null;
     let adminId = null;
-    let needsAdminReview = savedHours > 10;
+    // Accomplishments always require admin review after SPOC; tasks only if >10h
+    let needsAdminReview = submissionType === 'accomplishment' ? true : savedHours > 10;
 
     // Look up SPOCs for this practice (multi-SPOC support)
     const spocs = await getSpocsForPractice(practice);
@@ -1402,8 +1403,8 @@ const EAS_DB = (() => {
   async function createSubmissionApproval(submissionType, submissionId, savedHours, practice = null) {
     const profile = await EAS_Auth.getUserProfile();
     
-    // Determine routing (hours-based, no AI)
-    const routing = await determineApprovalRouting(practice, savedHours);
+    // Determine routing (hours-based, no AI; accomplishments always need full review)
+    const routing = await determineApprovalRouting(practice, savedHours, submissionType);
 
     // Auto-approved tasks skip the approval record entirely
     if (routing.autoApproved) {
@@ -1512,19 +1513,10 @@ const EAS_DB = (() => {
     const practice = accData.practice;
     
     const approval = await createSubmissionApproval('accomplishment', acc.id, savedHours, practice);
-    
-    // Auto-approved: mark accomplishment as approved directly
-    if (approval?.autoApproved) {
-      await sb.from('accomplishments').update({ 
-        approval_status: 'approved'
-      }).eq('id', acc.id);
-      await logActivity('AUTO_APPROVE', 'accomplishments', acc.id, { saved_hours: savedHours, reason: 'Less than 5 hours saved' });
-      return { acc, approval: { autoApproved: true, approval_status: 'approved' } };
-    }
 
-    // Normal approval flow: link approval record
+    // Accomplishments always require full review (SPOC → Admin), no auto-approve
     if (approval) {
-      await sb.from('accomplishments').update({ 
+      await sb.from('accomplishments').update({
         approval_id: approval.id
       }).eq('id', acc.id);
     }
@@ -1640,15 +1632,22 @@ const EAS_DB = (() => {
     let nextLayer = null;
 
     // State machine: determine next state
-    // Flow: spoc_review → (admin_review if >10h, else approved) → approved
-    // Admin override: admin can approve any task at any stage directly
+    // Tasks:          spoc_review → (admin_review if >10h, else approved) → approved
+    // Accomplishments: spoc_review → admin_review (always) → approved
+    // Admin override: admin can approve at any stage directly
+    const isAccomplishment = current.submission_type === 'accomplishment';
+
     if (userRole === 'admin') {
       // Admin bypasses normal flow — approve immediately regardless of stage
       nextStatus = 'approved';
       nextLayer = null;
     } else if (currentStatus === 'spoc_review') {
-      // SPOC reviewed → advance to Admin review if >10h, otherwise approve
-      if (savedHours > 10) {
+      if (isAccomplishment) {
+        // Accomplishments always require admin review after SPOC
+        nextStatus = 'admin_review';
+        nextLayer = 'admin';
+      } else if (savedHours > 10) {
+        // Tasks >10h need admin review
         nextStatus = 'admin_review';
         nextLayer = 'admin';
       } else {

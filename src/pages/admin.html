@@ -762,8 +762,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div id="page-manage-approvals" class="page hidden">
       <div class="page-header">
         <div>
-          <h2>Task Approvals</h2>
-          <div class="subtitle">Review and approve submitted tasks</div>
+          <h2>Approvals</h2>
+          <div class="subtitle">Review and approve submitted tasks &amp; accomplishments</div>
         </div>
       </div>
       <div class="page-content">
@@ -776,7 +776,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <option value="rejected">Rejected</option>
           </select>
           <select class="filter-select" id="approval-filter-practice" onchange="renderApprovals()"><option value="">All Practices</option></select>
-          <input type="text" class="search-input" id="approval-search" placeholder="Search by employee or task..." oninput="renderApprovals()" style="flex:1">
+          <input type="text" class="search-input" id="approval-search" placeholder="Search by employee, task, or accomplishment..." oninput="renderApprovals()" style="flex:1">
         </div>
         
         <!-- Pending Approvals Section -->
@@ -787,7 +787,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Employee</th><th>Practice</th><th>Task</th><th>Time Saved (hrs)</th><th>Status</th><th>Pending With</th><th>Submitted</th><th style="width:150px">Action</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Practice</th><th>Type</th><th>Submission</th><th>Time Saved (hrs)</th><th>Status</th><th>Pending With</th><th>Submitted</th><th style="width:150px">Action</th></tr></thead>
               <tbody id="pending-approvals-tbody"></tbody>
             </table>
           </div>
@@ -800,7 +800,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Employee</th><th>Practice</th><th>Task</th><th>Time Saved (hrs)</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Practice</th><th>Type</th><th>Submission</th><th>Time Saved (hrs)</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr></thead>
               <tbody id="approval-history-tbody"></tbody>
             </table>
           </div>
@@ -2373,7 +2373,7 @@ async function renderApprovals() {
     
     const html = `
       <tr>
-        <td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">
+        <td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">
           <div style="font-size:16px;margin-bottom:16px">⚠️ ${errorMessage}</div>
           <div style="font-size:13px;color:var(--text-primary);margin-bottom:16px">
             ${showSetupInstructions ? 'The approval workflow tables haven\'t been created yet.' : err.message}
@@ -2391,7 +2391,7 @@ async function renderApprovals() {
       </tr>
     `;
     document.getElementById('pending-approvals-tbody').innerHTML = html;
-    document.getElementById('approval-history-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Unable to load history</td></tr>';
+    document.getElementById('approval-history-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">Unable to load history</td></tr>';
   }
 }
 
@@ -2421,10 +2421,14 @@ function renderPendingApprovals(approvals = [], spocNameMap = {}) {
 
     const submittedTime = approval.submitted_at ? new Date(approval.submitted_at).toLocaleDateString() : 'N/A';
 
+    const typeLabel = approval.submission_type === 'accomplishment' ? '🏆 Accomplishment' : '📋 Task';
+    const idPrefix = approval.submission_type === 'accomplishment' ? 'Acc' : 'Task';
+
     html += `<tr>
       <td>${approval.submitted_by_email || 'N/A'}</td>
       <td>${approval.practice || 'N/A'}</td>
-      <td>${truncate(approval.submission_id ? 'Task #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
+      <td><span style="font-size:11px">${typeLabel}</span></td>
+      <td>${truncate(approval.submission_id ? idPrefix + ' #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
       <td style="color:var(--success);font-weight:600">${approval.saved_hours?.toFixed(1) || 0}h</td>
       <td><span style="background:var(--info);color:white;padding:4px 12px;border-radius:20px;font-size:11px">${statusLabel}</span></td>
       <td style="font-size:12px">${approval.approval_status === 'spoc_review' ? (spocNameMap[approval.practice] || 'SPOC') : approval.approval_status === 'admin_review' ? 'Admin' : '-'}</td>
@@ -2438,7 +2442,7 @@ function renderPendingApprovals(approvals = [], spocNameMap = {}) {
   });
 
   if (!html) {
-    html = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No pending approvals</td></tr>';
+    html = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No pending approvals</td></tr>';
   }
   document.getElementById('pending-approvals-tbody').innerHTML = html;
 }
@@ -2449,10 +2453,14 @@ function renderApprovalHistory(approvals = []) {
     const statusLabel = approval.approval_status === 'approved' ? '✅ Approved' : '❌ Rejected';
     const approvedTime = approval.approved_at ? new Date(approval.approved_at).toLocaleDateString() : 'N/A';
 
+    const typeLabel = approval.submission_type === 'accomplishment' ? '🏆 Accomplishment' : '📋 Task';
+    const idPrefix = approval.submission_type === 'accomplishment' ? 'Acc' : 'Task';
+
     html += `<tr>
       <td>${approval.submitted_by_email || 'N/A'}</td>
       <td>${approval.practice || 'N/A'}</td>
-      <td>${truncate(approval.submission_id ? 'Task #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
+      <td><span style="font-size:11px">${typeLabel}</span></td>
+      <td>${truncate(approval.submission_id ? idPrefix + ' #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
       <td style="color:var(--success);font-weight:600">${approval.saved_hours?.toFixed(1) || 0}h</td>
       <td><span style="color:${approval.approval_status === 'approved' ? 'var(--success)' : 'var(--danger)'};font-weight:600">${statusLabel}</span></td>
       <td>${approval.approved_by_name || approval.admin_approved ? 'Admin' : 'SPOC'}</td>
@@ -2461,19 +2469,21 @@ function renderApprovalHistory(approvals = []) {
   });
 
   if (!html) {
-    html = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No approval history</td></tr>';
+    html = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No approval history</td></tr>';
   }
   document.getElementById('approval-history-tbody').innerHTML = html;
 }
 
 async function approveApproval(approvalId) {
-  confirmAction('Approve this task submission?', async () => {
+  confirmAction('Approve this submission?', async () => {
     const approval = await EAS_DB.approveSubmission(approvalId, '');
     if (approval) {
-      showToast('✅ Task approved successfully', 'success');
+      const label = approval.submission_type === 'accomplishment' ? 'Accomplishment' : 'Task';
+      const action = approval.approval_status === 'approved' ? 'approved' : 'advanced to admin review';
+      showToast(`✅ ${label} ${action} successfully`, 'success');
       renderApprovals();
     } else {
-      showToast('❌ Failed to approve task', 'error');
+      showToast('❌ Failed to approve submission', 'error');
     }
   });
 }
@@ -2488,10 +2498,11 @@ function rejectApprovalModal(approvalId) {
 async function rejectApprovalWithReason(approvalId, reason) {
   const approval = await EAS_DB.rejectSubmission(approvalId, reason);
   if (approval) {
-    showToast('❌ Task rejected', 'warning');
+    const label = approval.submission_type === 'accomplishment' ? 'Accomplishment' : 'Task';
+    showToast(`❌ ${label} rejected`, 'warning');
     renderApprovals();
   } else {
-    showToast('Failed to reject task', 'error');
+    showToast('Failed to reject submission', 'error');
   }
 }
 
