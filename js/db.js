@@ -1120,6 +1120,8 @@ const EAS_DB = (() => {
    */
   function computeBadges(employee) {
     const badges = [];
+    // Combined time saved: tasks + accomplishment effort
+    const totalTimeSaved = (employee.timeSaved || 0) + (employee.accomplishmentEffort || 0);
     // First Task
     badges.push({
       id: 'first-task', icon: '🚀', title: 'First Task',
@@ -1132,11 +1134,11 @@ const EAS_DB = (() => {
       description: 'Logged tasks for 3+ weeks',
       earned: employee.streakWeeks >= 3
     });
-    // Time Saver (10+ hours)
+    // Time Saver (10+ hours — tasks + accomplishments)
     badges.push({
       id: 'time-saver', icon: '⏱️', title: 'Time Saver',
-      description: 'Saved 10+ hours with AI',
-      earned: employee.timeSaved >= 10
+      description: 'Saved 10+ hours with AI (tasks + accomplishments)',
+      earned: totalTimeSaved >= 10
     });
     // Efficiency Pro (80%+)
     badges.push({
@@ -1156,11 +1158,23 @@ const EAS_DB = (() => {
       description: 'Logged 20+ AI tasks',
       earned: employee.tasks >= 20
     });
-    // Centurion (50+ hours saved)
+    // Centurion (50+ hours saved — tasks + accomplishments)
     badges.push({
       id: 'centurion', icon: '💎', title: 'Centurion',
-      description: 'Saved 50+ hours with AI',
-      earned: employee.timeSaved >= 50
+      description: 'Saved 50+ hours with AI (tasks + accomplishments)',
+      earned: totalTimeSaved >= 50
+    });
+    // Innovator (1+ approved accomplishment)
+    badges.push({
+      id: 'innovator', icon: '💡', title: 'Innovator',
+      description: 'Submitted your first approved accomplishment',
+      earned: (employee.accomplishments || 0) >= 1
+    });
+    // Impact Maker (3+ approved accomplishments)
+    badges.push({
+      id: 'impact-maker', icon: '🌟', title: 'Impact Maker',
+      description: 'Achieved 3+ approved accomplishments',
+      earned: (employee.accomplishments || 0) >= 3
     });
     return badges;
   }

@@ -202,9 +202,10 @@ window.Phase8 = (() => {
     function updateSavedHours() {
       const without = parseFloat(withoutInput.value) || 0;
       const with_ = parseFloat(withInput.value) || 0;
-      const saved = Math.max(0, without - with_);
+      const saved = without - with_;
       savedDisplay.textContent = saved.toFixed(1) + 'h';
-      savedDisplay.className = saved > 0 ? 'success' : '';
+      savedDisplay.style.color = saved > 0 ? 'var(--success)' : 'var(--danger)';
+      savedDisplay.className = saved > 0 ? 'success' : 'error';
       // Trigger approval tier display update if function exists
       if (typeof updateApprovalTierDisplay === 'function') {
         updateApprovalTierDisplay();

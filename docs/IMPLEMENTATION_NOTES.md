@@ -6,6 +6,21 @@
 
 ## Changes Made
 
+### 0ad. April 17, 2026 — Block Negative Time Saved + Fix Saved Hours Calc + Accomplishments in Scoring
+
+**Three issues addressed:**
+
+1. **Task submission allowed zero/negative time saved** — Users could submit tasks where `time_with_ai >= time_without_ai`, resulting in zero or negative saved hours. This corrupted leaderboard rankings and KPI totals.
+   - **Fix:** Added validation in `saveTask()` (`index.html:4831`): blocks submission when `timeWith >= timeWithout`. Updated `initSavedHoursCalculation` (`phase8-submission.js:205`) to show actual negative values (removed `Math.max(0, ...)` clamp) with red color. Updated `updateApprovalTierDisplay` to show "cannot submit" warning for zero/negative.
+
+2. **Approval detail showed stale `saved_hours`** — The `submission_approvals.saved_hours` was set at submission time. When admin edited a task's time values, the approval `saved_hours` was never updated, causing mismatch (e.g., 20h displayed when actual task had 5h-3h=2h).
+   - **Fix:** Approval detail modal (`index.html:3097-3102`) now computes saved hours from actual task data (`time_without_ai - time_with_ai`) for tasks, and `effort_saved` for accomplishments, falling back to `approval.saved_hours` only when submission data is unavailable.
+
+3. **Accomplishments excluded from champions scoring & badges** — `computeBadges()` only considered task-based `timeSaved`. Accomplishment `effort_saved` was ignored entirely, and there were no accomplishment-specific badges.
+   - **Fix:** `computeBadges()` (`db.js:1121`) now accepts `accomplishments` (count) and `accomplishmentEffort` (total effort_saved) fields. Time Saver and Centurion badges use combined `timeSaved + accomplishmentEffort`. Two new badges added: Innovator (1+ accomplishment) and Impact Maker (3+ accomplishments). Leaderboard (`renderLeaderboard`), My Practice (`renderMyPractice`), and My Tasks (`renderMyTasks`) views all enriched with approved accomplishment data matched by employee name. Leaderboard table now has "Acc." column.
+
+**Trade-off:** Accomplishment-to-employee matching uses substring match on the `employees` text field. This works for single-employee accomplishments and comma-separated lists but could over-match if one employee's name is a substring of another's. This is acceptable given the current data.
+
 ### 0ac. April 17, 2026 — Fix Inaccurate Practice Summary for SPOCs
 
 **Problems identified:**

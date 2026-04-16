@@ -640,7 +640,7 @@
       <div class="table-card">
         <div style="overflow-x:auto">
           <table aria-label="Employee leaderboard">
-            <thead><tr><th>#</th><th>Employee</th><th>Practice</th><th>Tasks</th><th>Hours Saved</th><th>Efficiency</th><th>Quality</th><th>Badges</th></tr></thead>
+            <thead><tr><th>#</th><th>Employee</th><th>Practice</th><th>Tasks</th><th>Hours Saved</th><th>Efficiency</th><th>Quality</th><th>Acc.</th><th>Badges</th></tr></thead>
             <tbody id="leaderboard-tbody"></tbody>
           </table>
         </div>
@@ -3094,7 +3094,13 @@ async function viewApprovalDetail(approvalId) {
     detailRows += `<span style="color:var(--text-muted)">Practice</span><span style="font-weight:600">${approval.practice || '-'}</span>`;
     detailRows += `<span style="color:var(--text-muted)">Submitted By</span><span>${approval.submitted_by_email || '-'}</span>`;
     detailRows += `<span style="color:var(--text-muted)">Submitted At</span><span>${approval.submitted_at ? new Date(approval.submitted_at).toLocaleString() : '-'}</span>`;
-    detailRows += `<span style="color:var(--text-muted)">Saved Hours</span><span style="font-weight:600;color:var(--success)">${approval.saved_hours || 0}h</span>`;
+    // Compute saved hours from actual task/accomplishment data to avoid stale approval records
+    const computedSavedHours = (submission && approval.submission_type === 'task')
+      ? ((Number(submission.time_without_ai) || 0) - (Number(submission.time_with_ai) || 0))
+      : (submission && approval.submission_type === 'accomplishment')
+        ? (Number(submission.effort_saved) || 0)
+        : (Number(approval.saved_hours) || 0);
+    detailRows += `<span style="color:var(--text-muted)">Saved Hours</span><span style="font-weight:600;color:var(--success)">${computedSavedHours}h</span>`;
     detailRows += `<span style="color:var(--text-muted)">Approval Layer</span><span>${(approval.approval_layer || '-').toUpperCase()}</span>`;
 
     // Task-specific fields
@@ -3255,6 +3261,14 @@ async function renderMyPractice() {
   // Scope to team lead's assigned members if applicable
   const teamData = isTeamLead ? allTeamData.filter(e => teamLeadMemberEmails.includes(e.email)) : allTeamData;
   const inactive = isTeamLead ? allInactive.filter(u => teamLeadMemberEmails.includes(u.email)) : allInactive;
+
+  // Enrich team members with accomplishment data for badges
+  const practiceAccs = (data.accomplishments || []).filter(a => a.approvalStatus === 'approved' && a.practice === practice);
+  teamData.forEach(e => {
+    const empAccs = practiceAccs.filter(a => (a.employees || '').toLowerCase().includes((e.name || '').toLowerCase()));
+    e.accomplishments = empAccs.length;
+    e.accomplishmentEffort = empAccs.reduce((s, a) => s + (a.effortSaved || 0), 0);
+  });
 
   // KPIs
   const totalTasks = teamData.reduce((s, e) => s + e.tasks, 0);
@@ -3556,24 +3570,56 @@ async function renderLeaderboard() {
   const quarterId = document.getElementById('lb-filter-quarter')?.value || EAS_DB.getSelectedQuarter();
   const fPractice = document.getElementById('lb-filter-practice')?.value || '';
 
-  // Fetch both leaderboards
-  const [practiceBoard, employeeBoard] = await Promise.all([
+  // Fetch both leaderboards + accomplishments for scoring
+  const [practiceBoard, employeeBoard, accomplishments] = await Promise.all([
     EAS_DB.fetchPracticeLeaderboard(quarterId),
-    EAS_DB.fetchEmployeeLeaderboard(fPractice || null, quarterId)
+    EAS_DB.fetchEmployeeLeaderboard(fPractice || null, quarterId),
+    EAS_DB.fetchAccomplishments(quarterId, { approvedOnly: true })
   ]);
 
-  // Practice ranking cards
+  // Build per-employee accomplishment stats (match by name appearing in accomplishment employees field)
+  const empAccStats = {};
+  accomplishments.forEach(a => {
+    const names = (a.employees || '').split(/[,،;]+/).map(n => n.trim().toLowerCase()).filter(Boolean);
+    const effort = a.effortSaved || 0;
+    names.forEach(name => {
+      if (!empAccStats[name]) empAccStats[name] = { count: 0, effort: 0 };
+      empAccStats[name].count += 1;
+      empAccStats[name].effort += effort;
+    });
+  });
+
+  // Enrich employee leaderboard with accomplishment data
+  employeeBoard.forEach(e => {
+    const key = (e.name || '').trim().toLowerCase();
+    const accStat = empAccStats[key] || { count: 0, effort: 0 };
+    e.accomplishments = accStat.count;
+    e.accomplishmentEffort = accStat.effort;
+  });
+
+  // Practice ranking cards — include accomplishment effort in total
+  const practiceAccStats = {};
+  accomplishments.forEach(a => {
+    const p = a.practice;
+    if (!practiceAccStats[p]) practiceAccStats[p] = { count: 0, effort: 0 };
+    practiceAccStats[p].count += 1;
+    practiceAccStats[p].effort += (a.effortSaved || 0);
+  });
+
   const medals = ['🥇', '🥈', '🥉'];
   document.getElementById('leaderboard-practices').innerHTML = practiceBoard.map((p, i) => {
     const medal = i < 3 ? medals[i] : `#${i + 1}`;
     const color = practiceColors[p.practice] || '#94a3b8';
+    const accStat = practiceAccStats[p.practice] || { count: 0, effort: 0 };
+    const totalSaved = p.timeSaved + accStat.effort;
     return `<div class="leaderboard-card" style="border-left:4px solid ${color}">
       <div class="leaderboard-rank">${medal}</div>
       <div class="leaderboard-info">
         <div class="leaderboard-name" style="color:${color}">${p.practice}</div>
         <div class="leaderboard-stats">
           <span>${p.tasks} tasks</span>
-          <span>${fmt(p.timeSaved, 0)} hrs saved</span>
+          <span>${accStat.count} accomplishments</span>
+          <span>${fmt(totalSaved, 0)} hrs saved</span>
           <span>${fmt(p.efficiency, 0)}% eff</span>
           <span>${p.employees} contributors</span>
         </div>
@@ -3582,7 +3628,7 @@ async function renderLeaderboard() {
     </div>`;
   }).join('');
 
-  // Employee ranking table
+  // Employee ranking table — includes accomplishment data in badges
   document.getElementById('leaderboard-tbody').innerHTML = employeeBoard.slice(0, 50).map((e, i) => {
     const badges = EAS_DB.computeBadges(e);
     const earned = badges.filter(b => b.earned);
@@ -3590,14 +3636,16 @@ async function renderLeaderboard() {
       ? earned.map(b => `<span class="badge-icon" title="${b.title}">${b.icon}</span>`).join('')
       : '—';
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+    const totalSaved = e.timeSaved + (e.accomplishmentEffort || 0);
     return `<tr>
       <td style="font-weight:700;text-align:center">${medal}</td>
       <td style="font-weight:600">${e.name}</td>
       <td><span style="color:${practiceColors[e.practice] || '#94a3b8'}">${e.practice}</span></td>
       <td>${e.tasks}</td>
-      <td style="color:var(--success);font-weight:600">${fmt(e.timeSaved, 1)}</td>
+      <td style="color:var(--success);font-weight:600">${fmt(totalSaved, 1)}</td>
       <td>${fmt(e.efficiency, 0)}%</td>
       <td>${e.quality > 0 ? fmt(e.quality, 1) + '/5' : '—'}</td>
+      <td>${e.accomplishments > 0 ? e.accomplishments : '—'}</td>
       <td>${badgeHtml}</td>
     </tr>`;
   }).join('');
@@ -3666,14 +3714,21 @@ async function renderMyTasks() {
       </td>
     </tr>`).join('');
 
-  // My badges — use approved-only stats
+  // My badges — use approved-only stats + accomplishment data
+  const myAccomplishments = (data.accomplishments || []).filter(a =>
+    a.approvalStatus === 'approved' &&
+    (a.employees || '').toLowerCase().includes(userName.toLowerCase())
+  );
+  const myAccEffort = myAccomplishments.reduce((s, a) => s + (a.effortSaved || 0), 0);
   const myStats = {
     tasks: approvedTasks.length,
     timeSaved: totalSaved,
     timeWithout: totalWithout,
     efficiency: eff,
     quality: avgQual,
-    streakWeeks: new Set(approvedTasks.map(t => t.week)).size
+    streakWeeks: new Set(approvedTasks.map(t => t.week)).size,
+    accomplishments: myAccomplishments.length,
+    accomplishmentEffort: myAccEffort
   };
   const badges = EAS_DB.computeBadges(myStats);
   document.getElementById('mytasks-badges').innerHTML = `
@@ -4737,9 +4792,9 @@ function updateApprovalTierDisplay() {
   if (bypassChecked) {
     tierDisplay.textContent = '🔐 Skipping approval (admin)';
     tierDisplay.style.color = 'var(--warning)';
-  } else if (savedHours < 0) {
-    tierDisplay.textContent = '⚠️ Negative time saved';
-    tierDisplay.style.color = 'var(--error)';
+  } else if (savedHours <= 0) {
+    tierDisplay.textContent = '⚠️ Time saved must be positive — cannot submit';
+    tierDisplay.style.color = 'var(--danger)';
   } else if (savedHours < 5) {
     tierDisplay.textContent = '✅ Auto-approved (<5h saved)';
     tierDisplay.style.color = 'var(--success)';
@@ -4773,6 +4828,7 @@ async function saveTask() {
   const timeWithout = parseFloat(document.getElementById('f-time-without').value) || 0;
   const timeWith = parseFloat(document.getElementById('f-time-with').value) || 0;
   if (timeWithout <= 0) { showToast('Time without AI must be greater than 0', 'error'); return; }
+  if (timeWith >= timeWithout) { showToast('Time with AI must be less than time without AI — time saved must be positive', 'error'); return; }
 
   // Apply week defaults: if not entered, use current week Sun-Thu
   const weekRange = EAS_Utils.getCurrentWeekRange();
