@@ -1279,17 +1279,27 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Get SPOC for a practice
+   * Get SPOC for a practice.
+   * Returns the first active SPOC (legacy single-SPOC callers).
    */
   async function getSpocForPractice(practice) {
+    const spocs = await getSpocsForPractice(practice);
+    return spocs.length > 0 ? spocs[0] : null;
+  }
+
+  /**
+   * Get ALL active SPOCs for a practice (multi-SPOC support).
+   * Returns array of { spoc_id, spoc_name, spoc_email }.
+   */
+  async function getSpocsForPractice(practice) {
     const { data, error } = await sb
       .from('practice_spoc')
       .select('spoc_id, spoc_name, spoc_email')
       .eq('practice', practice)
       .eq('is_active', true)
-      .single();
-    if (error) { console.error('getSpocForPractice error:', error.message); return null; }
-    return data;
+      .order('spoc_name', { ascending: true });
+    if (error) { console.error('getSpocsForPractice error:', error.message); return []; }
+    return data || [];
   }
 
   /**
@@ -1312,10 +1322,11 @@ const EAS_DB = (() => {
     let adminId = null;
     let needsAdminReview = savedHours > 10;
 
-    // Look up SPOC for this practice
-    const spocData = await getSpocForPractice(practice);
-    if (spocData?.spoc_id) {
-      spocId = spocData.spoc_id;
+    // Look up SPOCs for this practice (multi-SPOC support)
+    const spocs = await getSpocsForPractice(practice);
+    if (spocs.length > 0) {
+      // Store the first SPOC id for the approval record (any SPOC can approve)
+      spocId = spocs[0].spoc_id;
     } else {
       // No SPOC configured — fall back to admin
       console.warn(`No SPOC found for practice "${practice}", falling back to admin`);
@@ -1497,12 +1508,11 @@ const EAS_DB = (() => {
         // Admin sees items at their layer (admin_review) + all other pending for visibility
         query = query.in('approval_status', ['pending', 'admin_review', 'spoc_review']);
       } else if (userRole === 'spoc') {
-        // SPOC sees approvals pending SPOC review for their practice.
-        // Use .or() to match both spoc_id (preferred) and practice (fallback
-        // for legacy rows where spoc_id is NULL).
+        // Any SPOC in a practice can approve any task for that practice.
+        // Match by practice rather than individual spoc_id.
         query = query
           .eq('approval_status', 'spoc_review')
-          .or(`spoc_id.eq.${userId},and(spoc_id.is.null,practice.eq.${userPractice})`);
+          .eq('practice', userPractice);
       } else if (userRole === 'team_lead') {
         // Team Lead sees approvals for their assigned members only
         const memberEmails = await fetchTeamLeadMemberEmails(userId);
@@ -2250,6 +2260,7 @@ const EAS_DB = (() => {
 
     // Approval workflow (Phase 8)
     getSpocForPractice,
+    getSpocsForPractice,
     determineApprovalRouting,
     createSubmissionApproval,
     fetchSubmissionApproval,

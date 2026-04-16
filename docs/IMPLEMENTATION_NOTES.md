@@ -6,6 +6,22 @@
 
 ## Changes Made
 
+### 0x. April 16, 2026 — Multi-SPOC Approval per Practice
+
+**Purpose:** Allow multiple SPOCs per practice, where any SPOC in a practice can approve any task for that practice. Show actual SPOC usernames in the "Pending With" column of the employee task status grid.
+
+**Approach:**
+- **Schema:** Removed `UNIQUE(practice)` constraint from `practice_spoc` table, replaced with `UNIQUE(practice, spoc_id)` to allow multiple SPOCs per practice while preventing duplicate assignments. Added partial index on `(practice, is_active) WHERE is_active = true`.
+- **Views:** Updated `employee_task_approvals`, `pending_approvals`, and `spoc_approval_workload` with a `pending_spoc_names` column that aggregates all active SPOC names for the practice via correlated subquery (`string_agg`).
+- **JS (`db.js`):** New `getSpocsForPractice(practice)` returns array of all active SPOCs. `getSpocForPractice()` now delegates to it (returns first). `fetchPendingApprovals()` for SPOC role now matches by `practice` equality rather than `spoc_id` — any SPOC in the practice sees all pending tasks for that practice.
+- **UI (`employee-status.html`):** `getPendingWith()` reads `task.pending_spoc_names` from the view when status is `spoc_review`, displaying comma-separated SPOC names. Added `escapeHtml()` helper for XSS safety on user-supplied names.
+
+**Trade-offs:**
+- Correlated subquery in views adds minor overhead per row but avoids schema denormalization. Acceptable at current scale.
+- The `spoc_id` column on `submission_approvals` still stores one SPOC ID (the first found at submission time) for backward compatibility. Approval matching now uses practice-level logic, so this column is informational only.
+
+**Migration:** `sql/021_multi_spoc_approval.sql`
+
 ### 0w. April 16, 2026 — Admin Override: Approve Any Task at Any Stage
 
 **Purpose:** Allow admin to approve tasks even if they are pending with SPOC, bypassing the normal multi-step approval flow.
