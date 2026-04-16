@@ -783,7 +783,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Employee</th><th>Practice</th><th>Task</th><th>Time Saved (hrs)</th><th>Status</th><th>Submitted</th><th style="width:150px">Action</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Practice</th><th>Task</th><th>Time Saved (hrs)</th><th>Status</th><th>Pending With</th><th>Submitted</th><th style="width:150px">Action</th></tr></thead>
               <tbody id="pending-approvals-tbody"></tbody>
             </table>
           </div>
@@ -2233,6 +2233,14 @@ async function renderApprovals() {
     // Fetch approval history
     const approvalHistory = await EAS_DB.fetchApprovalHistory(userRole, userPractice, 50);
 
+    // Build practice → SPOC names map for "Pending With" display
+    const practiceSet = new Set([...(pendingApprovals || [])].map(a => a.practice).filter(Boolean));
+    const spocNameMap = {};
+    await Promise.all([...practiceSet].map(async (practice) => {
+      const spocs = await EAS_DB.getSpocsForPractice(practice);
+      spocNameMap[practice] = spocs.map(s => s.spoc_name).filter(Boolean).join(', ');
+    }));
+
     // Populate practices filter
     const practiceSelect = document.getElementById('approval-filter-practice');
     if (practiceSelect && data.practices && practiceSelect.options.length === 1) {
@@ -2245,7 +2253,7 @@ async function renderApprovals() {
     }
 
     // Render pending approvals
-    renderPendingApprovals(pendingApprovals);
+    renderPendingApprovals(pendingApprovals, spocNameMap);
     
     // Render approval history
     renderApprovalHistory(approvalHistory);
@@ -2270,7 +2278,7 @@ async function renderApprovals() {
     
     const html = `
       <tr>
-        <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">
+        <td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">
           <div style="font-size:16px;margin-bottom:16px">⚠️ ${errorMessage}</div>
           <div style="font-size:13px;color:var(--text-primary);margin-bottom:16px">
             ${showSetupInstructions ? 'The approval workflow tables haven\'t been created yet.' : err.message}
@@ -2292,7 +2300,7 @@ async function renderApprovals() {
   }
 }
 
-function renderPendingApprovals(approvals = []) {
+function renderPendingApprovals(approvals = [], spocNameMap = {}) {
   const statusFilter = document.getElementById('approval-filter-status').value;
   const practiceFilter = document.getElementById('approval-filter-practice').value;
   const search = (document.getElementById('approval-search').value || '').toLowerCase();
@@ -2324,6 +2332,7 @@ function renderPendingApprovals(approvals = []) {
       <td>${truncate(approval.submission_id ? 'Task #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
       <td style="color:var(--success);font-weight:600">${approval.saved_hours?.toFixed(1) || 0}h</td>
       <td><span style="background:var(--info);color:white;padding:4px 12px;border-radius:20px;font-size:11px">${statusLabel}</span></td>
+      <td style="font-size:12px">${approval.approval_status === 'spoc_review' ? (spocNameMap[approval.practice] || 'SPOC') : approval.approval_status === 'admin_review' ? 'Admin' : '-'}</td>
       <td style="font-size:12px;color:var(--text-muted)">${submittedTime}</td>
       <td>
         <button class="btn btn-primary btn-sm" onclick="openApprovalDetailModal('${approval.id}')" style="padding:6px 12px;font-size:11px">Review</button>
@@ -2334,7 +2343,7 @@ function renderPendingApprovals(approvals = []) {
   });
 
   if (!html) {
-    html = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No pending approvals</td></tr>';
+    html = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No pending approvals</td></tr>';
   }
   document.getElementById('pending-approvals-tbody').innerHTML = html;
 }

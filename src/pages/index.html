@@ -501,7 +501,7 @@
         </div>
         <div style="overflow-x:auto">
           <table aria-label="Approvals">
-            <thead><tr><th>Date</th><th>Employee</th><th>Practice</th><th>Type</th><th>Description</th><th>Status</th><th>Layer</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Date</th><th>Employee</th><th>Practice</th><th>Type</th><th>Description</th><th>Status</th><th>Pending With</th><th>Actions</th></tr></thead>
             <tbody id="approvals-tbody"></tbody>
           </table>
         </div>
@@ -2914,6 +2914,14 @@ async function renderApprovals() {
       EAS_DB.fetchApprovalHistory(userRole, userPractice, 100)
     ]);
 
+    // Build a practice → SPOC-names map for "Pending With" display
+    const practiceSet = new Set([...(pending || []), ...(history || [])].map(a => a.practice).filter(Boolean));
+    const spocNameMap = {};
+    await Promise.all([...practiceSet].map(async (practice) => {
+      const spocs = await EAS_DB.getSpocsForPractice(practice);
+      spocNameMap[practice] = spocs.map(s => s.spoc_name).filter(Boolean).join(', ');
+    }));
+
     // Combine and filter based on selected filters
     let allApprovals = [...(pending || [])];
     const statusFilter = document.getElementById('approvals-filter-status').value;
@@ -2967,9 +2975,11 @@ async function renderApprovals() {
         a.approval_status === 'ai_review' ? 'AI Review' :
         'Pending';
 
-      const layerLabel = 
+      const pendingWithLabel = 
+        a.approval_status === 'approved' ? (a.approved_by_name || '✅ Approved') :
+        a.approval_status === 'rejected' ? '❌ Rejected' :
         a.approval_layer === 'admin' ? 'Admin' :
-        a.approval_layer === 'spoc' ? 'SPOC' :
+        a.approval_layer === 'spoc' ? (spocNameMap[a.practice] || 'SPOC') :
         a.approval_layer === 'ai' ? 'AI' :
         '-';
 
@@ -2981,7 +2991,7 @@ async function renderApprovals() {
           <td style="text-transform:capitalize">${a.submission_type === 'task' ? 'Task' : a.submission_type === 'accomplishment' ? 'Accomplishment' : '-'}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)" title="${a.submission_description || ''}">${a.submission_description || '-'}</td>
           <td><span class="status-badge ${statusBadgeClass}">${statusLabel}</span></td>
-          <td>${layerLabel}</td>
+          <td>${pendingWithLabel}</td>
           <td style="white-space:nowrap">
             <button class="btn btn-xs btn-secondary" onclick="viewApprovalDetail('${a.id}')">View</button>
             ${!['approved','rejected'].includes(a.approval_status) && (
