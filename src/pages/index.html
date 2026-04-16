@@ -2282,7 +2282,7 @@ function renderDashboard() {
   renderCharts();
 
   // Featured Banner Spotlight
-  initSpotlightBanner();
+  initSpotlightBanner().catch(err => console.error('Spotlight banner error:', err));
 }
 
 /**
@@ -7497,6 +7497,7 @@ async function initSpotlightBanner() {
   const dotsContainer = document.getElementById('spotlight-dots');
   if (!track || !banner) return;
 
+  try {
   // Check localStorage cache
   const cacheKey = 'eas_banner_selection';
   const cacheDateKey = 'eas_banner_date';
@@ -7513,18 +7514,26 @@ async function initSpotlightBanner() {
   }
 
   if (!slides.length) {
-    // Fetch fresh — load my likes in parallel
-    const [candidates, config] = await Promise.all([
-      EAS_DB.fetchBannerCandidates(quarterId),
-      EAS_DB.fetchBannerConfig()
-    ]);
+    // Fetch fresh
+    let candidates = [], config = {};
+    try {
+      [candidates, config] = await Promise.all([
+        EAS_DB.fetchBannerCandidates(quarterId),
+        EAS_DB.fetchBannerConfig()
+      ]);
+    } catch (err) {
+      console.error('Spotlight banner fetch error:', err);
+    }
+
+    // Fallback config if fetch returned empty (RLS timing / auth race)
+    const defaultSlots = { task: 3, accomplishment: 3, prompt: 2, use_case: 2 };
 
     // Selection algorithm: per type, take pinned first, then fill remaining slots
     const types = ['task', 'accomplishment', 'prompt', 'use_case'];
     types.forEach(type => {
-      const cfg = config[type];
-      if (!cfg || !cfg.is_active) return;
-      const maxSlots = cfg.slots || 3;
+      const cfg = config[type] || { slots: defaultSlots[type], is_active: true };
+      if (!cfg.is_active) return;
+      const maxSlots = cfg.slots || defaultSlots[type];
       const items = candidates.filter(c => c.item_type === type);
       const pinned = items.filter(i => i.is_pinned);
       const rest = items.filter(i => !i.is_pinned);
@@ -7532,12 +7541,14 @@ async function initSpotlightBanner() {
       slides.push(...selected);
     });
 
-    // Cache
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify(slides));
-      localStorage.setItem(cacheDateKey, today);
-      localStorage.setItem('eas_banner_quarter', quarterId);
-    } catch(e) { /* quota exceeded - ignore */ }
+    // Only cache if we got real data — avoid caching empty results from transient failures
+    if (slides.length) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(slides));
+        localStorage.setItem(cacheDateKey, today);
+        localStorage.setItem('eas_banner_quarter', quarterId);
+      } catch(e) { /* quota exceeded - ignore */ }
+    }
   }
 
   // Ensure like data is loaded
@@ -7629,6 +7640,12 @@ async function initSpotlightBanner() {
 
   // Start auto-rotation
   startSpotlightTimer();
+
+  } catch (err) {
+    console.error('Spotlight banner init failed:', err);
+    if (skeleton) skeleton.classList.add('hidden');
+    if (banner) banner.classList.add('hidden');
+  }
 }
 
 function goToSlide(index) {

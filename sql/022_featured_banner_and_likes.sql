@@ -201,8 +201,7 @@ SELECT
   NULL::TEXT AS quarter_id,
   pl.created_at
 FROM prompt_library pl
-LEFT JOIN auth.users au ON au.id = pl.created_by
-LEFT JOIN users u ON u.auth_id = au.id
+LEFT JOIN users u ON u.auth_id = pl.created_by
 LEFT JOIN practices pr ON pr.name = u.practice
 LEFT JOIN (
   SELECT prompt_id, COUNT(*) AS like_count
