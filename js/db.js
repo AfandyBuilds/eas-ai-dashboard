@@ -975,22 +975,6 @@ const EAS_DB = (() => {
     return { success: true };
   }
 
-  /**
-   * Admin: reset another user's password via admin API.
-   * Note: This requires service_role key which is NOT available client-side.
-   * Instead, we use a workaround: admin updates the user's auth record.
-   * This only works if the admin has the service role or an Edge Function handles it.
-   * For now, returns guidance to use the Supabase dashboard.
-   * @param {string} userId — the auth.users.id to reset
-   * @param {string} newPassword — the new password to set
-   */
-  async function adminResetPassword(userId, newPassword) {
-    // Client-side Supabase cannot reset other users' passwords.
-    // This would require a service_role key Edge Function.
-    // For now, we'll rely on the change password self-service.
-    return { success: false, error: 'Admin password reset requires an Edge Function. Use Supabase dashboard for now.' };
-  }
-
   // ===========================================================
   // Audit Logging — Phase 4
   // ===========================================================
@@ -1810,7 +1794,7 @@ const EAS_DB = (() => {
         .select('*')
         .eq('employee_email', employeeEmail)
         .order('submitted_at', { ascending: false });
-      
+
       if (error) {
         console.error('fetchEmployeeTaskApprovals error:', error);
         throw new Error(`Failed to fetch task approvals: ${error.message}`);
@@ -2075,22 +2059,6 @@ const EAS_DB = (() => {
       role, view_key: viewKey, is_visible: isVisible
     });
     return data;
-  }
-
-  /**
-   * Reset all permissions to visible (deny-list default).
-   */
-  async function resetRolePermissions() {
-    const { error } = await sb
-      .from('role_view_permissions')
-      .update({ is_visible: true })
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // match all rows
-    if (error) {
-      console.error('resetRolePermissions error:', error.message);
-      return false;
-    }
-    await logActivity('RESET', 'role_view_permissions', null, { action: 'reset_all_to_visible' });
-    return true;
   }
 
   /**
@@ -2405,6 +2373,61 @@ const EAS_DB = (() => {
   }
 
   // ===========================================================
+  //  AI News Feed
+  // ===========================================================
+
+  async function fetchAiNews({ limit = 20, offset = 0, source = null, topic = null } = {}) {
+    let query = sb
+      .from('ai_news')
+      .select('*', { count: 'exact' })
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (source) query = query.eq('source', source);
+    if (topic) query = query.eq('topic', topic);
+
+    const { data, error, count } = await query;
+    if (error) {
+      console.error('fetchAiNews error:', error.message);
+      return { items: [], total: 0 };
+    }
+    return { items: data || [], total: count || 0 };
+  }
+
+  async function getAiNewsLastUpdated() {
+    const { data, error } = await sb
+      .from('ai_news')
+      .select('fetched_at')
+      .order('fetched_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) return null;
+    return data.fetched_at;
+  }
+
+  async function triggerAiNewsRefresh() {
+    const session = await sb.auth.getSession();
+    const token = session?.data?.session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+
+    const res = await fetch(`${EAS_CONFIG.SUPABASE_URL}/functions/v1/ai-news-aggregator`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Refresh failed');
+    }
+    return res.json();
+  }
+
+  // ===========================================================
   // Public API
   // ===========================================================
 
@@ -2473,7 +2496,6 @@ const EAS_DB = (() => {
     approveSubmission,
     rejectSubmission,
     fetchEmployeeTaskApprovals,
-
     // Audit & dumps
     logActivity,
     createDump,
@@ -2495,7 +2517,6 @@ const EAS_DB = (() => {
     // Role-Based View Permissions (Admin)
     fetchRolePermissions,
     updateRolePermission,
-    resetRolePermissions,
 
     // View Permissions (Dashboard consumer)
     fetchMyViewPermissions,
@@ -2520,7 +2541,6 @@ const EAS_DB = (() => {
 
     // Password Management (Phase 11)
     changePassword,
-    adminResetPassword,
 
     // Featured Banner & Likes
     fetchBannerCandidates,
@@ -2531,6 +2551,11 @@ const EAS_DB = (() => {
     deleteBannerPin,
     toggleLike,
     fetchMyLikes,
-    fetchLikeCounts
+    fetchLikeCounts,
+
+    // AI News Feed
+    fetchAiNews,
+    getAiNewsLastUpdated,
+    triggerAiNewsRefresh
   };
 })();
