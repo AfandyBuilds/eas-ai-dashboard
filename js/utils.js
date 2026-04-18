@@ -122,6 +122,19 @@ const EAS_Utils = (() => {
   }
 
   // ===========================================================
+  // Timing Helpers
+  // ===========================================================
+
+  /** Debounce a function — delays invocation until after `ms` of inactivity */
+  function debounce(fn, ms = 300) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    };
+  }
+
+  // ===========================================================
   // Week Calculation Helpers (Sun–Thu work week)
   // ===========================================================
 
@@ -178,6 +191,7 @@ const EAS_Utils = (() => {
     chartColors,
     parseDate,
     getCurrentWeekRange,
-    getQuarterWeekNumber
+    getQuarterWeekNumber,
+    debounce
   };
 })();

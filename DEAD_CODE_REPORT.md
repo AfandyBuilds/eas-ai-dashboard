@@ -47,7 +47,7 @@
 |----------|------|--------|------------|
 | `mapPracticeToShort` | ~100 | Never called anywhere | High |
 | `mapPracticeToLong` | ~104 | Never called anywhere | High |
-| `debounce` | ~134 | Never called anywhere | High |
+| ~~`debounce`~~ | ~134 | **FALSE POSITIVE** — called in `index.html:7005` (search input) | N/A |
 
 ### 5. Unused Functions in `js/auth.js`
 
