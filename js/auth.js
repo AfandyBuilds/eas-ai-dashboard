@@ -85,14 +85,6 @@ const EAS_Auth = (() => {
     return _userProfile?.role === 'contributor';
   }
 
-  function isViewer() {
-    return _userProfile?.role === 'viewer';
-  }
-
-  function isExecutive() {
-    return _userProfile?.role === 'executive';
-  }
-
   function isTeamLead() {
     return _userProfile?.role === 'team_lead';
   }
@@ -194,19 +186,6 @@ const EAS_Auth = (() => {
     if (practiceEl) practiceEl.textContent = getUserPractice();
   }
 
-  // ---- Auth State Listener ----
-
-  function onAuthStateChange(callback) {
-    sb.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        _userProfile = null;
-        localStorage.removeItem('eas_user_profile');
-        localStorage.removeItem('eas_user_profile_ts');
-      }
-      if (callback) callback(event, session);
-    });
-  }
-
   return {
     getSession,
     getUser,
@@ -215,8 +194,6 @@ const EAS_Auth = (() => {
     isAdmin,
     isSPOC,
     isContributor,
-    isViewer,
-    isExecutive,
     isTeamLead,
     getUserRole,
     getUserPractice,
@@ -225,7 +202,6 @@ const EAS_Auth = (() => {
     requireAuth,
     applyRoleVisibility,
     applyViewPermissions,
-    updateUserDisplay,
-    onAuthStateChange
+    updateUserDisplay
   };
 })();
