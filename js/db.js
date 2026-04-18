@@ -2411,7 +2411,7 @@ const EAS_DB = (() => {
     const token = session?.data?.session?.access_token;
     if (!token) throw new Error('Not authenticated');
 
-    const res = await fetch(`${EAS_CONFIG.SUPABASE_URL}/functions/v1/ai-news-aggregator`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-news-aggregator`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
