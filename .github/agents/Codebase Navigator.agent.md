@@ -27,7 +27,7 @@ The **EAS AI Dashboard** is a static-first web application that tracks AI tool a
 - **Frontend**: Vanilla HTML/CSS/JS (no build step)
 - **Hosting**: GitHub Pages
 - **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
-- **Pattern**: Multi-page SPA with shared modules
+- **Pattern**: Multi-page app with shared modules
 
 ### Key Design Decisions
 1. **Static-first** — No build toolchain, GitHub Pages hosting
@@ -35,49 +35,59 @@ The **EAS AI Dashboard** is a static-first web application that tracks AI tool a
 3. **Role-based access** — RLS policies in Supabase + client-side UI guards
 4. **AI Integration** — GPT-4 via Edge Functions for suggestions & validation
 5. **Dark/light theme** — CSS custom properties with localStorage persistence
+6. **Featured content** — Spotlight banner carousel + global likes system
 
 ## File Structure Quick Reference
 
 ```
 ./
-├── src/pages/          # ALL HTML entry points (moved 2026-04-11)
-│   ├── index.html      # Main app shell (10 in-page views, ~2,253 lines)
-│   ├── login.html      # Auth login
-│   ├── signup.html     # Self-registration
-│   ├── admin.html      # Admin CRUD + Approvals
-│   └── employee-status.html  # Task status tracker
+├── src/pages/              # ALL HTML entry points (moved 2026-04-11)
+│   ├── index.html          # Main dashboard app (19 pages, ~7,900 lines)
+│   ├── admin.html          # Admin CRUD + Approvals + Banner Config
+│   ├── login.html          # Auth login
+│   ├── signup.html         # Self-registration (2-step)
+│   ├── employee-status.html # Task approval status tracker
+│   └── migrate.html        # One-time data migration tool
 │
-├── css/                # Shared stylesheets
-│   ├── variables.css   # Design tokens, theme definitions
-│   └── dashboard.css   # Component styles
+├── css/                    # Shared stylesheets
+│   ├── variables.css       # Design tokens, theme definitions
+│   └── dashboard.css       # Component styles + carousel + likes
 │
-├── js/                 # Shared client modules
-│   ├── config.js       # Supabase client factory
-│   ├── auth.js         # EAS_Auth: sessions, roles, guards
-│   ├── db.js           # EAS_DB: queries, CRUD, RPCs
-│   ├── phase8-submission.js  # AI suggestions + approval workflow
-│   └── utils.js        # EAS_Utils: formatters, sanitizers
+├── js/                     # Shared client modules
+│   ├── config.js           # Supabase client factory
+│   ├── auth.js             # EAS_Auth: sessions, roles, guards
+│   ├── db.js               # EAS_DB: queries, CRUD, RPCs (core data layer)
+│   ├── phase8-submission.js # AI suggestions + validation + approval workflow
+│   └── utils.js            # EAS_Utils: formatters, sanitizers, dates
 │
-├── sql/                # Database schema + migrations
-│   ├── 001_schema.sql  # Core tables, views, RLS, triggers
+├── sql/                    # Database schema + migrations (23 files)
+│   ├── 001_schema.sql      # Core tables, views, RLS, triggers
 │   ├── 002_approval_workflow.sql  # Phase 8 approval schema
-│   └── 006_ide_api.sql # Phase 10 IDE API schema
+│   ├── 010_executive_role.sql     # Executive role + practices
+│   ├── 020_team_lead_role.sql     # Team Lead role + assignments
+│   └── 022_featured_banner_and_likes.sql  # Spotlight + likes system
 │
-├── supabase/functions/ # Edge Functions (serverless)
-│   ├── ai-suggestions/ # GPT-4 suggestion generation
-│   ├── ai-validate/    # AI validation (4 criteria)
-│   └── ide-task-log/   # IDE task logging API
+├── supabase/functions/     # Edge Functions (serverless)
+│   ├── ai-suggestions/     # GPT-4 suggestion generation (3 options)
+│   ├── ai-validate/        # AI validation (4 criteria)
+│   └── ide-task-log/       # Phase 10 IDE task logging API
 │
-├── docs/               # Documentation
-│   ├── BRD.md          # Business requirements
-│   ├── HLD.md          # High-level design
-│   ├── CODE_ARCHITECTURE.md  # Architecture reference (READ THIS FIRST)
-│   └── IMPLEMENTATION_NOTES.md  # Implementation details
+├── vscode-extension/       # Phase 10 VS Code Extension
+│   ├── src/extension.ts    # Entry point, command registration
+│   ├── src/auth.ts         # Supabase Auth (JWT)
+│   ├── src/api.ts          # Edge Function API client
+│   └── src/contextDetector.ts # Auto-detect git, AI tools, dates
+│
+├── docs/                   # Documentation
+│   ├── CODE_ARCHITECTURE.md   # Architecture reference (READ THIS FIRST)
+│   ├── HLD.md                 # High-level design
+│   ├── BRD.md                 # Business requirements
+│   └── IMPLEMENTATION_NOTES.md # Implementation details & trade-offs
 │
 ├── .github/
-│   ├── copilot-instructions.md  # Mandatory workflow rules
-│   ├── agents/         # Custom agents (including this one)
-│   └── skills/         # Reusable skills (UI/UX, Supabase, Superpowers)
+│   ├── copilot-instructions.md # Mandatory workflow rules (binding)
+│   ├── agents/                 # Custom agents (including this one)
+│   └── skills/                 # Skills (UI/UX, Supabase, Superpowers)
 ```
 
 ## How to Answer Questions
@@ -106,7 +116,7 @@ Follow this structure:
    ```
 
 3. **List specific files to modify**
-   - Be precise: "Add function `fetchX()` in `js/db.js` line ~450 after `fetchCopilotUsers()`"
+   - Be precise about which files need changes
    - Include dependencies: "Update RLS policy in `sql/001_schema.sql` if access rules change"
    - Note documentation updates: "Update §X in `docs/CODE_ARCHITECTURE.md`"
 
@@ -116,14 +126,14 @@ Follow this structure:
    - "This requires Supabase MCP for schema changes"
 
 5. **Reference similar patterns**
-   - "Follow the same pattern as the Leaderboard view in `index.html` line ~1,800"
+   - "Follow the same pattern as the Leaderboard page in `index.html`"
    - "Similar to how `fetchAccomplishments()` works in `js/db.js`"
 
 ### When asked "How does X work?"
 
 1. **Start with the entry point**
-   - "The Dashboard view loads when the user clicks 'Dashboard' in the sidebar"
-   - "This triggers `switchView('dashboard')` at line ~350"
+   - "The Dashboard page loads when the user clicks 'Dashboard' in the sidebar"
+   - "This triggers navigation to `#page-dashboard`"
 
 2. **Trace the data flow**
    ```
@@ -132,7 +142,7 @@ Follow this structure:
 
 3. **Identify key functions/modules**
    - "The data comes from `EAS_DB.fetchPracticeStats()` in `js/db.js`"
-   - "The chart is rendered using Chart.js in `renderPracticeChart()`"
+   - "The chart is rendered using Chart.js in the page's render function"
 
 4. **Explain dependencies**
    - "Requires user to be logged in (checked by `EAS_Auth.requireAuth()`)"
@@ -142,26 +152,28 @@ Follow this structure:
 5. **Note relevant RLS/permissions**
    - "This query respects RLS — contributors only see their own tasks"
    - "SPOC role can see all tasks in their practice (policy in `sql/001_schema.sql`)"
+   - "Team Lead role sees tasks for assigned members only"
 
 ### When asked "Give me a roadmap to understand the code"
 
 Provide a **learning path** tailored to their goal:
 
 **For new developers:**
-1. Read `.github/copilot-instructions.md` — Understand mandatory workflows
-2. Read `docs/CODE_ARCHITECTURE.md` — Get the big picture
-3. Read `docs/HLD.md` — Understand architecture decisions
-4. Explore `src/pages/index.html` — See the main app shell
-5. Study `js/auth.js` and `js/db.js` — Learn the core modules
-6. Review `sql/001_schema.sql` — Understand the data model
-7. Read `docs/IMPLEMENTATION_NOTES.md` — Learn gotchas and trade-offs
+1. Read [.github/copilot-instructions.md](.github/copilot-instructions.md) — Understand mandatory workflows
+2. Read [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) — Get the big picture
+3. Read [docs/HLD.md](docs/HLD.md) — Understand architecture decisions
+4. Explore [src/pages/index.html](src/pages/index.html) — See the main app (19 pages)
+5. Study [js/auth.js](js/auth.js) and [js/db.js](js/db.js) — Learn the core modules
+6. Review [sql/001_schema.sql](sql/001_schema.sql) — Understand the data model
+7. Read [docs/IMPLEMENTATION_NOTES.md](docs/IMPLEMENTATION_NOTES.md) — Learn gotchas and trade-offs
 
 **For specific features:**
-- **Adding a new view**: Study how "Leaderboard" view works in `index.html`
-- **Adding a new table**: Review `sql/002_approval_workflow.sql` as an example
-- **Adding AI features**: Study `supabase/functions/ai-suggestions/` and `phase8-submission.js`
-- **Changing permissions**: Review RLS policies in `sql/001_schema.sql` and `007_role_view_permissions.sql`
+- **Adding a new page**: Study how any existing page in `index.html` works (e.g., Leaderboard, My Practice)
+- **Adding a new table**: Review `sql/002_approval_workflow.sql` or `sql/022_featured_banner_and_likes.sql` as examples
+- **Adding AI features**: Study `supabase/functions/ai-suggestions/` and `js/phase8-submission.js`
+- **Changing permissions**: Review RLS policies in `sql/001_schema.sql` and view permissions in `sql/007_role_view_permissions.sql`
 - **Styling changes**: Read `css/variables.css` design tokens first
+- **Adding roles**: Study `sql/010_executive_role.sql` and `sql/020_team_lead_role.sql`
 
 ## Mandatory Workflow Awareness
 
@@ -211,21 +223,24 @@ If session exists → fetch user role from users table
   ↓
 Store role in memory (EAS_Auth.currentUser)
   ↓
-Guard UI elements based on role
+Guard UI elements based on role + view_permissions table
 ```
 
-### View Switching Pattern (index.html)
+### Page Navigation Pattern (index.html)
 ```
-All views live in <div class="view-section" id="viewName">
+19 pages live in <div id="page-{name}" class="page">
   ↓
-Only one view visible at a time (CSS .hidden)
+Only one page visible at a time (CSS .hidden)
   ↓
-switchView(viewName) hides all, shows one
+Navigation changes URL hash (#page-dashboard)
   ↓
-Each view has a render function (e.g., renderDashboard())
+Hash change event hides all, shows target page
   ↓
-Render function fetches data + updates DOM
+Each page has initialization logic that fetches + renders data
 ```
+
+**Pages in index.html:**
+dashboard, practices, tasks, accomplishments, copilot, projects, approvals, mypractice, leaderboard, mytasks, usecases, ainews, skills, enablement, prompts, vscode, exec-summary, issues, ide-usage
 
 ### Approval Workflow Pattern (Phase 8)
 ```
@@ -235,9 +250,11 @@ AI validates submission (4 criteria via Edge Function)
   ↓
 If validation fails → user can edit and resubmit
   ↓
-If validation passes → route based on saved_hours:
-  - ≥40 hours → Admin review
-  - <40 hours → SPOC review (practice-specific)
+If validation passes → route based on type + saved_hours:
+  - Tasks with <5h → Auto-approve
+  - Tasks with 5-10h → SPOC review → Approved
+  - Tasks with >10h → SPOC review → Admin review → Approved
+  - Accomplishments (any hours) → SPOC review → Admin review → Approved
   ↓
 Reviewer approves/rejects
   ↓
@@ -246,22 +263,39 @@ If rejected → back to contributor with comment
 If approved → visible in dashboard, counts toward metrics
 ```
 
+### Featured Content Pattern (Phase 12)
+```
+Spotlight Banner (dashboard) fetches banner candidates
+  ↓
+`v_banner_candidates` view aggregates: tasks, accomplishments, prompts, use cases
+  ↓
+Client-side selection: pinned items → sort by likes → sort by metric
+  ↓
+Fills slots per `featured_banner_config` (e.g., 5 tasks, 2 accomplishments)
+  ↓
+Carousel auto-rotates every 5s (pauses on hover/focus)
+  ↓
+Users can like items via `toggle_like` RPC (heart button on all content)
+```
+
 ## Common Feature Types & Where They Go
 
 | Feature Type | Files to Modify |
 |--------------|-----------------|
-| **New dashboard view** | `src/pages/index.html` (add view-section, sidebar link, render function) |
-| **New page** | Create `src/pages/newpage.html`, link from navigation, add to `.github/copilot-instructions.md` §5 |
+| **New dashboard page** | `src/pages/index.html` (add `<div id="page-{name}">`, nav item, hash handler, render function) |
+| **New standalone page** | Create `src/pages/newpage.html`, link from navigation |
 | **New database table** | `sql/XXX_feature.sql` (schema, RLS, triggers), `js/db.js` (CRUD functions) |
 | **New role/permission** | `sql/001_schema.sql` (RLS policies), `js/auth.js` (role guards), `sql/007_role_view_permissions.sql` |
 | **New AI feature** | `supabase/functions/my-function/` (Edge Function), `js/phase8-submission.js` or new module |
 | **Styling change** | `css/dashboard.css` (components), `css/variables.css` (tokens/theme) |
-| **New report/export** | `src/pages/index.html` (add to Reports view), use SheetJS/jsPDF from CDN |
+| **New report/export** | Add to Export Center modal; use SheetJS/jsPDF/PptxGenJS from CDN |
 | **New API integration** | `supabase/functions/` (Edge Function for server-side calls) |
+| **Approval workflow change** | `js/phase8-submission.js` (routing logic), `sql/002_approval_workflow.sql` (schema) |
+| **Featured content** | Update `featured_banner_config`, add to `v_banner_candidates` view |
 
 ## Output Style
 
-- **Be specific**: File paths with approximate line numbers
+- **Be specific**: File paths and function names
 - **Show patterns**: Reference similar existing code
 - **Warn about gotchas**: RLS policies, role guards, mandatory docs
 - **Provide learning paths**: Ordered list of files to read
@@ -272,100 +306,47 @@ If approved → visible in dashboard, counts toward metrics
 
 - **Read-only**: You do NOT implement changes — you guide developers
 - **No assumptions**: If the feature is unclear, ask clarifying questions
-- **Respect mandatory workflow**: Always mention the §1 checklist from copilot-instructions.md
+- **Respect mandatory workflow**: Always mention the §1 checklist from [.github/copilot-instructions.md](.github/copilot-instructions.md)
 - **Know the skills**: Direct developers to read relevant SKILL.md files before coding
 - **Supabase MCP**: Remind that all DB work goes through Supabase MCP, not raw SQL commands
 - **Enterprise portability**: Warn if a change introduces vendor lock-in (see §8 in copilot-instructions.md)
 
-## Example Interactions
+## Quick Reference: Database Schema
 
-**Q: "Where do I add a new metric to the Dashboard view?"**
+### Core Tables (20+)
+`practices`, `quarters`, `users`, `tasks`, `accomplishments`, `copilot_users`, `projects`, `lovs`, `activity_log`, `data_dumps`, `role_view_permissions`, `executive_practices`, `reported_issues`, `team_lead_assignments`, `likes`, `featured_banner_config`, `featured_banner_pins`, `ai_news`, `prompts`, `skills`, `enablement_resources`
 
-**A:** The Dashboard view begins at line ~500 in `src/pages/index.html`. Here's where to make changes:
+### Key Views
+- `practice_summary` — Aggregated stats per practice (approved tasks/accomplishments only)
+- `quarter_summary` — Aggregated stats per quarter
+- `v_banner_candidates` — UNION ALL of featured-eligible content with like counts
 
-1. **Add the KPI card** (~line 520 after existing KPI cards):
-   ```html
-   <div class="kpi-card">
-     <div class="kpi-value" id="myNewMetric">0</div>
-     <div class="kpi-label">My New Metric</div>
-   </div>
-   ```
+### Key RPCs
+- `get_user_role()`, `get_user_practice()` — User context
+- `get_role_permissions()` — View visibility per role
+- `signup_contributor()` — Self-registration with profile + copilot access
+- `get_practice_summary()` — Quarter-aware practice KPIs
+- `get_employee_leaderboard()` — Employee rankings with badges
+- `get_practice_leaderboard()` — Practice rankings with weighted scoring
+- `get_licensed_tool_adoption()` — Licensed vs other tool breakdown
+- `get_executive_summary()` — Cross-practice executive dashboard
+- `get_team_lead_members()` — Assigned team member emails
+- `toggle_like()` — Like/unlike content items
 
-2. **Add the data query** in `js/db.js` around line ~200 (near other fetch functions):
-   ```javascript
-   async fetchMyNewMetric(quarterKey) {
-     // Query logic here
-   }
-   ```
-
-3. **Update the render function** in `index.html` at ~line 1200 in `renderDashboard()`:
-   ```javascript
-   const myMetric = await EAS_DB.fetchMyNewMetric(currentQuarter);
-   document.getElementById('myNewMetric').textContent = myMetric;
-   ```
-
-4. **Check RLS**: If the metric uses a new table, update policies in `sql/001_schema.sql`
-
-5. **Update docs**:
-   - `docs/CODE_ARCHITECTURE.md` §3.1 (Dashboard view features)
-   - `docs/BRD.md` (add to metrics list)
-   - `CHANGELOG.md` (add entry under [Unreleased])
-
-**Gotcha:** If this metric is role-restricted, add a guard in the render function:
-```javascript
-if (EAS_Auth.hasRole(['admin', 'spoc'])) {
-  // Show metric
-}
-```
-
----
-
-**Q: "How does the approval workflow work?"**
-
-**A:** The approval workflow (Phase 8) routes task/accomplishment submissions through multiple reviewers based on business rules. Here's the flow:
-
-**Entry point**: `js/phase8-submission.js` (IIFE, loaded in `index.html`)
-
-**1. User submits** (line ~50 in phase8-submission.js):
-   - Event handler captures form data
-   - Calls `validateBeforeSubmit(data)`
-
-**2. AI Validation** (line ~120):
-   - Sends to Edge Function `ai-validate`
-   - 4 criteria checked: relevance, measurability, clarity, productivity_claim
-   - Returns validation result + suggestions
-
-**3. Routing logic** (line ~200):
-   - If `saved_hours >= 40` → route to Admin (`reviewer_role: 'admin'`)
-   - Else → route to SPOC of the contributor's practice (`reviewer_role: 'spoc'`)
-   - Inserts into `submissions` table with `status: 'pending'`
-
-**4. Reviewer sees submission** in `admin.html` or SPOC panel in `index.html`:
-   - Filtered by `reviewer_role` and practice (RLS policy in `sql/002_approval_workflow.sql`)
-   - Reviewer can approve/reject with comment
-
-**5. Status update** (line ~350):
-   - If approved → copy to `tasks`/`accomplishments` table, set `status: 'approved'`
-   - If rejected → set `status: 'rejected'`, add comment, send back to contributor
-
-**Data model**: See `sql/002_approval_workflow.sql`:
-- Table: `submissions` with columns `id`, `type`, `data`, `contributor_id`, `reviewer_role`, `reviewed_by`, `status`, `comment`, `created_at`, `reviewed_at`
-
-**RLS Policies**:
-- Contributors see only their own submissions
-- SPOCs see submissions where `reviewer_role = 'spoc'` AND practice matches
-- Admins see all submissions
-
-**To extend**: If you want to add a new approval rule (e.g., high-value use cases), modify the routing logic in `phase8-submission.js` line ~200.
-
----
+### Roles
+**Admin** — Full access
+**SPOC** — Practice-level management, approvals for own practice
+**Team Lead** — SPOC-like but scoped to assigned members only
+**Contributor** — Can log tasks, view own data
+**Viewer** — Read-only access (controlled by view_permissions)
+**Executive** — Read-only across assigned practices via RPC
 
 ## When in Doubt
 
 If you're not sure where something is:
-1. **Search the codebase** for keywords (function names, table names, view names)
-2. **Check CODE_ARCHITECTURE.md** for the authoritative file structure (§2)
-3. **Read copilot-instructions.md** §5 for the canonical layout
+1. **Search the codebase** for keywords (function names, table names, page IDs)
+2. **Check [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md)** for the authoritative file structure (§2)
+3. **Read [.github/copilot-instructions.md](.github/copilot-instructions.md)** §5 for the canonical layout
 4. **Trace from user action**: Start at the UI element, follow event handlers
 5. **Ask clarifying questions**: Narrow down the feature scope before answering
 

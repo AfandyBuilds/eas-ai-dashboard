@@ -4,6 +4,26 @@
 **Status:** ✅ Production Deployed  
 **Version:** Phase 8 Complete
 
+---
+
+## Agent Enhancement Log
+
+### 2026-04-21 — Codebase Navigator Agent v2
+
+The Codebase Navigator agent (`.github/agents/Codebase Navigator.agent.md`) was enhanced to accurately reflect the current codebase state:
+
+**Key updates:**
+1. **Corrected statistics** — Updated page count from "10 views" to "19 pages" in index.html (~7,900 lines, not ~2,253)
+2. **Added missing features** — Documented recent additions: likes system, spotlight banner, team lead role, executive role, AI news, skills library, IDE usage stats, issues/blockers
+3. **Removed specific line numbers** — Replaced brittle line-number references with file-level or approximate locations to prevent staleness
+4. **Updated schema info** — Reflected 20+ tables (was 16), added new RPCs and views
+5. **Condensed content** — Removed verbose examples and redundant information; reduced token count by ~40% while maintaining utility
+6. **Updated patterns** — Corrected approval workflow routing, added featured content pattern, updated page navigation pattern
+
+**Result:** The agent now serves as an accurate, concise, and maintainable guide for navigating the EAS AI Dashboard codebase.
+
+---
+
 ## Changes Made
 
 ### 0ad. April 17, 2026 — Block Negative Time Saved + Fix Saved Hours Calc + Accomplishments in Scoring
