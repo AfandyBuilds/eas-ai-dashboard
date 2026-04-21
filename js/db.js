@@ -286,7 +286,6 @@ const EAS_DB = (() => {
       status:        u.status,
       hasLoggedTask: u.has_logged_task,
       lastTaskDate:  u.last_task_date,
-      remarks:       u.remarks,
       copilotAccessDate: u.copilot_access_date,
       githubCopilotStatus: u.github_copilot_status || 'inactive',
       m365CopilotStatus:   u.m365_copilot_status || 'inactive',
@@ -721,7 +720,7 @@ const EAS_DB = (() => {
         await sb.from('submission_approvals').delete().eq('id', data.approval_id);
       }
       const savedHours = data.effort_saved || 0;
-      const approval = await createSubmissionApproval('accomplishment', data.id, savedHours, null, data.practice, false);
+      const approval = await createSubmissionApproval('accomplishment', data.id, savedHours, data.practice);
       if (approval) {
         await sb.from('accomplishments').update({
           approval_id: approval.id
@@ -751,8 +750,7 @@ const EAS_DB = (() => {
       name:        userData.name || null,
       email:       userData.email || null,
       role_skill:  userData.skill || null,
-      status:      userData.status || 'active',
-      remarks:     userData.remarks || userData.status || null
+      status:      userData.status || 'pending'
     };
     const { data, error } = await sb.from('copilot_users').insert(payload).select().single();
     if (error) { console.error('insertCopilotUser error:', error.message); return null; }
@@ -770,7 +768,6 @@ const EAS_DB = (() => {
     if (userData.email !== undefined)    payload.email      = userData.email;
     if (userData.skill !== undefined)    payload.role_skill = userData.skill;
     if (userData.status !== undefined)   payload.status     = userData.status;
-    if (userData.remarks !== undefined)  payload.remarks    = userData.remarks;
 
     const { data, error } = await sb.from('copilot_users').update(payload).eq('id', id).select().single();
     if (error) { console.error('updateCopilotUser error:', error.message); return null; }
@@ -978,22 +975,6 @@ const EAS_DB = (() => {
     return { success: true };
   }
 
-  /**
-   * Admin: reset another user's password via admin API.
-   * Note: This requires service_role key which is NOT available client-side.
-   * Instead, we use a workaround: admin updates the user's auth record.
-   * This only works if the admin has the service role or an Edge Function handles it.
-   * For now, returns guidance to use the Supabase dashboard.
-   * @param {string} userId — the auth.users.id to reset
-   * @param {string} newPassword — the new password to set
-   */
-  async function adminResetPassword(userId, newPassword) {
-    // Client-side Supabase cannot reset other users' passwords.
-    // This would require a service_role key Edge Function.
-    // For now, we'll rely on the change password self-service.
-    return { success: false, error: 'Admin password reset requires an Edge Function. Use Supabase dashboard for now.' };
-  }
-
   // ===========================================================
   // Audit Logging — Phase 4
   // ===========================================================
@@ -1123,6 +1104,8 @@ const EAS_DB = (() => {
    */
   function computeBadges(employee) {
     const badges = [];
+    // Combined time saved: tasks + accomplishment effort
+    const totalTimeSaved = (employee.timeSaved || 0) + (employee.accomplishmentEffort || 0);
     // First Task
     badges.push({
       id: 'first-task', icon: '🚀', title: 'First Task',
@@ -1135,11 +1118,11 @@ const EAS_DB = (() => {
       description: 'Logged tasks for 3+ weeks',
       earned: employee.streakWeeks >= 3
     });
-    // Time Saver (10+ hours)
+    // Time Saver (10+ hours — tasks + accomplishments)
     badges.push({
       id: 'time-saver', icon: '⏱️', title: 'Time Saver',
-      description: 'Saved 10+ hours with AI',
-      earned: employee.timeSaved >= 10
+      description: 'Saved 10+ hours with AI (tasks + accomplishments)',
+      earned: totalTimeSaved >= 10
     });
     // Efficiency Pro (80%+)
     badges.push({
@@ -1159,11 +1142,23 @@ const EAS_DB = (() => {
       description: 'Logged 20+ AI tasks',
       earned: employee.tasks >= 20
     });
-    // Centurion (50+ hours saved)
+    // Centurion (50+ hours saved — tasks + accomplishments)
     badges.push({
       id: 'centurion', icon: '💎', title: 'Centurion',
-      description: 'Saved 50+ hours with AI',
-      earned: employee.timeSaved >= 50
+      description: 'Saved 50+ hours with AI (tasks + accomplishments)',
+      earned: totalTimeSaved >= 50
+    });
+    // Innovator (1+ approved accomplishment)
+    badges.push({
+      id: 'innovator', icon: '💡', title: 'Innovator',
+      description: 'Submitted your first approved accomplishment',
+      earned: (employee.accomplishments || 0) >= 1
+    });
+    // Impact Maker (3+ approved accomplishments)
+    badges.push({
+      id: 'impact-maker', icon: '🌟', title: 'Impact Maker',
+      description: 'Achieved 3+ approved accomplishments',
+      earned: (employee.accomplishments || 0) >= 3
     });
     return badges;
   }
@@ -1176,7 +1171,7 @@ const EAS_DB = (() => {
   async function fetchInactiveMembers(practice, daysSince = 14) {
     const { data: users, error } = await sb
       .from('copilot_users')
-      .select('id, name, email, practice, nudged_at, status')
+      .select('id, name, email, practice, nudged_at, status, ide_days_active, ide_last_active_date')
       .eq('practice', practice)
       .eq('status', 'access granted')
       .order('name', { ascending: true });
@@ -1219,11 +1214,22 @@ const EAS_DB = (() => {
     return (users || []).filter(u => {
       const emailKey = (u.email || '').trim().toLowerCase();
       const lastTask = emailKey ? lastTaskByEmail.get(emailKey) : null;
-      if (!lastTask) return true;
-      return new Date(lastTask) < cutoff;
+      // User is active if they have a recent task
+      if (lastTask && new Date(lastTask) >= cutoff) return false;
+      // User is active if they have recent IDE activity
+      if (u.ide_last_active_date) {
+        const ideDate = new Date(u.ide_last_active_date);
+        if (ideDate >= cutoff) return false;
+      }
+      return true;
     }).map(u => {
       const emailKey = (u.email || '').trim().toLowerCase();
       const lastTask = emailKey ? lastTaskByEmail.get(emailKey) : null;
+      const ideActive = u.ide_last_active_date ? new Date(u.ide_last_active_date) : null;
+      // Last activity = most recent of task or IDE
+      const lastActivity = (lastTask && ideActive)
+        ? (new Date(lastTask) > ideActive ? lastTask : u.ide_last_active_date)
+        : (lastTask || u.ide_last_active_date || null);
       return {
         id:           u.id,
         name:         u.name,
@@ -1231,10 +1237,16 @@ const EAS_DB = (() => {
         practice:     u.practice,
         hasLoggedTask: Boolean(lastTask),
         lastTaskDate: lastTask || null,
+        lastActivity: lastActivity,
+        ideDaysActive: Number(u.ide_days_active) || 0,
+        ideLastActive: u.ide_last_active_date || null,
         nudgedAt:     u.nudged_at,
         status:       u.status,
         daysSinceTask: lastTask
           ? Math.floor((Date.now() - new Date(lastTask).getTime()) / 86400000)
+          : null,
+        daysSinceActivity: lastActivity
+          ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000)
           : null
       };
     });
@@ -1279,17 +1291,70 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Get SPOC for a practice
+   * Get SPOC for a practice.
+   * Returns the first active SPOC (legacy single-SPOC callers).
    */
   async function getSpocForPractice(practice) {
+    const spocs = await getSpocsForPractice(practice);
+    return spocs.length > 0 ? spocs[0] : null;
+  }
+
+  /**
+   * Get ALL active SPOCs for a practice (multi-SPOC support).
+   * Returns array of { spoc_id, spoc_name, spoc_email }.
+   */
+  async function getSpocsForPractice(practice) {
     const { data, error } = await sb
       .from('practice_spoc')
       .select('spoc_id, spoc_name, spoc_email')
       .eq('practice', practice)
       .eq('is_active', true)
-      .single();
-    if (error) { console.error('getSpocForPractice error:', error.message); return null; }
-    return data;
+      .order('spoc_name', { ascending: true });
+    if (error) { console.error('getSpocsForPractice error:', error.message); return []; }
+    return data || [];
+  }
+
+  /**
+   * Sync practice_spoc when a user's role changes.
+   * - Role set to 'spoc': upsert an active row for user+practice.
+   * - Role changed away from 'spoc': deactivate (is_active = false).
+   */
+  async function syncPracticeSpoc(userId, newRole, practice, userName, userEmail) {
+    if (newRole === 'spoc' && practice) {
+      // Upsert: insert or reactivate
+      const { data: existing } = await sb
+        .from('practice_spoc')
+        .select('id, is_active')
+        .eq('spoc_id', userId)
+        .eq('practice', practice)
+        .maybeSingle();
+
+      if (existing) {
+        if (!existing.is_active) {
+          await sb.from('practice_spoc').update({ is_active: true, spoc_name: userName, spoc_email: userEmail }).eq('id', existing.id);
+        }
+      } else {
+        await sb.from('practice_spoc').insert({
+          practice,
+          spoc_id: userId,
+          spoc_name: userName || null,
+          spoc_email: userEmail || null,
+          is_active: true
+        });
+      }
+      await logActivity('SPOC_ASSIGN', 'practice_spoc', userId, { practice, spoc_name: userName });
+    } else if (newRole !== 'spoc') {
+      // Deactivate any practice_spoc rows for this user
+      const { data: rows } = await sb
+        .from('practice_spoc')
+        .select('id')
+        .eq('spoc_id', userId)
+        .eq('is_active', true);
+      if (rows && rows.length > 0) {
+        await sb.from('practice_spoc').update({ is_active: false }).eq('spoc_id', userId);
+        await logActivity('SPOC_REMOVE', 'practice_spoc', userId, { reason: 'role_changed_to_' + newRole });
+      }
+    }
   }
 
   /**
@@ -1300,9 +1365,9 @@ const EAS_DB = (() => {
    * - savedHours > 10   → SPOC review first, then Admin review
    * On any rejection: status becomes 'rejected'
    */
-  async function determineApprovalRouting(practice, savedHours) {
-    // Auto-approve: tasks with less than 5 hours saved
-    if (savedHours < 5) {
+  async function determineApprovalRouting(practice, savedHours, submissionType = 'task') {
+    // Auto-approve: tasks with less than 5 hours saved (accomplishments never auto-approve)
+    if (submissionType === 'task' && savedHours < 5) {
       return { approvalStatus: 'approved', approvalLayer: null, spocId: null, adminId: null, needsAdminReview: false, autoApproved: true };
     }
 
@@ -1310,12 +1375,14 @@ const EAS_DB = (() => {
     let approvalLayer = 'spoc';
     let spocId = null;
     let adminId = null;
-    let needsAdminReview = savedHours > 10;
+    // Accomplishments always require admin review after SPOC; tasks only if >10h
+    let needsAdminReview = submissionType === 'accomplishment' ? true : savedHours > 10;
 
-    // Look up SPOC for this practice
-    const spocData = await getSpocForPractice(practice);
-    if (spocData?.spoc_id) {
-      spocId = spocData.spoc_id;
+    // Look up SPOCs for this practice (multi-SPOC support)
+    const spocs = await getSpocsForPractice(practice);
+    if (spocs.length > 0) {
+      // Store the first SPOC id for the approval record (any SPOC can approve)
+      spocId = spocs[0].spoc_id;
     } else {
       // No SPOC configured — fall back to admin
       console.warn(`No SPOC found for practice "${practice}", falling back to admin`);
@@ -1351,8 +1418,8 @@ const EAS_DB = (() => {
   async function createSubmissionApproval(submissionType, submissionId, savedHours, practice = null) {
     const profile = await EAS_Auth.getUserProfile();
     
-    // Determine routing (hours-based, no AI)
-    const routing = await determineApprovalRouting(practice, savedHours);
+    // Determine routing (hours-based, no AI; accomplishments always need full review)
+    const routing = await determineApprovalRouting(practice, savedHours, submissionType);
 
     // Auto-approved tasks skip the approval record entirely
     if (routing.autoApproved) {
@@ -1461,19 +1528,10 @@ const EAS_DB = (() => {
     const practice = accData.practice;
     
     const approval = await createSubmissionApproval('accomplishment', acc.id, savedHours, practice);
-    
-    // Auto-approved: mark accomplishment as approved directly
-    if (approval?.autoApproved) {
-      await sb.from('accomplishments').update({ 
-        approval_status: 'approved'
-      }).eq('id', acc.id);
-      await logActivity('AUTO_APPROVE', 'accomplishments', acc.id, { saved_hours: savedHours, reason: 'Less than 5 hours saved' });
-      return { acc, approval: { autoApproved: true, approval_status: 'approved' } };
-    }
 
-    // Normal approval flow: link approval record
+    // Accomplishments always require full review (SPOC → Admin), no auto-approve
     if (approval) {
-      await sb.from('accomplishments').update({ 
+      await sb.from('accomplishments').update({
         approval_id: approval.id
       }).eq('id', acc.id);
     }
@@ -1497,12 +1555,11 @@ const EAS_DB = (() => {
         // Admin sees items at their layer (admin_review) + all other pending for visibility
         query = query.in('approval_status', ['pending', 'admin_review', 'spoc_review']);
       } else if (userRole === 'spoc') {
-        // SPOC sees approvals pending SPOC review for their practice.
-        // Use .or() to match both spoc_id (preferred) and practice (fallback
-        // for legacy rows where spoc_id is NULL).
+        // Any SPOC in a practice can approve any task for that practice.
+        // Match by practice rather than individual spoc_id.
         query = query
           .eq('approval_status', 'spoc_review')
-          .or(`spoc_id.eq.${userId},and(spoc_id.is.null,practice.eq.${userPractice})`);
+          .eq('practice', userPractice);
       } else if (userRole === 'team_lead') {
         // Team Lead sees approvals for their assigned members only
         const memberEmails = await fetchTeamLeadMemberEmails(userId);
@@ -1590,10 +1647,22 @@ const EAS_DB = (() => {
     let nextLayer = null;
 
     // State machine: determine next state
-    // Flow: spoc_review → (admin_review if >10h, else approved) → approved
-    if (currentStatus === 'spoc_review') {
-      // SPOC reviewed → advance to Admin review if >10h, otherwise approve
-      if (savedHours > 10) {
+    // Tasks:          spoc_review → (admin_review if >10h, else approved) → approved
+    // Accomplishments: spoc_review → admin_review (always) → approved
+    // Admin override: admin can approve at any stage directly
+    const isAccomplishment = current.submission_type === 'accomplishment';
+
+    if (userRole === 'admin') {
+      // Admin bypasses normal flow — approve immediately regardless of stage
+      nextStatus = 'approved';
+      nextLayer = null;
+    } else if (currentStatus === 'spoc_review') {
+      if (isAccomplishment) {
+        // Accomplishments always require admin review after SPOC
+        nextStatus = 'admin_review';
+        nextLayer = 'admin';
+      } else if (savedHours > 10) {
+        // Tasks >10h need admin review
         nextStatus = 'admin_review';
         nextLayer = 'admin';
       } else {
@@ -1725,7 +1794,7 @@ const EAS_DB = (() => {
         .select('*')
         .eq('employee_email', employeeEmail)
         .order('submitted_at', { ascending: false });
-      
+
       if (error) {
         console.error('fetchEmployeeTaskApprovals error:', error);
         throw new Error(`Failed to fetch task approvals: ${error.message}`);
@@ -1993,22 +2062,6 @@ const EAS_DB = (() => {
   }
 
   /**
-   * Reset all permissions to visible (deny-list default).
-   */
-  async function resetRolePermissions() {
-    const { error } = await sb
-      .from('role_view_permissions')
-      .update({ is_visible: true })
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // match all rows
-    if (error) {
-      console.error('resetRolePermissions error:', error.message);
-      return false;
-    }
-    await logActivity('RESET', 'role_view_permissions', null, { action: 'reset_all_to_visible' });
-    return true;
-  }
-
-  /**
    * Fetch view permissions for a single role (lightweight).
    * Returns a Map<viewKey, boolean> — used by the dashboard to
    * show/hide nav items based on admin-managed permissions.
@@ -2188,6 +2241,193 @@ const EAS_DB = (() => {
   }
 
   // ===========================================================
+  // Featured Banner & Likes — Phase 12
+  // ===========================================================
+
+  /**
+   * Fetch banner candidates from the v_banner_candidates view.
+   * @param {string|null} quarterId — filter by quarter or null for all
+   * @returns {Array} candidates sorted by pinned, like_count, metric_value
+   */
+  async function fetchBannerCandidates(quarterId) {
+    let query = sb.from('v_banner_candidates').select('*');
+    if (quarterId && quarterId !== 'all') {
+      // Tasks & accomplishments are quarter-scoped; prompts & use cases have null quarter_id
+      query = query.or(`quarter_id.eq.${quarterId},quarter_id.is.null`);
+    }
+    const { data, error } = await query;
+    if (error) { console.error('fetchBannerCandidates error:', error.message); return []; }
+    // Sort: pinned first, then by like_count desc, then metric_value desc
+    return (data || []).sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      if (b.like_count !== a.like_count) return b.like_count - a.like_count;
+      return (b.metric_value || 0) - (a.metric_value || 0);
+    });
+  }
+
+  /**
+   * Fetch banner config (slots per type).
+   * @returns {Object} map of item_type → { slots, is_active }
+   */
+  async function fetchBannerConfig() {
+    const { data, error } = await sb.from('featured_banner_config').select('*');
+    if (error) { console.error('fetchBannerConfig error:', error.message); return {}; }
+    const map = {};
+    (data || []).forEach(r => { map[r.item_type] = { slots: r.slots, is_active: r.is_active, id: r.id }; });
+    return map;
+  }
+
+  /**
+   * Update banner config for a specific item_type.
+   */
+  async function updateBannerConfig(itemType, updates) {
+    const profile = await EAS_Auth.getUserProfile();
+    const { error } = await sb.from('featured_banner_config')
+      .update({ ...updates, updated_by: profile?.id, updated_at: new Date().toISOString() })
+      .eq('item_type', itemType);
+    if (error) { console.error('updateBannerConfig error:', error.message); return false; }
+    return true;
+  }
+
+  /**
+   * Fetch all active banner pins.
+   */
+  async function fetchBannerPins() {
+    const { data, error } = await sb.from('featured_banner_pins')
+      .select('*, pinned_user:users!featured_banner_pins_pinned_by_fkey(name)')
+      .or('expires_at.is.null,expires_at.gte.' + new Date().toISOString().split('T')[0]);
+    if (error) { console.error('fetchBannerPins error:', error.message); return []; }
+    return data || [];
+  }
+
+  /**
+   * Pin an item to the banner.
+   */
+  async function insertBannerPin(itemType, itemId, pinLabel, expiresAt) {
+    const profile = await EAS_Auth.getUserProfile();
+    const { data, error } = await sb.from('featured_banner_pins').insert({
+      item_type: itemType,
+      item_id: itemId,
+      pin_label: pinLabel || 'Admin Pick',
+      pinned_by: profile?.id,
+      expires_at: expiresAt || null
+    }).select().single();
+    if (error) { console.error('insertBannerPin error:', error.message); return null; }
+    return data;
+  }
+
+  /**
+   * Remove a pin from the banner.
+   */
+  async function deleteBannerPin(pinId) {
+    const { error } = await sb.from('featured_banner_pins').delete().eq('id', pinId);
+    if (error) { console.error('deleteBannerPin error:', error.message); return false; }
+    return true;
+  }
+
+  /**
+   * Toggle a like on an item (task, accomplishment, use_case).
+   * Uses the toggle_like RPC function.
+   * @returns {{ liked: boolean, like_count: number } | null}
+   */
+  async function toggleLike(itemType, itemId) {
+    const { data, error } = await sb.rpc('toggle_like', {
+      p_item_type: itemType,
+      p_item_id: itemId
+    });
+    if (error) { console.error('toggleLike error:', error.message); return null; }
+    return data;
+  }
+
+  /**
+   * Fetch the current user's likes (all item types).
+   * @returns {Object} map of "item_type:item_id" → true
+   */
+  async function fetchMyLikes() {
+    const profile = await EAS_Auth.getUserProfile();
+    if (!profile) return {};
+    const { data, error } = await sb.from('likes')
+      .select('item_type, item_id')
+      .eq('user_id', profile.id);
+    if (error) { console.error('fetchMyLikes error:', error.message); return {}; }
+    const map = {};
+    (data || []).forEach(r => { map[`${r.item_type}:${r.item_id}`] = true; });
+    return map;
+  }
+
+  /**
+   * Fetch like counts for a specific item type.
+   * @returns {Object} map of item_id → like_count
+   */
+  async function fetchLikeCounts(itemType) {
+    const { data, error } = await sb.from('likes')
+      .select('item_id')
+      .eq('item_type', itemType);
+    if (error) { console.error('fetchLikeCounts error:', error.message); return {}; }
+    const map = {};
+    (data || []).forEach(r => {
+      map[r.item_id] = (map[r.item_id] || 0) + 1;
+    });
+    return map;
+  }
+
+  // ===========================================================
+  //  AI News Feed
+  // ===========================================================
+
+  async function fetchAiNews({ limit = 20, offset = 0, source = null, topic = null } = {}) {
+    let query = sb
+      .from('ai_news')
+      .select('*', { count: 'exact' })
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (source) query = query.eq('source', source);
+    if (topic) query = query.eq('topic', topic);
+
+    const { data, error, count } = await query;
+    if (error) {
+      console.error('fetchAiNews error:', error.message);
+      return { items: [], total: 0 };
+    }
+    return { items: data || [], total: count || 0 };
+  }
+
+  async function getAiNewsLastUpdated() {
+    const { data, error } = await sb
+      .from('ai_news')
+      .select('fetched_at')
+      .order('fetched_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) return null;
+    return data.fetched_at;
+  }
+
+  async function triggerAiNewsRefresh() {
+    const session = await sb.auth.getSession();
+    const token = session?.data?.session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-news-aggregator`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Refresh failed');
+    }
+    return res.json();
+  }
+
+  // ===========================================================
   // Public API
   // ===========================================================
 
@@ -2245,6 +2485,8 @@ const EAS_DB = (() => {
 
     // Approval workflow (Phase 8)
     getSpocForPractice,
+    getSpocsForPractice,
+    syncPracticeSpoc,
     determineApprovalRouting,
     createSubmissionApproval,
     fetchSubmissionApproval,
@@ -2254,7 +2496,6 @@ const EAS_DB = (() => {
     approveSubmission,
     rejectSubmission,
     fetchEmployeeTaskApprovals,
-
     // Audit & dumps
     logActivity,
     createDump,
@@ -2276,7 +2517,6 @@ const EAS_DB = (() => {
     // Role-Based View Permissions (Admin)
     fetchRolePermissions,
     updateRolePermission,
-    resetRolePermissions,
 
     // View Permissions (Dashboard consumer)
     fetchMyViewPermissions,
@@ -2301,6 +2541,21 @@ const EAS_DB = (() => {
 
     // Password Management (Phase 11)
     changePassword,
-    adminResetPassword
+
+    // Featured Banner & Likes
+    fetchBannerCandidates,
+    fetchBannerConfig,
+    updateBannerConfig,
+    fetchBannerPins,
+    insertBannerPin,
+    deleteBannerPin,
+    toggleLike,
+    fetchMyLikes,
+    fetchLikeCounts,
+
+    // AI News Feed
+    fetchAiNews,
+    getAiNewsLastUpdated,
+    triggerAiNewsRefresh
   };
 })();

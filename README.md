@@ -20,6 +20,7 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 - **Hosting:** GitHub Pages (static site) + Supabase Cloud
 - **Design:** Dark/Light theme toggle, Inter font, responsive sidebar navigation
 - **Approval Workflow:** Multi-layer routing engine with smart triage
+- **Spotlight Banner:** Auto-rotating carousel showcasing top-liked/pinned content with global like system
 - **Accessibility:** WCAG 2.1 AA compliant
 
 ## Project Structure
@@ -56,6 +57,9 @@ Enterprise AI adoption tracking platform for Enterprise Application Solutions (E
 │       ├── ai-validate/            # AI validation of submissions
 │       ├── ide-task-log/           # Phase 10: IDE Task Logger API
 │       └── prompt-improver/        # Admin-only: OpenAI qualifies + Anthropic improves prompts
+│
+├── sql/
+│   └── 022_featured_banner_and_likes.sql  # Phase 12: Likes, banner config, pins, candidates view, toggle_like RPC
 │
 ├── vscode-extension/               # Phase 10: VS Code Extension
 │   ├── src/                        # TypeScript source (auth, api, sidebar, quickLog)

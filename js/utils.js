@@ -85,34 +85,6 @@ const EAS_Utils = (() => {
     return dataset;
   }
 
-  /**
-   * Map practice name aliases to canonical names.
-   * data.js uses abbreviations; Supabase uses full names.
-   */
-  const practiceAliases = {
-    'Payments Solutions': 'EPS',
-    'ERP Solutions': 'ERP',
-    'Financial Services (BFSI)': 'BFSI',
-    'Customer Engagement (CES)': 'CES',
-    'Enterprise Portfolio & Content (EPCS)': 'EPCS',
-  };
-
-  function mapPracticeToShort(name) {
-    return practiceAliases[name] || name;
-  }
-
-  function mapPracticeToLong(short) {
-    const longNames = {
-      'BFSI': 'Financial Services (BFSI)',
-      'CES': 'Customer Engagement (CES)',
-      'ERP': 'ERP Solutions',
-      'EPS': 'Payments (EPS)',
-      'GRC': 'GRC',
-      'EPCS': 'Enterprise Portfolio & Content (EPCS)'
-    };
-    return longNames[short] || short;
-  }
-
   /** Practice color map */
   const practiceColors = {
     'BFSI': '#3b82f6',
@@ -125,19 +97,6 @@ const EAS_Utils = (() => {
 
   /** Chart color palette */
   const chartColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
-
-  /**
-   * Debounce a function call.
-   * @param {Function} fn - Function to debounce
-   * @param {number} delay - Delay in ms (default 300)
-   */
-  function debounce(fn, delay = 300) {
-    let timer;
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), delay);
-    };
-  }
 
   /**
    * Parse date from various formats used in data.js
@@ -160,6 +119,19 @@ const EAS_Utils = (() => {
     }
     // YYYY-MM-DD (possibly with time)
     return new Date(s);
+  }
+
+  // ===========================================================
+  // Timing Helpers
+  // ===========================================================
+
+  /** Debounce a function — delays invocation until after `ms` of inactivity */
+  function debounce(fn, ms = 300) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    };
   }
 
   // ===========================================================
@@ -215,13 +187,11 @@ const EAS_Utils = (() => {
     sanitize,
     sanitizeObj,
     sanitizeDataset,
-    mapPracticeToShort,
-    mapPracticeToLong,
     practiceColors,
     chartColors,
-    debounce,
     parseDate,
     getCurrentWeekRange,
-    getQuarterWeekNumber
+    getQuarterWeekNumber,
+    debounce
   };
 })();

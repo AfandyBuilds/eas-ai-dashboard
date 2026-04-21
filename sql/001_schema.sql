@@ -110,8 +110,7 @@ CREATE TABLE copilot_users (
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   role_skill TEXT,
-  status TEXT DEFAULT 'access granted',
-  remarks TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
   has_logged_task BOOLEAN DEFAULT false,
   last_task_date DATE,
   nudged_at TIMESTAMPTZ,
@@ -393,11 +392,17 @@ LEFT JOIN (
 ) proj ON proj.practice = p.name
 LEFT JOIN (
   SELECT
-    practice,
-    COUNT(*) AS licensed_users,
-    COUNT(*) FILTER (WHERE has_logged_task = true) AS active_users
-  FROM copilot_users
-  GROUP BY practice
+    cu.practice,
+    COUNT(*) FILTER (WHERE lower(cu.status) = 'access granted') AS licensed_users,
+    COUNT(*) FILTER (
+      WHERE lower(cu.status) = 'access granted'
+      AND (
+        EXISTS (SELECT 1 FROM tasks tk WHERE lower(tk.employee_email) = lower(cu.email))
+        OR COALESCE(cu.ide_days_active, 0) > 0
+      )
+    ) AS active_users
+  FROM copilot_users cu
+  GROUP BY cu.practice
 ) cu ON cu.practice = p.name;
 
 -- Quarter summary view

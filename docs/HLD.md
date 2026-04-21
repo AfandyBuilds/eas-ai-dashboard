@@ -138,6 +138,10 @@ User → signup.html (2-step form)
 
 | Resource | Admin | SPOC | Team Lead | Contributor |
 |----------|-------|------|-----------|-------------|
+| Banner spotlight (view) | ✅ | ✅ | ✅ | ✅ |
+| Like items (toggle) | ✅ | ✅ | ✅ | ✅ |
+| Banner config (slots) | ✅ | ✖ | ✖ | ✖ |
+| Banner pins (manage) | ✅ | ✅ (own) | ✖ | ✖ |
 | Dashboard (all practices) | ✅ | ✅ (read) | ✖ | ✅ (read) |
 | Dashboard (own practice) | ✅ | ✅ | ✅ (assigned members) | ✅ |
 | Task CRUD (all) | ✅ | ✔ | ✖ | ✖ |
@@ -237,6 +241,15 @@ Employee selection in the task form is mandatory — users must pick from the `c
 | `practice_summary` | Per-practice KPIs aggregated from tasks |
 | `quarter_summary` | Per-quarter totals across all practices |
 | `adoption_rates` | Licensed vs. active user calculations |
+| `v_banner_candidates` | UNION ALL view: approved tasks, accomplishments, active prompts, approved use cases — with like counts, pin status, metrics for banner selection |
+
+### Featured Banner Tables (Phase 12)
+
+| Table | Purpose |
+|-------|---------|
+| `likes` | Global like system for tasks, accomplishments, use_cases (unique per user+item) |
+| `featured_banner_config` | Admin-configurable slot allocation per content type (default: global=10, task=3, accomplishment=3, prompt=2, use_case=2) |
+| `featured_banner_pins` | Admin/SPOC-pinned items with custom badge label and optional expiry |
 
 ### use_cases Table
 

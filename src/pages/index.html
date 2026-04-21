@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>EAS AI Adoption Tracker</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-weight='bold' fill='%233b82f6'>E</text></svg>">
 <link rel="stylesheet" href="../../css/variables.css">
@@ -11,11 +11,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../css/dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../js/config.js?v=20260412b"></script>
-<script src="../../js/utils.js?v=20260412b"></script>
-<script src="../../js/auth.js?v=20260412b"></script>
-<script src="../../js/db.js?v=20260413a"></script>
-<script src="../../js/phase8-submission.js?v=20260412b"></script>
+<script src="../../js/config.js?v=20260418a"></script>
+<script src="../../js/utils.js?v=20260418a"></script>
+<script src="../../js/auth.js?v=20260418a"></script>
+<script src="../../js/db.js?v=20260418a"></script>
+<script src="../../js/phase8-submission.js?v=20260418a"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
@@ -140,10 +140,6 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
     Skills Library
   </div>
-  <div class="nav-item" data-page="guidelines" data-view-key="web.guidelines">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-    Guidelines
-  </div>
   <div class="nav-item" data-page="enablement" data-view-key="web.enablement">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 12 15 15 10"/></svg>
     Copilot Enablement
@@ -212,6 +208,21 @@
       </div>
     </div>
     <div class="page-content">
+      <!-- Featured Banner Spotlight Carousel -->
+      <div id="spotlight-skeleton" class="spotlight-skeleton" aria-hidden="true"></div>
+      <div id="spotlight-banner" class="spotlight-banner hidden"
+           role="region" aria-roledescription="carousel" aria-label="Featured Spotlight"
+           tabindex="0">
+        <button class="spotlight-arrow spotlight-arrow--prev" aria-label="Previous spotlight">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="spotlight-track" id="spotlight-track" aria-live="polite"></div>
+        <button class="spotlight-arrow spotlight-arrow--next" aria-label="Next spotlight">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="spotlight-dots" id="spotlight-dots" role="tablist" aria-label="Spotlight slides"></div>
+      </div>
+
       <div class="kpi-grid" id="kpi-grid"></div>
 
       <!-- Licensed Tool Adoption Section -->
@@ -350,6 +361,7 @@
                 <th>Eff %</th>
                 <th>Status</th>
                 <th>Approval</th>
+                <th style="text-align:center">Likes</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -501,7 +513,7 @@
         </div>
         <div style="overflow-x:auto">
           <table aria-label="Approvals">
-            <thead><tr><th>Date</th><th>Employee</th><th>Practice</th><th>Type</th><th>Description</th><th>Status</th><th>Layer</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Date</th><th>Employee</th><th>Practice</th><th>Type</th><th>Description</th><th>Status</th><th>Pending With</th><th>Actions</th></tr></thead>
             <tbody id="approvals-tbody"></tbody>
           </table>
         </div>
@@ -549,7 +561,7 @@
         </div>
         <div style="overflow-x:auto">
           <table aria-label="Inactive members">
-            <thead><tr><th>Name</th><th>Email</th><th>Last Task</th><th>Days Inactive</th><th>Last Nudged</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Last Activity</th><th>Days Inactive</th><th>Last Nudged</th><th>Actions</th></tr></thead>
             <tbody id="mypractice-inactive-tbody"></tbody>
           </table>
         </div>
@@ -628,7 +640,7 @@
       <div class="table-card">
         <div style="overflow-x:auto">
           <table aria-label="Employee leaderboard">
-            <thead><tr><th>#</th><th>Employee</th><th>Practice</th><th>Tasks</th><th>Hours Saved</th><th>Efficiency</th><th>Quality</th><th>Badges</th></tr></thead>
+            <thead><tr><th>#</th><th>Employee</th><th>Practice</th><th>Tasks</th><th>Hours Saved</th><th>Efficiency</th><th>Quality</th><th>Acc.</th><th>Badges</th></tr></thead>
             <tbody id="leaderboard-tbody"></tbody>
           </table>
         </div>
@@ -705,170 +717,57 @@
     </div>
   </div>
 
-  <!-- Guidelines Page -->
-  <div id="page-guidelines" class="page hidden">
-    <div class="page-header">
-      <div>
-        <h2>Guidelines</h2>
-        <div class="subtitle">Getting started with GitHub Copilot and AI tools at Ejada</div>
-      </div>
-    </div>
-    <div class="page-content">
-      <div class="guide-section" id="guide-guidelines">
-        <div class="guide-grid">
-          <!-- Getting Started card -->
-          <div class="guide-card guide-card-highlight">
-            <div class="guide-card-icon" style="background:rgba(59,130,246,0.15);color:var(--accent)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-            </div>
-            <h4>Getting Started — GitHub Enterprise Login</h4>
-            <p>Access the Ejada GitHub Enterprise portal to begin your AI-powered development journey.</p>
-            <a href="https://github.com/enterprises/ejadasa/" target="_blank" rel="noopener" class="guide-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              Open GitHub Enterprise Portal
-            </a>
-          </div>
-          <!-- Access Types -->
-          <div class="guide-card">
-            <div class="guide-card-icon" style="background:rgba(139,92,246,0.15);color:var(--purple)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <h4>Copilot Access Types</h4>
-            <div class="guide-access-types">
-              <div class="guide-access-card">
-                <span class="guide-access-badge dev">Developer</span>
-                <strong>GitHub Enterprise + GitHub Copilot Business</strong>
-                <p>Full repository access with Copilot code suggestions in IDE (VS Code, IntelliJ, etc.)</p>
-              </div>
-              <div class="guide-access-card">
-                <span class="guide-access-badge nondev">Non-Developer</span>
-                <strong>GitHub Copilot Business Only</strong>
-                <p>Copilot Chat only — no repository access. For PMs, BAs, Architects, Consultants, Designers, Testers, etc.</p>
-              </div>
-            </div>
-          </div>
-          <!-- How to Get Access -->
-          <div class="guide-card">
-            <div class="guide-card-icon" style="background:rgba(16,185,129,0.15);color:var(--success)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            </div>
-            <h4>How to Get Access</h4>
-            <ol class="guide-steps">
-              <li>Prepare a list of resources at <strong>project level</strong> or <strong>department level</strong></li>
-              <li>Raise an <strong>IT ticket</strong> specifying the correct access type (Developer vs Non-Developer)</li>
-              <li>Obtain <strong>Manager Approval</strong> &amp; <strong>Mohamed Al Banna's Approval</strong></li>
-              <li>Once approved, set up your IDE plugin or Copilot Chat</li>
-            </ol>
-          </div>
-          <!-- Important Reminders -->
-          <div class="guide-card">
-            <div class="guide-card-icon" style="background:rgba(245,158,11,0.15);color:var(--warning)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <h4>Important Reminders</h4>
-            <ul class="guide-reminders">
-              <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                <strong>Stop using personally subscribed or Public AI.</strong> All AI usage must go through Ejada-approved enterprise tools.
-              </li>
-              <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <strong>Developers:</strong> Integrate your IDE (VS Code, IntelliJ, etc.) with the GitHub Copilot Plugin.
-              </li>
-              <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <strong>Non-Developers:</strong> Use <a href="https://m365.cloud.microsoft/chat" target="_blank" rel="noopener">Microsoft Copilot Chat</a> for everyday AI assistance.
-              </li>
-            </ul>
-          </div>
-          <!-- Copilot for PM/SM -->
-          <div class="guide-card">
-            <div class="guide-card-icon" style="background:rgba(236,72,153,0.15);color:var(--pink)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
-            <h4>Copilot for PMs &amp; Scrum Masters</h4>
-            <p>Explore how GitHub Copilot can help project managers and scrum masters with planning, documentation, and more.</p>
-            <a href="https://ejadasharepoint.sharepoint.com/:p:/s/CloudCenterofExcellence/IQAvKD6ou_DjQ6ntelOWzS5jAdmKV7RO2WbHIR1OFeIc4bI?e=EVdFDp" target="_blank" rel="noopener" class="guide-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              Open Presentation
-            </a>
-          </div>
-          <!-- Rollout Guide -->
-          <div class="guide-card">
-            <div class="guide-card-icon" style="background:rgba(59,130,246,0.15);color:var(--accent)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
-            <h4>EAS AI Dashboard — Rollout Guide</h4>
-            <p>Complete rollout presentation covering the EAS AI Adoption Dashboard setup, features walkthrough, and adoption strategy.</p>
-            <a href="../../ReferencesAndGuidance/EAS_AI_Dashboard_Rollout_Guide.pptx" download class="guide-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download Rollout Guide (.pptx)
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <!-- AI News Page -->
   <div id="page-ainews" class="page hidden">
     <div class="page-header">
       <div>
         <h2>AI News</h2>
-        <div class="subtitle">Stay up to date with the latest AI developments</div>
+        <div class="subtitle">Stay up to date with the latest AI developments &bull; <span id="ainews-last-updated" style="color:var(--text-muted)">Loading...</span></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="ainews-refresh-btn" id="ainews-refresh-btn" data-role="admin" onclick="handleAiNewsRefresh()" title="Manually refresh news feed">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Refresh Now
+        </button>
       </div>
     </div>
     <div class="page-content">
-      <div class="guide-section" id="guide-ainews">
-        <div class="guide-grid">
-          <div class="guide-card guide-card-highlight">
-            <div class="guide-card-icon" style="background:rgba(6,182,212,0.15);color:var(--info)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <h4>Latest AI Developments</h4>
-            <p>Stay up to date with the most impactful AI news and updates relevant to enterprise development.</p>
-          </div>
-          <div class="guide-card">
-            <div class="guide-news-item">
-              <span class="guide-news-date">2026</span>
-              <h4>GitHub Copilot Workspace</h4>
-              <p>GitHub's AI-native development environment now generally available — plan, build, test, and run code with natural language.</p>
-              <a href="https://github.blog/news-insights/product-news/" target="_blank" rel="noopener" class="guide-link">Read on GitHub Blog</a>
-            </div>
-          </div>
-          <div class="guide-card">
-            <div class="guide-news-item">
-              <span class="guide-news-date">2026</span>
-              <h4>Microsoft Copilot for Microsoft 365</h4>
-              <p>Enterprise-grade AI embedded into Word, Excel, PowerPoint, Teams, and Outlook — transforming daily productivity for non-developers.</p>
-              <a href="https://adoption.microsoft.com/en-us/copilot/" target="_blank" rel="noopener" class="guide-link">Microsoft Copilot Adoption Hub</a>
-            </div>
-          </div>
-          <div class="guide-card">
-            <div class="guide-news-item">
-              <span class="guide-news-date">2026</span>
-              <h4>GitHub Copilot Extensions</h4>
-              <p>Extend Copilot's capabilities with third-party tools and custom agents directly within your IDE and GitHub.com.</p>
-              <a href="https://github.com/features/copilot/extensions" target="_blank" rel="noopener" class="guide-link">Explore Extensions</a>
-            </div>
-          </div>
-          <div class="guide-card">
-            <div class="guide-news-item">
-              <span class="guide-news-date">2025</span>
-              <h4>AI Code Generation — Industry Trends</h4>
-              <p>Studies show 55% productivity boost with AI pair programming. Enterprise adoption continues to accelerate across Saudi Arabia and globally.</p>
-              <a href="https://github.blog/news-insights/research/" target="_blank" rel="noopener" class="guide-link">GitHub Research</a>
-            </div>
-          </div>
-          <div class="guide-card">
-            <div class="guide-news-item">
-              <span class="guide-news-date">2025</span>
-              <h4>Responsible AI in Enterprise</h4>
-              <p>Microsoft's framework for building trustworthy AI systems — fairness, reliability, safety, privacy, inclusiveness, transparency, and accountability.</p>
-              <a href="https://www.microsoft.com/en-us/ai/responsible-ai" target="_blank" rel="noopener" class="guide-link">Microsoft Responsible AI</a>
-            </div>
-          </div>
+      <div class="ainews-filters">
+        <div class="ainews-topic-pills" id="ainews-topic-pills">
+          <button class="ainews-pill active" data-topic="all" onclick="filterAiNews('topic', 'all')">All</button>
+          <button class="ainews-pill" data-topic="new_model" onclick="filterAiNews('topic', 'new_model')">New Models</button>
+          <button class="ainews-pill" data-topic="new_skill" onclick="filterAiNews('topic', 'new_skill')">New Skills</button>
+          <button class="ainews-pill" data-topic="api_update" onclick="filterAiNews('topic', 'api_update')">API Updates</button>
+          <button class="ainews-pill" data-topic="research" onclick="filterAiNews('topic', 'research')">Research</button>
+          <button class="ainews-pill" data-topic="enterprise" onclick="filterAiNews('topic', 'enterprise')">Enterprise</button>
+          <button class="ainews-pill" data-topic="industry" onclick="filterAiNews('topic', 'industry')">Industry</button>
         </div>
+        <div class="ainews-source-row" id="ainews-source-row">
+          <span class="ainews-source-label">Sources:</span>
+          <button class="ainews-source-badge" data-source="anthropic" style="background:rgba(217,119,6,0.12);color:#fbbf24;border-color:rgba(217,119,6,0.25)" onclick="toggleAiNewsSource('anthropic')">Anthropic</button>
+          <button class="ainews-source-badge" data-source="openai" style="background:rgba(16,185,129,0.12);color:#34d399;border-color:rgba(16,185,129,0.25)" onclick="toggleAiNewsSource('openai')">OpenAI</button>
+          <button class="ainews-source-badge" data-source="google" style="background:rgba(59,130,246,0.12);color:#60a5fa;border-color:rgba(59,130,246,0.25)" onclick="toggleAiNewsSource('google')">Google</button>
+          <button class="ainews-source-badge" data-source="github" style="background:rgba(168,85,247,0.12);color:#c084fc;border-color:rgba(168,85,247,0.25)" onclick="toggleAiNewsSource('github')">GitHub</button>
+          <button class="ainews-source-badge" data-source="microsoft" style="background:rgba(6,182,212,0.12);color:#22d3ee;border-color:rgba(6,182,212,0.25)" onclick="toggleAiNewsSource('microsoft')">Microsoft</button>
+          <button class="ainews-source-badge" data-source="huggingface" style="background:rgba(251,146,60,0.12);color:#fb923c;border-color:rgba(251,146,60,0.25)" onclick="toggleAiNewsSource('huggingface')">Hugging Face</button>
+          <button class="ainews-source-badge" data-source="verge" style="background:rgba(244,63,94,0.12);color:#fb7185;border-color:rgba(244,63,94,0.25)" onclick="toggleAiNewsSource('verge')">The Verge</button>
+          <button class="ainews-source-badge" data-source="techcrunch" style="background:rgba(34,197,94,0.12);color:#4ade80;border-color:rgba(34,197,94,0.25)" onclick="toggleAiNewsSource('techcrunch')">TechCrunch</button>
+          <button class="ainews-source-badge" data-source="skills_sh" style="background:rgba(139,92,246,0.12);color:#a78bfa;border-color:rgba(139,92,246,0.25)" onclick="toggleAiNewsSource('skills_sh')">skills.sh</button>
+        </div>
+      </div>
+      <div class="ainews-results-bar">
+        <span id="ainews-result-count"></span>
+      </div>
+      <div class="ainews-feed" id="ainews-feed"></div>
+      <div class="ainews-load-more" id="ainews-load-more" style="display:none">
+        <button class="ainews-load-more-btn" onclick="loadMoreAiNews()">Load More (<span id="ainews-remaining">0</span> remaining)</button>
+      </div>
+      <div class="ainews-empty" id="ainews-empty" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <h4>No news articles yet</h4>
+        <p>News will appear here after the daily feed refresh runs.</p>
       </div>
     </div>
   </div>
@@ -1014,59 +913,115 @@
     <div class="page-header">
       <div>
         <h2>Copilot Enablement</h2>
-        <div class="subtitle">Official Microsoft training sessions and resources</div>
+        <div class="subtitle">Getting started with GitHub Copilot, AI tools, and official training resources at Ejada</div>
       </div>
     </div>
     <div class="page-content">
       <div class="guide-section" id="guide-enablement">
-        <div class="guide-grid">
-          <div class="guide-card guide-card-highlight">
+
+        <!-- ── Section: Getting Started ── -->
+        <div class="enablement-section-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <h3>Getting Started</h3>
+        </div>
+        <div class="guide-grid" style="margin-bottom:32px">
+          <!-- Getting Started card -->
+          <div class="guide-card guide-card-highlight enablement-hero">
+            <div class="guide-card-icon" style="background:rgba(59,130,246,0.15);color:var(--accent)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            </div>
+            <div>
+              <h4>GitHub Enterprise Login</h4>
+              <p>Access the Ejada GitHub Enterprise portal to begin your AI-powered development journey.</p>
+              <a href="https://github.com/enterprises/ejadasa/" target="_blank" rel="noopener" class="guide-link guide-link-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Open GitHub Enterprise Portal
+              </a>
+            </div>
+          </div>
+          <!-- Access Types -->
+          <div class="guide-card">
+            <div class="guide-card-icon" style="background:rgba(139,92,246,0.15);color:var(--purple)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h4>Copilot Access Types</h4>
+            <div class="guide-access-types">
+              <div class="guide-access-card">
+                <span class="guide-access-badge dev">Developer</span>
+                <strong>GitHub Enterprise + GitHub Copilot Business</strong>
+                <p>Full repository access with Copilot code suggestions in IDE (VS Code, IntelliJ, etc.)</p>
+              </div>
+              <div class="guide-access-card">
+                <span class="guide-access-badge nondev">Non-Developer</span>
+                <strong>GitHub Copilot Business Only</strong>
+                <p>Copilot Chat only — no repository access. For PMs, BAs, Architects, Consultants, Designers, Testers, etc.</p>
+              </div>
+            </div>
+          </div>
+          <!-- How to Get Access -->
+          <div class="guide-card">
             <div class="guide-card-icon" style="background:rgba(16,185,129,0.15);color:var(--success)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 12 15 15 10"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             </div>
-            <h4>GitHub Copilot Enablement from Microsoft</h4>
-            <p>Official Microsoft training sessions and resources to help your team get productive with GitHub Copilot Business.</p>
+            <h4>How to Get Access</h4>
+            <ol class="guide-steps">
+              <li>Prepare a list of resources at <strong>project level</strong> or <strong>department level</strong></li>
+              <li>Raise an <strong>IT ticket</strong> specifying the correct access type (Developer vs Non-Developer)</li>
+              <li>Obtain <strong>Manager Approval</strong> &amp; <strong>Mohamed Al Banna's Approval</strong></li>
+              <li>Once approved, set up your IDE plugin or Copilot Chat</li>
+            </ol>
           </div>
-          <!-- Session 1 -->
-          <div class="guide-card guide-session-card">
-            <div class="guide-session-meta">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span>Video Recording</span>
-              <span class="guide-session-date">Jan 27, 2026</span>
+          <!-- Important Reminders -->
+          <div class="guide-card enablement-alert-card">
+            <div class="guide-card-icon" style="background:rgba(245,158,11,0.15);color:var(--warning)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
-            <h4>GitHub Copilot for Business — Fundamentals (Session 3)</h4>
-            <p>Final session of the three-part fundamentals series. Advanced prompting techniques and enterprise best practices.</p>
-            <a href="https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQCsf2MqZfGKTp7Zzx9ntiH-ARP-qNu5SO-8oPijEP0KliE?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=y09JaF" target="_blank" rel="noopener" class="guide-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Watch Recording
+            <h4>Important Reminders</h4>
+            <ul class="guide-reminders">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <strong>Stop using personally subscribed or Public AI.</strong> All AI usage must go through Ejada-approved enterprise tools.
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <strong>Developers:</strong> Integrate your IDE (VS Code, IntelliJ, etc.) with the GitHub Copilot Plugin.
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <strong>Non-Developers:</strong> Use <a href="https://m365.cloud.microsoft/chat" target="_blank" rel="noopener">Microsoft Copilot Chat</a> for everyday AI assistance.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Section: Resources & Guides ── -->
+        <div class="enablement-section-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <h3>Resources &amp; Guides</h3>
+        </div>
+        <div class="guide-grid" style="margin-bottom:32px">
+          <!-- Copilot for PM/SM -->
+          <div class="guide-card">
+            <div class="guide-card-icon" style="background:rgba(236,72,153,0.15);color:var(--pink)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h4>Copilot for PMs &amp; Scrum Masters</h4>
+            <p>Explore how GitHub Copilot can help project managers and scrum masters with planning, documentation, and more.</p>
+            <a href="https://ejadasharepoint.sharepoint.com/:p:/s/CloudCenterofExcellence/IQAvKD6ou_DjQ6ntelOWzS5jAdmKV7RO2WbHIR1OFeIc4bI?e=EVdFDp" target="_blank" rel="noopener" class="guide-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open Presentation
             </a>
           </div>
-          <!-- Session 2 -->
-          <div class="guide-card guide-session-card">
-            <div class="guide-session-meta">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span>Video Recording</span>
-              <span class="guide-session-date">Jan 26, 2026</span>
+          <!-- Contributor Rollout Guide -->
+          <div class="guide-card">
+            <div class="guide-card-icon" style="background:rgba(59,130,246,0.15);color:var(--accent)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             </div>
-            <h4>GitHub Copilot for Business — Fundamentals (Session 2)</h4>
-            <p>Continuation of the fundamentals series covering IDE integration, context management, and team collaboration with Copilot.</p>
-            <a href="https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQBU4B1EJYxzRKbR8PxNJcDgAZ3ZH7PRrB819tcW5eUum34?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=ddJYHk" target="_blank" rel="noopener" class="guide-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Watch Recording
-            </a>
-          </div>
-          <!-- Session 3 -->
-          <div class="guide-card guide-session-card">
-            <div class="guide-session-meta">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span>Video Recording</span>
-              <span class="guide-session-date">Jan 25, 2026</span>
-            </div>
-            <h4>GitHub Copilot for Business — Fundamentals (Session 1)</h4>
-            <p>Introduction to GitHub Copilot for Business — setup, licensing, first steps, and getting productive from day one.</p>
-            <a href="https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQB2TbE5FmB8SoR3G2RQvfD8AV21jASdzOLuNdmeFIz33CE?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=GwEWeC" target="_blank" rel="noopener" class="guide-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Watch Recording
+            <h4>EAS AI Dashboard — Contributor Rollout Guide</h4>
+            <p>Complete contributor rollout presentation covering dashboard features, onboarding steps, and adoption strategy for teams.</p>
+            <a href="../../EAS_AI_Dashboard_Contributor_Rollout_Guide.pptx" download class="guide-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Rollout Guide (.pptx)
             </a>
           </div>
           <!-- Official Microsoft Links -->
@@ -1115,6 +1070,71 @@
             </ul>
           </div>
         </div>
+
+        <!-- ── Section: Training Sessions ── -->
+        <div class="enablement-section-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <h3>Training Sessions</h3>
+        </div>
+        <div class="guide-grid">
+          <!-- Session 1 -->
+          <div class="guide-card guide-session-card">
+            <div class="guide-session-meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>Video Recording</span>
+              <span class="guide-session-date">Jan 27, 2026</span>
+            </div>
+            <h4>GitHub Copilot for Business — Fundamentals (Session 3)</h4>
+            <p>Final session of the three-part fundamentals series. Advanced prompting techniques and enterprise best practices.</p>
+            <a href="https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQCsf2MqZfGKTp7Zzx9ntiH-ARP-qNu5SO-8oPijEP0KliE?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=y09JaF" target="_blank" rel="noopener" class="guide-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Watch Recording
+            </a>
+          </div>
+          <!-- Session 2 -->
+          <div class="guide-card guide-session-card">
+            <div class="guide-session-meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>Video Recording</span>
+              <span class="guide-session-date">Jan 26, 2026</span>
+            </div>
+            <h4>GitHub Copilot for Business — Fundamentals (Session 2)</h4>
+            <p>Continuation of the fundamentals series covering IDE integration, context management, and team collaboration with Copilot.</p>
+            <a href="https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQBU4B1EJYxzRKbR8PxNJcDgAZ3ZH7PRrB819tcW5eUum34?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=ddJYHk" target="_blank" rel="noopener" class="guide-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Watch Recording
+            </a>
+          </div>
+          <!-- Session 3 -->
+          <div class="guide-card guide-session-card">
+            <div class="guide-session-meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>Video Recording</span>
+              <span class="guide-session-date">Jan 25, 2026</span>
+            </div>
+            <h4>GitHub Copilot for Business — Fundamentals (Session 1)</h4>
+            <p>Introduction to GitHub Copilot for Business — setup, licensing, first steps, and getting productive from day one.</p>
+            <a href="https://ejadasharepoint.sharepoint.com/:v:/s/CloudCenterofExcellence/IQB2TbE5FmB8SoR3G2RQvfD8AV21jASdzOLuNdmeFIz33CE?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=GwEWeC" target="_blank" rel="noopener" class="guide-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Watch Recording
+            </a>
+          </div>
+          <!-- Microsoft 365 Copilot for PMs & Scrum Masters -->
+          <div class="guide-card guide-session-card">
+            <div class="guide-session-meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>Video Recording</span>
+              <span class="guide-session-date">365 Copilot</span>
+            </div>
+            <h4>Microsoft 365 Copilot for PMs &amp; Scrum Masters</h4>
+            <p>Learn how PMs and Scrum Masters can leverage Microsoft 365 Copilot across Word, Excel, PowerPoint, Teams, and Outlook for planning, reporting, and daily workflows.</p>
+            <a href="https://ejadasharepoint-my.sharepoint.com/:v:/g/personal/oibrahim_ejada_com/IQD244K4cyXqT4T7sXu_E52WAfsE34kRRo8Hoo289ORFBqA?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=Jk2hhu" target="_blank" rel="noopener" class="guide-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Watch Recording
+            </a>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -2190,6 +2210,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     if (item.dataset.page === 'prompts') loadPromptLibrary();
     if (item.dataset.page === 'exec-summary') renderExecSummary();
     if (item.dataset.page === 'ide-usage') renderIDEUsage();
+    if (item.dataset.page === 'ainews') renderAiNews();
   });
 });
 
@@ -2246,10 +2267,13 @@ function renderDashboard() {
     <div class="kpi-card"><div class="kpi-label">Copilot Users</div><div class="kpi-value pink">${data.copilotUsers.length}</div><div class="kpi-sub">access granted</div></div>
   `;
 
+  // Featured Banner Spotlight — synchronous, uses already-loaded data
+  try { initSpotlightBanner(); } catch(e) { console.error('Spotlight banner error:', e); }
+
   // Licensed Tool Adoption KPIs
   renderLicensedToolKPIs();
 
-  renderCharts();
+  try { renderCharts(); } catch (chartErr) { console.error('renderCharts error:', chartErr); }
 }
 
 /**
@@ -2645,6 +2669,7 @@ function renderTasks() {
       <td>${t.timeWithout > 0 ? fmt((t.timeSaved / t.timeWithout) * 100, 0) + '%' : '-'}</td>
       <td>${statusBadge(t.status)}</td>
       <td>${approvalBadge(t.approvalStatus)}</td>
+      <td style="text-align:center">${buildLikeBtn('task', t.id, getLikeCount('task', t.id))}</td>
       <td class="row-actions">
         ${EAS_Auth.getUserRole() !== 'viewer' ? `<button class="btn-icon btn-edit" onclick="editTask('${t.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="btn-icon btn-delete" onclick="deleteTaskConfirm('${t.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
@@ -2718,6 +2743,7 @@ function renderAccomplishments() {
         ${a.before ? `<div><span style="color:var(--danger)">Before:</span> <span style="color:var(--text-secondary)">${a.before}</span></div>` : ''}
         ${a.after ? `<div><span style="color:var(--success)">After:</span> <span style="color:var(--text-secondary)">${a.after}</span></div>` : ''}
       </div>` : ''}
+      <div style="margin-top:10px;display:flex;justify-content:flex-end">${buildLikeBtn('accomplishment', a.id, getLikeCount('accomplishment', a.id))}</div>
     </div>
   `).join('');
 
@@ -2739,11 +2765,12 @@ function renderCopilot() {
     return true;
   });
 
-  // KPIs — show licensed tool adoption breakdown
-  const totalUsers = data.copilotUsers.length;
-  const hasLoggedCount = data.copilotUsers.filter(u => u.hasLoggedTask).length;
-  const ghActive = data.copilotUsers.filter(u => u.githubCopilotStatus === 'active').length;
-  const m365Active = data.copilotUsers.filter(u => u.m365CopilotStatus === 'active').length;
+  // KPIs — only count access-granted users as "licensed"
+  const licensedUsers = data.copilotUsers.filter(u => u.status && u.status.toLowerCase() === 'access granted');
+  const totalUsers = licensedUsers.length;
+  const hasLoggedCount = licensedUsers.filter(u => u.hasLoggedTask).length;
+  const ghActive = licensedUsers.filter(u => u.githubCopilotStatus === 'active').length;
+  const m365Active = licensedUsers.filter(u => u.m365CopilotStatus === 'active').length;
   const adoptionPct = totalUsers > 0 ? ((hasLoggedCount / totalUsers) * 100).toFixed(1) : '0.0';
   document.getElementById('copilot-kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-label">Total Licensed Users</div><div class="kpi-value blue">${totalUsers}</div><div class="kpi-sub">across all practices</div></div>
@@ -2772,7 +2799,7 @@ function renderCopilot() {
       <td>${ghBadge}</td>
       <td>${m365Badge}</td>
       <td>${loggedBadge}</td>
-      <td>${statusBadge(u.remarks === 'access granted' ? 'Completed' : u.remarks)}</td>
+      <td>${statusBadge(u.status === 'access granted' ? 'Completed' : u.status)}</td>
       <td class="row-actions">
         ${EAS_Auth.getUserRole() !== 'viewer' ? `<button class="btn-icon btn-edit" onclick="editCopilotUser('${u.id}')" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="btn-icon btn-delete" onclick="deleteCopilotUserConfirm('${u.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
@@ -2914,6 +2941,14 @@ async function renderApprovals() {
       EAS_DB.fetchApprovalHistory(userRole, userPractice, 100)
     ]);
 
+    // Build a practice → SPOC-names map for "Pending With" display
+    const practiceSet = new Set([...(pending || []), ...(history || [])].map(a => a.practice).filter(Boolean));
+    const spocNameMap = {};
+    await Promise.all([...practiceSet].map(async (practice) => {
+      const spocs = await EAS_DB.getSpocsForPractice(practice);
+      spocNameMap[practice] = spocs.map(s => s.spoc_name).filter(Boolean).join(', ');
+    }));
+
     // Combine and filter based on selected filters
     let allApprovals = [...(pending || [])];
     const statusFilter = document.getElementById('approvals-filter-status').value;
@@ -2967,9 +3002,11 @@ async function renderApprovals() {
         a.approval_status === 'ai_review' ? 'AI Review' :
         'Pending';
 
-      const layerLabel = 
+      const pendingWithLabel = 
+        a.approval_status === 'approved' ? (a.approved_by_name || '✅ Approved') :
+        a.approval_status === 'rejected' ? '❌ Rejected' :
         a.approval_layer === 'admin' ? 'Admin' :
-        a.approval_layer === 'spoc' ? 'SPOC' :
+        a.approval_layer === 'spoc' ? (spocNameMap[a.practice] || 'SPOC') :
         a.approval_layer === 'ai' ? 'AI' :
         '-';
 
@@ -2981,8 +3018,17 @@ async function renderApprovals() {
           <td style="text-transform:capitalize">${a.submission_type === 'task' ? 'Task' : a.submission_type === 'accomplishment' ? 'Accomplishment' : '-'}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)" title="${a.submission_description || ''}">${a.submission_description || '-'}</td>
           <td><span class="status-badge ${statusBadgeClass}">${statusLabel}</span></td>
-          <td>${layerLabel}</td>
-          <td><button class="btn btn-xs btn-secondary" onclick="viewApprovalDetail('${a.id}')">View</button></td>
+          <td>${pendingWithLabel}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-xs btn-secondary" onclick="viewApprovalDetail('${a.id}')">View</button>
+            ${!['approved','rejected'].includes(a.approval_status) && (
+              (userRole === 'admin') ||
+              ((userRole === 'spoc' || userRole === 'team_lead') && a.approval_status === 'spoc_review' && a.practice === userPractice)
+            ) ? `
+              <button class="btn btn-xs" style="background:var(--success);color:#fff;margin-left:4px" onclick="handleApprovalAction('${a.id}','approve')">Approve</button>
+              <button class="btn btn-xs" style="background:var(--danger);color:#fff;margin-left:4px" onclick="promptRejectApproval('${a.id}')">Reject</button>
+            ` : ''}
+          </td>
         </tr>
       `;
     }).join('');
@@ -3039,7 +3085,13 @@ async function viewApprovalDetail(approvalId) {
     detailRows += `<span style="color:var(--text-muted)">Practice</span><span style="font-weight:600">${approval.practice || '-'}</span>`;
     detailRows += `<span style="color:var(--text-muted)">Submitted By</span><span>${approval.submitted_by_email || '-'}</span>`;
     detailRows += `<span style="color:var(--text-muted)">Submitted At</span><span>${approval.submitted_at ? new Date(approval.submitted_at).toLocaleString() : '-'}</span>`;
-    detailRows += `<span style="color:var(--text-muted)">Saved Hours</span><span style="font-weight:600;color:var(--success)">${approval.saved_hours || 0}h</span>`;
+    // Compute saved hours from actual task/accomplishment data to avoid stale approval records
+    const computedSavedHours = (submission && approval.submission_type === 'task')
+      ? ((Number(submission.time_without_ai) || 0) - (Number(submission.time_with_ai) || 0))
+      : (submission && approval.submission_type === 'accomplishment')
+        ? (Number(submission.effort_saved) || 0)
+        : (Number(approval.saved_hours) || 0);
+    detailRows += `<span style="color:var(--text-muted)">Saved Hours</span><span style="font-weight:600;color:var(--success)">${computedSavedHours}h</span>`;
     detailRows += `<span style="color:var(--text-muted)">Approval Layer</span><span>${(approval.approval_layer || '-').toUpperCase()}</span>`;
 
     // Task-specific fields
@@ -3079,11 +3131,11 @@ async function viewApprovalDetail(approvalId) {
     document.getElementById('approval-detail-title').textContent = `${approval.submission_type === 'task' ? 'Task' : 'Accomplishment'} Submission Detail`;
     document.getElementById('approval-detail-body').innerHTML = detailRows;
 
-    // Show approve/reject actions ONLY for items at the user's approval layer
-    // Admin can only act on admin_review items (not ai_review or spoc_review)
+    // Show approve/reject actions for items the user can act on
+    // Admin can act on ANY pending status (override capability)
     // SPOC can only act on spoc_review items for their practice
     const canAct = isPending && (
-      (userRole === 'admin' && approval.approval_status === 'admin_review') ||
+      (userRole === 'admin') ||
       (userRole === 'spoc' && approval.approval_status === 'spoc_review' && approval.practice === EAS_Auth.getUserPractice()) ||
       (userRole === 'team_lead' && approval.approval_status === 'spoc_review' && approval.practice === EAS_Auth.getUserPractice())
     );
@@ -3161,6 +3213,18 @@ async function handleApprovalAction(approvalId, action) {
   }
 }
 
+function promptRejectApproval(approvalId) {
+  const reason = prompt('Enter rejection reason:');
+  if (reason !== null && reason.trim()) {
+    EAS_DB.rejectSubmission(approvalId, reason).then(result => {
+      if (result) { showToast('Submission rejected', 'warning'); renderApprovals(); }
+      else { showToast('Failed to reject submission', 'error'); }
+    }).catch(err => showToast('Error: ' + err.message, 'error'));
+  } else if (reason !== null) {
+    showToast('Please provide a reason for rejection', 'error');
+  }
+}
+
 // ======== SPOC: MY PRACTICE ========
 async function renderMyPractice() {
   const practice = EAS_Auth.getUserPractice();
@@ -3188,6 +3252,14 @@ async function renderMyPractice() {
   // Scope to team lead's assigned members if applicable
   const teamData = isTeamLead ? allTeamData.filter(e => teamLeadMemberEmails.includes(e.email)) : allTeamData;
   const inactive = isTeamLead ? allInactive.filter(u => teamLeadMemberEmails.includes(u.email)) : allInactive;
+
+  // Enrich team members with accomplishment data for badges
+  const practiceAccs = (data.accomplishments || []).filter(a => a.approvalStatus === 'approved' && a.practice === practice);
+  teamData.forEach(e => {
+    const empAccs = practiceAccs.filter(a => (a.employees || '').toLowerCase().includes((e.name || '').toLowerCase()));
+    e.accomplishments = empAccs.length;
+    e.accomplishmentEffort = empAccs.reduce((s, a) => s + (a.effortSaved || 0), 0);
+  });
 
   // KPIs
   const totalTasks = teamData.reduce((s, e) => s + e.tasks, 0);
@@ -3237,12 +3309,14 @@ async function renderMyPractice() {
   document.getElementById('mypractice-inactive-tbody').innerHTML = inactive.length === 0
     ? '<tr><td colspan="6" style="text-align:center;color:var(--success);padding:20px">All team members are active!</td></tr>'
     : inactive.map(u => {
-      const days = u.daysSinceTask !== null ? `${u.daysSinceTask} days` : 'Never logged';
+      const days = u.daysSinceActivity !== null ? `${u.daysSinceActivity} days` : 'Never';
       const lastNudged = u.nudgedAt ? new Date(u.nudgedAt).toLocaleDateString() : 'Never';
+      const lastAct = u.lastActivity ? new Date(u.lastActivity).toLocaleDateString() : 'Never';
+      const ideTag = u.ideDaysActive > 0 ? ` <span style="font-size:11px;color:var(--text-muted)" title="IDE active ${u.ideDaysActive} days">(IDE: ${u.ideDaysActive}d)</span>` : '';
       return `<tr>
-        <td style="font-weight:600">${u.name}</td>
+        <td style="font-weight:600">${u.name}${ideTag}</td>
         <td style="color:var(--text-muted)">${u.email}</td>
-        <td>${u.lastTaskDate ? new Date(u.lastTaskDate).toLocaleDateString() : 'Never'}</td>
+        <td>${lastAct}</td>
         <td style="color:var(--warning);font-weight:600">${days}</td>
         <td style="color:var(--text-muted)">${lastNudged}</td>
         <td><button class="btn btn-secondary" style="font-size:12px;padding:4px 12px" onclick="nudgeInactive('${u.id}','${u.name}')">Nudge</button></td>
@@ -3487,24 +3561,56 @@ async function renderLeaderboard() {
   const quarterId = document.getElementById('lb-filter-quarter')?.value || EAS_DB.getSelectedQuarter();
   const fPractice = document.getElementById('lb-filter-practice')?.value || '';
 
-  // Fetch both leaderboards
-  const [practiceBoard, employeeBoard] = await Promise.all([
+  // Fetch both leaderboards + accomplishments for scoring
+  const [practiceBoard, employeeBoard, accomplishments] = await Promise.all([
     EAS_DB.fetchPracticeLeaderboard(quarterId),
-    EAS_DB.fetchEmployeeLeaderboard(fPractice || null, quarterId)
+    EAS_DB.fetchEmployeeLeaderboard(fPractice || null, quarterId),
+    EAS_DB.fetchAccomplishments(quarterId, { approvedOnly: true })
   ]);
 
-  // Practice ranking cards
+  // Build per-employee accomplishment stats (match by name appearing in accomplishment employees field)
+  const empAccStats = {};
+  accomplishments.forEach(a => {
+    const names = (a.employees || '').split(/[,،;]+/).map(n => n.trim().toLowerCase()).filter(Boolean);
+    const effort = a.effortSaved || 0;
+    names.forEach(name => {
+      if (!empAccStats[name]) empAccStats[name] = { count: 0, effort: 0 };
+      empAccStats[name].count += 1;
+      empAccStats[name].effort += effort;
+    });
+  });
+
+  // Enrich employee leaderboard with accomplishment data
+  employeeBoard.forEach(e => {
+    const key = (e.name || '').trim().toLowerCase();
+    const accStat = empAccStats[key] || { count: 0, effort: 0 };
+    e.accomplishments = accStat.count;
+    e.accomplishmentEffort = accStat.effort;
+  });
+
+  // Practice ranking cards — include accomplishment effort in total
+  const practiceAccStats = {};
+  accomplishments.forEach(a => {
+    const p = a.practice;
+    if (!practiceAccStats[p]) practiceAccStats[p] = { count: 0, effort: 0 };
+    practiceAccStats[p].count += 1;
+    practiceAccStats[p].effort += (a.effortSaved || 0);
+  });
+
   const medals = ['🥇', '🥈', '🥉'];
   document.getElementById('leaderboard-practices').innerHTML = practiceBoard.map((p, i) => {
     const medal = i < 3 ? medals[i] : `#${i + 1}`;
     const color = practiceColors[p.practice] || '#94a3b8';
+    const accStat = practiceAccStats[p.practice] || { count: 0, effort: 0 };
+    const totalSaved = p.timeSaved + accStat.effort;
     return `<div class="leaderboard-card" style="border-left:4px solid ${color}">
       <div class="leaderboard-rank">${medal}</div>
       <div class="leaderboard-info">
         <div class="leaderboard-name" style="color:${color}">${p.practice}</div>
         <div class="leaderboard-stats">
           <span>${p.tasks} tasks</span>
-          <span>${fmt(p.timeSaved, 0)} hrs saved</span>
+          <span>${accStat.count} accomplishments</span>
+          <span>${fmt(totalSaved, 0)} hrs saved</span>
           <span>${fmt(p.efficiency, 0)}% eff</span>
           <span>${p.employees} contributors</span>
         </div>
@@ -3513,7 +3619,7 @@ async function renderLeaderboard() {
     </div>`;
   }).join('');
 
-  // Employee ranking table
+  // Employee ranking table — includes accomplishment data in badges
   document.getElementById('leaderboard-tbody').innerHTML = employeeBoard.slice(0, 50).map((e, i) => {
     const badges = EAS_DB.computeBadges(e);
     const earned = badges.filter(b => b.earned);
@@ -3521,14 +3627,16 @@ async function renderLeaderboard() {
       ? earned.map(b => `<span class="badge-icon" title="${b.title}">${b.icon}</span>`).join('')
       : '—';
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+    const totalSaved = e.timeSaved + (e.accomplishmentEffort || 0);
     return `<tr>
       <td style="font-weight:700;text-align:center">${medal}</td>
       <td style="font-weight:600">${e.name}</td>
       <td><span style="color:${practiceColors[e.practice] || '#94a3b8'}">${e.practice}</span></td>
       <td>${e.tasks}</td>
-      <td style="color:var(--success);font-weight:600">${fmt(e.timeSaved, 1)}</td>
+      <td style="color:var(--success);font-weight:600">${fmt(totalSaved, 1)}</td>
       <td>${fmt(e.efficiency, 0)}%</td>
       <td>${e.quality > 0 ? fmt(e.quality, 1) + '/5' : '—'}</td>
+      <td>${e.accomplishments > 0 ? e.accomplishments : '—'}</td>
       <td>${badgeHtml}</td>
     </tr>`;
   }).join('');
@@ -3597,14 +3705,21 @@ async function renderMyTasks() {
       </td>
     </tr>`).join('');
 
-  // My badges — use approved-only stats
+  // My badges — use approved-only stats + accomplishment data
+  const myAccomplishments = (data.accomplishments || []).filter(a =>
+    a.approvalStatus === 'approved' &&
+    (a.employees || '').toLowerCase().includes(userName.toLowerCase())
+  );
+  const myAccEffort = myAccomplishments.reduce((s, a) => s + (a.effortSaved || 0), 0);
   const myStats = {
     tasks: approvedTasks.length,
     timeSaved: totalSaved,
     timeWithout: totalWithout,
     efficiency: eff,
     quality: avgQual,
-    streakWeeks: new Set(approvedTasks.map(t => t.week)).size
+    streakWeeks: new Set(approvedTasks.map(t => t.week)).size,
+    accomplishments: myAccomplishments.length,
+    accomplishmentEffort: myAccEffort
   };
   const badges = EAS_DB.computeBadges(myStats);
   document.getElementById('mytasks-badges').innerHTML = `
@@ -3630,6 +3745,7 @@ function renderUseCases() {
   const fType = document.getElementById('uc-filter-type')?.value || '';
   // --- 1. Build AI Innovation Approved use cases from DB ---
   const approvedUCs = (data.approvedUseCases || []).map(uc => ({
+    ucId: uc.id,
     task: uc.name,
     description: uc.description,
     category: uc.category || uc.sdlcPhase || '',
@@ -3775,6 +3891,7 @@ function renderUseCases() {
         ${uc.noOfAdoptions ? `<div>Adoptions: <span style="color:var(--purple);font-weight:600">${uc.noOfAdoptions}</span></div>` : ''}
       </div>
       ${uc.businessBenefits ? `<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><strong>Benefits:</strong> ${(uc.businessBenefits || '').substring(0, 150)}${(uc.businessBenefits || '').length > 150 ? '…' : ''}</div>` : ''}
+      ${uc.ucId ? `<div style="margin-top:10px;display:flex;justify-content:flex-end">${buildLikeBtn('use_case', uc.ucId, getLikeCount('use_case', uc.ucId))}</div>` : ''}
     </div>`;
   };
 
@@ -4523,6 +4640,190 @@ function updatePromptCounts() {
   });
 }
 
+// ======== AI NEWS FEED ========
+
+const _aiNewsState = {
+  items: [],
+  total: 0,
+  offset: 0,
+  limit: 20,
+  activeTopic: 'all',
+  excludedSources: new Set(),
+  loaded: false,
+};
+
+const AI_NEWS_SOURCE_NAMES = {
+  anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google',
+  github: 'GitHub', microsoft: 'Microsoft', huggingface: 'Hugging Face',
+  verge: 'The Verge', techcrunch: 'TechCrunch', skills_sh: 'skills.sh',
+};
+
+const AI_NEWS_SOURCE_COLORS = {
+  anthropic:   { bg: 'rgba(217,119,6,0.15)',  text: '#fbbf24' },
+  openai:      { bg: 'rgba(16,185,129,0.15)', text: '#34d399' },
+  google:      { bg: 'rgba(59,130,246,0.15)', text: '#60a5fa' },
+  github:      { bg: 'rgba(168,85,247,0.15)', text: '#c084fc' },
+  microsoft:   { bg: 'rgba(6,182,212,0.15)',  text: '#22d3ee' },
+  huggingface: { bg: 'rgba(251,146,60,0.15)', text: '#fb923c' },
+  verge:       { bg: 'rgba(244,63,94,0.15)',  text: '#fb7185' },
+  techcrunch:  { bg: 'rgba(34,197,94,0.15)',  text: '#4ade80' },
+  skills_sh:   { bg: 'rgba(139,92,246,0.15)', text: '#a78bfa' },
+};
+
+const AI_NEWS_TOPIC_COLORS = {
+  new_model:  { bg: 'rgba(59,130,246,0.15)',  text: '#60a5fa' },
+  new_skill:  { bg: 'rgba(34,197,94,0.15)',   text: '#4ade80' },
+  api_update: { bg: 'rgba(6,182,212,0.15)',   text: '#22d3ee' },
+  research:   { bg: 'rgba(251,146,60,0.15)',  text: '#fb923c' },
+  enterprise: { bg: 'rgba(168,85,247,0.15)',  text: '#c084fc' },
+  industry:   { bg: 'rgba(244,63,94,0.15)',   text: '#fb7185' },
+};
+
+const AI_NEWS_TOPIC_LABELS = {
+  new_model: 'New Model', new_skill: 'New Skill', api_update: 'API Update',
+  research: 'Research', enterprise: 'Enterprise', industry: 'Industry',
+};
+
+function timeAgo(dateStr) {
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60)    return 'just now';
+  if (seconds < 3600)  return Math.floor(seconds / 60) + 'm ago';
+  if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+  const days = Math.floor(seconds / 86400);
+  if (days === 1) return '1 day ago';
+  if (days < 30) return days + ' days ago';
+  return new Date(dateStr).toLocaleDateString();
+}
+
+async function renderAiNews() {
+  const feed = document.getElementById('ainews-feed');
+  const empty = document.getElementById('ainews-empty');
+  const loadMore = document.getElementById('ainews-load-more');
+
+  _aiNewsState.offset = 0;
+  _aiNewsState.items = [];
+
+  feed.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)"><div class="spinner" style="margin:0 auto 12px"></div>Loading news...</div>';
+  empty.style.display = 'none';
+  loadMore.style.display = 'none';
+
+  const queryOpts = { limit: _aiNewsState.limit, offset: 0 };
+  if (_aiNewsState.activeTopic !== 'all') queryOpts.topic = _aiNewsState.activeTopic;
+
+  const { items, total } = await EAS_DB.fetchAiNews(queryOpts);
+  _aiNewsState.items = items;
+  _aiNewsState.total = total;
+  _aiNewsState.offset = items.length;
+  _aiNewsState.loaded = true;
+
+  const lastUpdated = await EAS_DB.getAiNewsLastUpdated();
+  const el = document.getElementById('ainews-last-updated');
+  el.textContent = lastUpdated ? 'Last updated: ' + timeAgo(lastUpdated) : 'Not yet refreshed';
+
+  renderAiNewsCards();
+}
+
+function renderAiNewsCards() {
+  const feed = document.getElementById('ainews-feed');
+  const empty = document.getElementById('ainews-empty');
+  const loadMore = document.getElementById('ainews-load-more');
+
+  const filtered = _aiNewsState.items.filter(i => !_aiNewsState.excludedSources.has(i.source));
+
+  if (filtered.length === 0) {
+    feed.innerHTML = '';
+    empty.style.display = 'block';
+    loadMore.style.display = 'none';
+    document.getElementById('ainews-result-count').textContent = '0 articles';
+    return;
+  }
+
+  empty.style.display = 'none';
+  document.getElementById('ainews-result-count').textContent =
+    `${_aiNewsState.total} article${_aiNewsState.total !== 1 ? 's' : ''}`;
+
+  feed.innerHTML = filtered.map((item, idx) => {
+    const srcColor = AI_NEWS_SOURCE_COLORS[item.source] || { bg: 'rgba(255,255,255,0.08)', text: '#94a3b8' };
+    const topicColor = AI_NEWS_TOPIC_COLORS[item.topic] || { bg: 'rgba(255,255,255,0.08)', text: '#94a3b8' };
+    const isFeatured = idx === 0;
+    const srcName = AI_NEWS_SOURCE_NAMES[item.source] || item.source;
+    const topicLabel = AI_NEWS_TOPIC_LABELS[item.topic] || item.topic;
+    const linkLabel = `Read on ${srcName} &rarr;`;
+
+    return `<div class="ainews-card${isFeatured ? ' ainews-card-featured' : ''}">
+      <div class="ainews-card-meta">
+        <span class="ainews-badge" style="background:${srcColor.bg};color:${srcColor.text}">${DOMPurify.sanitize(srcName)}</span>
+        <span class="ainews-badge" style="background:${topicColor.bg};color:${topicColor.text}">${DOMPurify.sanitize(topicLabel)}</span>
+        <span class="ainews-card-time">${timeAgo(item.published_at)}</span>
+      </div>
+      <div class="ainews-card-title">${DOMPurify.sanitize(item.title)}</div>
+      ${item.summary ? `<div class="ainews-card-summary">${DOMPurify.sanitize(item.summary)}</div>` : ''}
+      <a href="${DOMPurify.sanitize(item.url)}" target="_blank" rel="noopener" class="ainews-card-link">${linkLabel}</a>
+    </div>`;
+  }).join('');
+
+  const remaining = _aiNewsState.total - _aiNewsState.offset;
+  if (remaining > 0) {
+    loadMore.style.display = 'block';
+    document.getElementById('ainews-remaining').textContent = remaining;
+  } else {
+    loadMore.style.display = 'none';
+  }
+}
+
+async function loadMoreAiNews() {
+  const queryOpts = {
+    limit: _aiNewsState.limit,
+    offset: _aiNewsState.offset,
+  };
+  if (_aiNewsState.activeTopic !== 'all') queryOpts.topic = _aiNewsState.activeTopic;
+
+  const { items } = await EAS_DB.fetchAiNews(queryOpts);
+  _aiNewsState.items.push(...items);
+  _aiNewsState.offset += items.length;
+
+  renderAiNewsCards();
+}
+
+function filterAiNews(type, value) {
+  if (type === 'topic') {
+    _aiNewsState.activeTopic = value;
+    document.querySelectorAll('#ainews-topic-pills .ainews-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.topic === value);
+    });
+    renderAiNews();
+  }
+}
+
+function toggleAiNewsSource(source) {
+  const badge = document.querySelector(`.ainews-source-badge[data-source="${source}"]`);
+  if (_aiNewsState.excludedSources.has(source)) {
+    _aiNewsState.excludedSources.delete(source);
+    badge.classList.remove('dimmed');
+  } else {
+    _aiNewsState.excludedSources.add(source);
+    badge.classList.add('dimmed');
+  }
+  renderAiNewsCards();
+}
+
+async function handleAiNewsRefresh() {
+  const btn = document.getElementById('ainews-refresh-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0"></div> Refreshing...';
+
+  try {
+    const result = await EAS_DB.triggerAiNewsRefresh();
+    showToast(`News refreshed: ${result.inserted} new articles`);
+    await renderAiNews();
+  } catch (err) {
+    showToast('Refresh failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh Now';
+  }
+}
+
 // ======== MODALS ========
 function openModal(type) {
   console.log('🔓 openModal called with type:', type);
@@ -4666,9 +4967,9 @@ function updateApprovalTierDisplay() {
   if (bypassChecked) {
     tierDisplay.textContent = '🔐 Skipping approval (admin)';
     tierDisplay.style.color = 'var(--warning)';
-  } else if (savedHours < 0) {
-    tierDisplay.textContent = '⚠️ Negative time saved';
-    tierDisplay.style.color = 'var(--error)';
+  } else if (savedHours <= 0) {
+    tierDisplay.textContent = '⚠️ Time saved must be positive — cannot submit';
+    tierDisplay.style.color = 'var(--danger)';
   } else if (savedHours < 5) {
     tierDisplay.textContent = '✅ Auto-approved (<5h saved)';
     tierDisplay.style.color = 'var(--success)';
@@ -4702,6 +5003,7 @@ async function saveTask() {
   const timeWithout = parseFloat(document.getElementById('f-time-without').value) || 0;
   const timeWith = parseFloat(document.getElementById('f-time-with').value) || 0;
   if (timeWithout <= 0) { showToast('Time without AI must be greater than 0', 'error'); return; }
+  if (timeWith >= timeWithout) { showToast('Time with AI must be less than time without AI — time saved must be positive', 'error'); return; }
 
   // Apply week defaults: if not entered, use current week Sun-Thu
   const weekRange = EAS_Utils.getCurrentWeekRange();
@@ -4879,7 +5181,6 @@ async function saveCopilotUser() {
     name: document.getElementById('fc-name').value,
     email: document.getElementById('fc-email').value,
     skill: document.getElementById('fc-skill').value,
-    remarks: document.getElementById('fc-status').value,
     status: document.getElementById('fc-status').value
   };
 
@@ -5262,7 +5563,7 @@ function editCopilotUser(id) {
   document.getElementById('fc-name').value = user.name || '';
   document.getElementById('fc-email').value = user.email || '';
   document.getElementById('fc-skill').value = user.skill || '';
-  document.getElementById('fc-status').value = user.remarks || user.status || 'access granted';
+  document.getElementById('fc-status').value = user.status || 'access granted';
   document.querySelector('#modal-copilot .modal h3').textContent = 'Edit Copilot User';
   document.querySelector('#modal-copilot .btn-primary').textContent = 'Update';
   openModal('copilot');
@@ -5434,7 +5735,7 @@ function exportExcel() {
   if (document.getElementById('exp-xl-copilot')?.checked && role !== 'contributor') {
     const copUsers = _isPracticeScoped(role) ? data.copilotUsers.filter(u => u.practice === practice) : data.copilotUsers;
     const copRows = [['Practice', 'Name', 'Email', 'Skill', 'Status']];
-    copUsers.forEach(u => copRows.push([u.practice, u.name, u.email, u.skill, u.remarks]));
+    copUsers.forEach(u => copRows.push([u.practice, u.name, u.email, u.skill, u.status]));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(copRows), 'Copilot Users');
   }
 
@@ -6651,8 +6952,9 @@ async function boot() {
   if (data) {
     populateFilters();
     await updateNavCounts();
-    // Pre-load issues data (not quarter-filtered)
+    // Pre-load issues data and like data (not quarter-filtered)
     loadIssues().catch(err => console.warn('Issues pre-load failed:', err));
+    loadLikeData().catch(err => console.warn('Like data pre-load failed:', err));
   }
   
   // Role-aware default page
@@ -6669,6 +6971,10 @@ async function boot() {
   // 6. Listen for quarter changes — re-fetch from Supabase
   window.addEventListener('quarter-changed', async () => {
     document.getElementById('auth-loading').style.display = 'flex';
+    // Clear banner cache so it refreshes for new quarter
+    localStorage.removeItem('eas_banner_selection');
+    localStorage.removeItem('eas_banner_date');
+    localStorage.removeItem('eas_banner_quarter');
     try {
       const newQuarter = EAS_DB.getSelectedQuarter();
       data = await EAS_DB.fetchAllData(newQuarter);
@@ -7282,6 +7588,326 @@ boot();
   // Also listen for click
   document.getElementById('adoption-agent-toggle')?.addEventListener('click', window.toggleAdoptionAgent);
 })();
+</script>
+
+<!-- ============================================================
+     Featured Banner Spotlight — Carousel + Likes Engine
+     ============================================================ -->
+<script>
+// SVG icon constants (no emoji)
+const HEART_SVG = '<svg class="like-icon" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+
+// Global likes state
+let _myLikes = {};
+let _myPromptVotes = {};
+let _likeCounts = {};   // { task: { id→count }, accomplishment: { id→count }, use_case: { id→count } }
+let _spotlightTimer = null;
+let _spotlightIndex = 0;
+let _spotlightSlides = [];
+let _spotlightPaused = false;
+
+/**
+ * Load all like counts and user likes. Called once during boot.
+ */
+async function loadLikeData() {
+  const [myLikes, myVotes, taskLikes, accLikes, ucLikes] = await Promise.all([
+    EAS_DB.fetchMyLikes(),
+    EAS_DB.fetchMyVotes(),
+    EAS_DB.fetchLikeCounts('task'),
+    EAS_DB.fetchLikeCounts('accomplishment'),
+    EAS_DB.fetchLikeCounts('use_case')
+  ]);
+  _myLikes = myLikes;
+  _myPromptVotes = myVotes;
+  _likeCounts = { task: taskLikes, accomplishment: accLikes, use_case: ucLikes };
+}
+
+/**
+ * Get like count for an item.
+ */
+function getLikeCount(itemType, itemId) {
+  if (itemType === 'prompt') return 0; // prompts use vote system
+  return (_likeCounts[itemType] || {})[itemId] || 0;
+}
+
+/**
+ * Build a like button HTML string.
+ * @param {string} itemType - 'task','accomplishment','use_case','prompt'
+ * @param {string} itemId - UUID
+ * @param {number} likeCount - current like count
+ * @returns {string} HTML
+ */
+function buildLikeBtn(itemType, itemId, likeCount) {
+  const isPrompt = itemType === 'prompt';
+  const key = isPrompt ? itemId : `${itemType}:${itemId}`;
+  const liked = isPrompt ? (_myPromptVotes[itemId] === 'like') : !!_myLikes[key];
+  const cls = liked ? 'like-btn liked' : 'like-btn';
+  return `<button class="${cls}" data-item-type="${EAS_Utils.sanitize(itemType)}" data-item-id="${EAS_Utils.sanitize(itemId)}" data-count="${likeCount}" aria-label="${liked ? 'Unlike' : 'Like'} (${likeCount} likes)" aria-pressed="${liked}">${HEART_SVG}<span class="like-count">${likeCount}</span></button>`;
+}
+
+/**
+ * Handle like button click (delegated).
+ */
+async function handleLikeClick(btn) {
+  if (btn.classList.contains('like-loading')) return;
+  btn.classList.add('like-loading');
+  const itemType = btn.dataset.itemType;
+  const itemId = btn.dataset.itemId;
+  const isPrompt = itemType === 'prompt';
+  const wasLiked = btn.classList.contains('liked');
+
+  // Optimistic UI
+  const countEl = btn.querySelector('.like-count');
+  let count = parseInt(btn.dataset.count) || 0;
+  if (wasLiked) { count = Math.max(0, count - 1); btn.classList.remove('liked'); }
+  else { count++; btn.classList.add('liked', 'bounce'); setTimeout(() => btn.classList.remove('bounce'), 250); }
+  countEl.textContent = count;
+  btn.dataset.count = count;
+  btn.setAttribute('aria-pressed', !wasLiked);
+  btn.setAttribute('aria-label', `${!wasLiked ? 'Unlike' : 'Like'} (${count} likes)`);
+
+  // Sync all buttons for same item
+  document.querySelectorAll(`.like-btn[data-item-type="${itemType}"][data-item-id="${itemId}"]`).forEach(other => {
+    if (other === btn) return;
+    other.querySelector('.like-count').textContent = count;
+    other.dataset.count = count;
+    if (wasLiked) other.classList.remove('liked');
+    else other.classList.add('liked');
+    other.setAttribute('aria-pressed', !wasLiked);
+  });
+
+  // Async DB call
+  try {
+    if (isPrompt) {
+      const voteType = wasLiked ? null : 'like';
+      const result = await EAS_DB.votePrompt(itemId, voteType);
+      if (result) {
+        if (voteType) _myPromptVotes[itemId] = 'like';
+        else delete _myPromptVotes[itemId];
+        const serverCount = result.like_count || 0;
+        document.querySelectorAll(`.like-btn[data-item-type="prompt"][data-item-id="${itemId}"]`).forEach(b => {
+          b.querySelector('.like-count').textContent = serverCount;
+          b.dataset.count = serverCount;
+        });
+      }
+    } else {
+      const result = await EAS_DB.toggleLike(itemType, itemId);
+      if (result) {
+        const key = `${itemType}:${itemId}`;
+        if (result.liked) _myLikes[key] = true;
+        else delete _myLikes[key];
+        document.querySelectorAll(`.like-btn[data-item-type="${itemType}"][data-item-id="${itemId}"]`).forEach(b => {
+          b.querySelector('.like-count').textContent = result.like_count;
+          b.dataset.count = result.like_count;
+        });
+      }
+    }
+  } catch (err) {
+    // Revert on error
+    console.error('Like toggle failed:', err);
+    showToast('Could not save like', 'error');
+    if (wasLiked) { btn.classList.add('liked'); count++; }
+    else { btn.classList.remove('liked'); count = Math.max(0, count - 1); }
+    countEl.textContent = count;
+    btn.dataset.count = count;
+  }
+  btn.classList.remove('like-loading');
+}
+
+// Delegated click handler for all like buttons
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.like-btn');
+  if (btn) { e.preventDefault(); e.stopPropagation(); handleLikeClick(btn); }
+});
+
+/**
+ * Initialize the spotlight banner carousel.
+ */
+function initSpotlightBanner() {
+  const skeleton = document.getElementById('spotlight-skeleton');
+  const banner = document.getElementById('spotlight-banner');
+  const track = document.getElementById('spotlight-track');
+  const dotsContainer = document.getElementById('spotlight-dots');
+  if (!track || !banner || !data) { if (skeleton) skeleton.classList.add('hidden'); return; }
+
+  try {
+  // Build slides directly from already-loaded data (no extra network calls)
+  const approvedTasks = (data.tasks || []).filter(t => t.approvalStatus === 'approved');
+  const approvedAccomp = (data.accomplishments || []).filter(a => a.approvalStatus === 'approved');
+  const useCases = data.approvedUseCases || [];
+
+  // Sort tasks by time saved descending, take top 3
+  const topTasks = [...approvedTasks].sort((a, b) => (b.timeSaved || 0) - (a.timeSaved || 0)).slice(0, 3);
+  // Sort accomplishments by effort saved descending, take top 3
+  const topAccomp = [...approvedAccomp].sort((a, b) => (b.effortSaved || 0) - (a.effortSaved || 0)).slice(0, 3);
+  // Top use cases by hours saved, take top 2
+  const topUC = [...useCases].sort((a, b) => (b.hours_saved_per_impl || 0) - (a.hours_saved_per_impl || 0)).slice(0, 2);
+
+  // Normalize to common slide format
+  const slides = [];
+  topTasks.forEach(t => slides.push({
+    item_type: 'task', item_id: t.id, title: t.task || t.taskDetails || 'Task',
+    subtitle: t.category || '', contributor_name: t.employee || 'Unknown',
+    practice: t.practice || '', department: '', ai_tool: t.aiTool || '',
+    metric_value: t.timeSaved || 0, metric_label: 'hrs saved',
+    metric_value_2: t.efficiency ? Math.round(t.efficiency * 100) : 0, metric_label_2: '% efficiency',
+    like_count: 0, is_pinned: false, pin_label: '', created_at: t.weekStart || ''
+  }));
+  topAccomp.forEach(a => slides.push({
+    item_type: 'accomplishment', item_id: a.id, title: a.title || 'AI Win',
+    subtitle: a.project || '', contributor_name: a.employees || a.spoc || 'Unknown',
+    practice: a.practice || '', department: '', ai_tool: a.aiTool || '',
+    metric_value: a.effortSaved || 0, metric_label: 'hrs saved',
+    metric_value_2: 0, metric_label_2: '',
+    like_count: 0, is_pinned: false, pin_label: '', created_at: a.date || ''
+  }));
+  topUC.forEach(u => slides.push({
+    item_type: 'use_case', item_id: u.id, title: u.name || 'Use Case',
+    subtitle: u.category || '', contributor_name: u.ownerSpoc || 'Unknown',
+    practice: u.practice || '', department: '', ai_tool: u.aiTools || '',
+    metric_value: u.hoursSavedPerImpl || 0, metric_label: 'hrs saved/impl',
+    metric_value_2: 0, metric_label_2: '',
+    like_count: 0, is_pinned: false, pin_label: '', created_at: ''
+  }));
+
+  // Hide skeleton
+  if (skeleton) skeleton.classList.add('hidden');
+
+  if (!slides.length) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  _spotlightSlides = slides;
+  _spotlightIndex = 0;
+
+  // Build slides
+  track.innerHTML = slides.map((s, i) => {
+    const badgeClass = s.is_pinned ? 'spotlight-badge--pinned' : (s.like_count > 0 ? 'spotlight-badge--liked' : 'spotlight-badge--metric');
+    const badgeLabel = s.is_pinned ? (s.pin_label || 'Admin Pick') : (s.like_count > 0 ? 'Top Liked' : getBadgeForType(s.item_type));
+    const typeLabel = { task: 'Task', accomplishment: 'AI Win', prompt: 'Prompt', use_case: 'Use Case' }[s.item_type] || s.item_type;
+    const dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const title = EAS_Utils.sanitize(truncate(s.title || '', 120));
+    const contributor = EAS_Utils.sanitize(s.contributor_name || 'Unknown');
+    const practice = EAS_Utils.sanitize(s.practice || '');
+    const department = EAS_Utils.sanitize(s.department || '');
+    const aiTool = EAS_Utils.sanitize(s.ai_tool || '');
+
+    return `<div class="spotlight-slide" data-type="${s.item_type}" role="tabpanel" aria-label="Slide ${i+1} of ${slides.length}: ${typeLabel}" ${i > 0 ? 'aria-hidden="true"' : ''}>
+      <div class="spotlight-badge-row">
+        <span class="spotlight-badge ${badgeClass}">${EAS_Utils.sanitize(typeLabel)} &middot; ${EAS_Utils.sanitize(badgeLabel)}</span>
+        <span class="spotlight-date">${dateStr}</span>
+      </div>
+      <div class="spotlight-title">${title}</div>
+      <div class="spotlight-metrics">
+        ${s.metric_value ? `<span class="spotlight-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmt(s.metric_value, 1)} ${EAS_Utils.sanitize(s.metric_label || '')}</span>` : ''}
+        ${s.metric_value_2 ? `<span class="spotlight-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>${fmt(s.metric_value_2, 1)}${EAS_Utils.sanitize(s.metric_label_2 || '')}</span>` : ''}
+        ${aiTool ? `<span class="spotlight-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>${aiTool}</span>` : ''}
+      </div>
+      <div class="spotlight-contributor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        ${contributor}
+        ${practice ? '<span class="spotlight-separator">&middot;</span>' + practice : ''}
+        ${department ? '<span class="spotlight-separator">&middot;</span>' + department : ''}
+      </div>
+      <div class="spotlight-like-row">
+        <button class="like-btn" data-item-type="${s.item_type}" data-item-id="${s.item_id}" data-count="${s.like_count || 0}" onclick="handleLikeClick(this)" aria-label="Like (${s.like_count || 0} likes)" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span class="like-count">${s.like_count || 0}</span>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Build dots
+  dotsContainer.innerHTML = slides.map((_, i) =>
+    `<button class="spotlight-dot${i === 0 ? ' active' : ''}" role="tab" aria-label="Go to slide ${i+1}" aria-selected="${i === 0}" data-index="${i}"></button>`
+  ).join('');
+
+  // Show banner
+  banner.classList.remove('hidden');
+
+  // Wire controls
+  const prevBtn = banner.querySelector('.spotlight-arrow--prev');
+  const nextBtn = banner.querySelector('.spotlight-arrow--next');
+
+  prevBtn.addEventListener('click', () => goToSlide(_spotlightIndex - 1));
+  nextBtn.addEventListener('click', () => goToSlide(_spotlightIndex + 1));
+
+  dotsContainer.addEventListener('click', (e) => {
+    const dot = e.target.closest('.spotlight-dot');
+    if (dot) goToSlide(parseInt(dot.dataset.index));
+  });
+
+  // Keyboard navigation
+  banner.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goToSlide(_spotlightIndex - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); goToSlide(_spotlightIndex + 1); }
+  });
+
+  // Pause on hover / focus
+  banner.addEventListener('mouseenter', () => { _spotlightPaused = true; });
+  banner.addEventListener('mouseleave', () => { _spotlightPaused = false; });
+  banner.addEventListener('focusin', () => { _spotlightPaused = true; });
+  banner.addEventListener('focusout', (e) => { if (!banner.contains(e.relatedTarget)) _spotlightPaused = false; });
+
+  // Start auto-rotation
+  startSpotlightTimer();
+
+  } catch (err) {
+    console.error('Spotlight banner init failed:', err);
+    if (skeleton) skeleton.classList.add('hidden');
+    if (banner) banner.classList.add('hidden');
+  }
+}
+
+function goToSlide(index) {
+  const track = document.getElementById('spotlight-track');
+  const dots = document.querySelectorAll('.spotlight-dot');
+  const slides = track?.querySelectorAll('.spotlight-slide');
+  if (!track || !slides?.length) return;
+
+  // Wrap around
+  if (index < 0) index = slides.length - 1;
+  if (index >= slides.length) index = 0;
+
+  _spotlightIndex = index;
+  track.style.transform = `translateX(-${index * 100}%)`;
+
+  // Update dots
+  dots.forEach((d, i) => {
+    d.classList.toggle('active', i === index);
+    d.setAttribute('aria-selected', i === index);
+  });
+
+  // Update aria-hidden
+  slides.forEach((s, i) => { s.setAttribute('aria-hidden', i !== index); });
+
+  // Reset timer
+  startSpotlightTimer();
+}
+
+function startSpotlightTimer() {
+  if (_spotlightTimer) clearInterval(_spotlightTimer);
+  _spotlightTimer = setInterval(() => {
+    if (!_spotlightPaused && _spotlightSlides.length > 1) {
+      goToSlide(_spotlightIndex + 1);
+    }
+  }, 5000);
+}
+
+function getBadgeForType(type) {
+  return { task: 'Most Efficient', accomplishment: 'Best AI Win', prompt: 'Most Copied', use_case: 'Top Use Case' }[type] || 'Featured';
+}
+
+function truncate(str, max) {
+  return str.length > max ? str.substring(0, max) + '...' : str;
+}
+
+function fmt(val, decimals) {
+  if (val == null || isNaN(val)) return '0';
+  return Number(val).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
 </script>
 
 </body>

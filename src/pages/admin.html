@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>EAS AI Admin Panel</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-weight='bold' fill='%233b82f6'>A</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../js/config.js"></script>
-<script src="../../js/auth.js"></script>
+<script src="../../js/config.js?v=20260417b"></script>
+<script src="../../js/utils.js?v=20260417b"></script>
+<script src="../../js/auth.js?v=20260417b"></script>
+<script src="../../js/db.js?v=20260417b"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha384-cwS6YdhLI7XS60eoDiC+egV0qHp8zI+Cms46R0nbn8JrmoAzV9uFL60etMZhAnSu" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,6 +43,8 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* ========= LOGIN SCREEN ========= */
@@ -49,6 +53,7 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
 }
 .login-card {
@@ -133,7 +138,7 @@ body {
 
 /* ========= ADMIN LAYOUT ========= */
 .admin-app { display: none; }
-.admin-app.active { display: flex; min-height: 100vh; }
+.admin-app.active { display: flex; min-height: 100vh; min-height: 100dvh; }
 
 /* Sidebar */
 .sidebar {
@@ -141,6 +146,7 @@ body {
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   height: 100vh;
+  height: 100dvh;
   position: fixed;
   display: flex;
   flex-direction: column;
@@ -205,6 +211,7 @@ body {
   margin-left: var(--sidebar-width);
   flex: 1;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 .page-header {
   padding: 24px 32px;
@@ -483,11 +490,28 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
   .sidebar.open { transform: translateX(0); }
   .main { margin-left: 0; }
-  .mobile-toggle { display: block !important; }
-  .page-header { padding: 24px 16px; padding-left: 56px; }
-  .page-content { padding: 16px; }
+  .mobile-toggle { display: block !important; top: calc(16px + env(safe-area-inset-top, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); }
+  .page-header { padding: 24px 16px; padding-left: 56px; padding-right: calc(16px + env(safe-area-inset-right, 0px)); }
+  .page-content { padding: 16px; padding-left: calc(16px + env(safe-area-inset-left, 0px)); padding-right: calc(16px + env(safe-area-inset-right, 0px)); padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
   .form-row { grid-template-columns: 1fr; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* iPhone landscape */
+@media (max-height: 500px) and (orientation: landscape) {
+  .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .mobile-toggle {
+    display: block !important;
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    left: calc(8px + env(safe-area-inset-left, 0px));
+  }
+  .page-header { padding: 12px 16px 12px 56px; padding-left: calc(56px + env(safe-area-inset-left, 0px)); padding-right: calc(16px + env(safe-area-inset-right, 0px)); }
+  .page-content { padding: 12px 16px; padding-left: calc(16px + env(safe-area-inset-left, 0px)); padding-right: calc(16px + env(safe-area-inset-right, 0px)); }
+  .form-row { grid-template-columns: 1fr; }
+  .login-screen { padding: 12px env(safe-area-inset-right, 12px) 12px env(safe-area-inset-left, 12px); }
+  .login-card { padding: 24px; }
 }
 </style>
 </head>
@@ -606,6 +630,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div class="nav-item" data-page="manage-permissions">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       View Permissions
+    </div>
+    <div class="nav-item" data-page="manage-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Banner Settings
     </div>
     </div><!-- /sidebar-nav -->
 
@@ -758,8 +786,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div id="page-manage-approvals" class="page hidden">
       <div class="page-header">
         <div>
-          <h2>Task Approvals</h2>
-          <div class="subtitle">Review and approve submitted tasks</div>
+          <h2>Approvals</h2>
+          <div class="subtitle">Review and approve submitted tasks &amp; accomplishments</div>
         </div>
       </div>
       <div class="page-content">
@@ -772,7 +800,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <option value="rejected">Rejected</option>
           </select>
           <select class="filter-select" id="approval-filter-practice" onchange="renderApprovals()"><option value="">All Practices</option></select>
-          <input type="text" class="search-input" id="approval-search" placeholder="Search by employee or task..." oninput="renderApprovals()" style="flex:1">
+          <input type="text" class="search-input" id="approval-search" placeholder="Search by employee, task, or accomplishment..." oninput="renderApprovals()" style="flex:1">
         </div>
         
         <!-- Pending Approvals Section -->
@@ -783,7 +811,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Employee</th><th>Practice</th><th>Task</th><th>Time Saved (hrs)</th><th>Status</th><th>Submitted</th><th style="width:150px">Action</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Practice</th><th>Type</th><th>Submission</th><th>Time Saved (hrs)</th><th>Status</th><th>Pending With</th><th>Submitted</th><th style="width:150px">Action</th></tr></thead>
               <tbody id="pending-approvals-tbody"></tbody>
             </table>
           </div>
@@ -796,7 +824,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Employee</th><th>Practice</th><th>Task</th><th>Time Saved (hrs)</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Practice</th><th>Type</th><th>Submission</th><th>Time Saved (hrs)</th><th>Status</th><th>Approved By</th><th>Approved At</th></tr></thead>
               <tbody id="approval-history-tbody"></tbody>
             </table>
           </div>
@@ -1104,6 +1132,97 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         </div>
         <div style="margin-top:12px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted)">
           <strong>How it works:</strong> Toggles control visibility of sidebar sections across the web dashboard and VS Code extension. Enabled (green) = visible, Disabled (red) = hidden. Dashboard changes take effect on the user's next page load; extension changes on the next sidebar refresh. Default: all visible (deny-list approach). Dashboard permissions work in addition to role-based restrictions &mdash; admin can hide views but cannot grant access beyond what the role allows.
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner Settings Page -->
+    <div id="page-manage-banner" class="page hidden">
+      <div class="page-header">
+        <div>
+          <h2>Banner Spotlight Settings</h2>
+          <div class="subtitle">Configure the featured spotlight carousel on the dashboard</div>
+        </div>
+      </div>
+      <div class="page-content">
+        <!-- Slot Configuration -->
+        <div class="table-card" style="margin-bottom:20px">
+          <div class="table-header-bar">
+            <h3>Slot Allocation</h3>
+          </div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+            Control how many items of each content type appear in the banner carousel. The total default is 10.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Content Type</th>
+                <th style="text-align:center;width:100px">Slots</th>
+                <th style="text-align:center;width:100px">Active</th>
+              </tr>
+            </thead>
+            <tbody id="banner-config-tbody">
+              <tr><td colspan="3" style="text-align:center;padding:30px;color:var(--text-muted)">Loading...</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:12px">
+            <button class="btn btn-primary" onclick="saveBannerConfig()">Save Configuration</button>
+          </div>
+        </div>
+
+        <!-- Pinned Items -->
+        <div class="table-card">
+          <div class="table-header-bar">
+            <h3>Pinned Items</h3>
+            <button class="btn btn-primary" onclick="openPinItemModal()">+ Pin Item</button>
+          </div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+            Pinned items are guaranteed a spot in the banner and appear first. They bypass the like/metric ranking.
+          </p>
+          <div id="banner-pins-list" style="display:flex;flex-direction:column;gap:10px">
+            <div style="text-align:center;padding:30px;color:var(--text-muted)">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pin Item Modal -->
+    <div class="modal-overlay hidden" id="pin-modal-overlay" onclick="closePinModal()">
+      <div class="modal" onclick="event.stopPropagation()" style="max-width:500px">
+        <div class="modal-header">
+          <h3>Pin Item to Banner</h3>
+          <button class="modal-close" onclick="closePinModal()" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="pin-item-type">Content Type</label>
+            <select id="pin-item-type" class="form-control" onchange="loadPinItemList()">
+              <option value="">Select type...</option>
+              <option value="task">Task</option>
+              <option value="accomplishment">Accomplishment</option>
+              <option value="prompt">Prompt</option>
+              <option value="use_case">Use Case</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="pin-item-search">Search & Select Item</label>
+            <input type="text" id="pin-item-search" class="form-control" placeholder="Search items..." oninput="filterPinItems()">
+            <div id="pin-item-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px;display:none"></div>
+            <input type="hidden" id="pin-item-id">
+            <div id="pin-selected-item" style="margin-top:8px;font-size:13px;color:var(--text-secondary)"></div>
+          </div>
+          <div class="form-group">
+            <label for="pin-label">Badge Label</label>
+            <input type="text" id="pin-label" class="form-control" value="Admin Pick" placeholder="e.g. Admin Pick, SPOC Spotlight">
+          </div>
+          <div class="form-group">
+            <label for="pin-expires">Expires (optional)</label>
+            <input type="date" id="pin-expires" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closePinModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitPinItem()">Pin Item</button>
         </div>
       </div>
     </div>
@@ -2233,6 +2352,14 @@ async function renderApprovals() {
     // Fetch approval history
     const approvalHistory = await EAS_DB.fetchApprovalHistory(userRole, userPractice, 50);
 
+    // Build practice → SPOC names map for "Pending With" display
+    const practiceSet = new Set([...(pendingApprovals || [])].map(a => a.practice).filter(Boolean));
+    const spocNameMap = {};
+    await Promise.all([...practiceSet].map(async (practice) => {
+      const spocs = await EAS_DB.getSpocsForPractice(practice);
+      spocNameMap[practice] = spocs.map(s => s.spoc_name).filter(Boolean).join(', ');
+    }));
+
     // Populate practices filter
     const practiceSelect = document.getElementById('approval-filter-practice');
     if (practiceSelect && data.practices && practiceSelect.options.length === 1) {
@@ -2245,7 +2372,7 @@ async function renderApprovals() {
     }
 
     // Render pending approvals
-    renderPendingApprovals(pendingApprovals);
+    renderPendingApprovals(pendingApprovals, spocNameMap);
     
     // Render approval history
     renderApprovalHistory(approvalHistory);
@@ -2270,7 +2397,7 @@ async function renderApprovals() {
     
     const html = `
       <tr>
-        <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">
+        <td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">
           <div style="font-size:16px;margin-bottom:16px">⚠️ ${errorMessage}</div>
           <div style="font-size:13px;color:var(--text-primary);margin-bottom:16px">
             ${showSetupInstructions ? 'The approval workflow tables haven\'t been created yet.' : err.message}
@@ -2288,11 +2415,11 @@ async function renderApprovals() {
       </tr>
     `;
     document.getElementById('pending-approvals-tbody').innerHTML = html;
-    document.getElementById('approval-history-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Unable to load history</td></tr>';
+    document.getElementById('approval-history-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">Unable to load history</td></tr>';
   }
 }
 
-function renderPendingApprovals(approvals = []) {
+function renderPendingApprovals(approvals = [], spocNameMap = {}) {
   const statusFilter = document.getElementById('approval-filter-status').value;
   const practiceFilter = document.getElementById('approval-filter-practice').value;
   const search = (document.getElementById('approval-search').value || '').toLowerCase();
@@ -2318,12 +2445,17 @@ function renderPendingApprovals(approvals = []) {
 
     const submittedTime = approval.submitted_at ? new Date(approval.submitted_at).toLocaleDateString() : 'N/A';
 
+    const typeLabel = approval.submission_type === 'accomplishment' ? '🏆 Accomplishment' : '📋 Task';
+    const idPrefix = approval.submission_type === 'accomplishment' ? 'Acc' : 'Task';
+
     html += `<tr>
       <td>${approval.submitted_by_email || 'N/A'}</td>
       <td>${approval.practice || 'N/A'}</td>
-      <td>${truncate(approval.submission_id ? 'Task #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
+      <td><span style="font-size:11px">${typeLabel}</span></td>
+      <td>${truncate(approval.submission_id ? idPrefix + ' #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
       <td style="color:var(--success);font-weight:600">${approval.saved_hours?.toFixed(1) || 0}h</td>
       <td><span style="background:var(--info);color:white;padding:4px 12px;border-radius:20px;font-size:11px">${statusLabel}</span></td>
+      <td style="font-size:12px">${approval.approval_status === 'spoc_review' ? (spocNameMap[approval.practice] || 'SPOC') : approval.approval_status === 'admin_review' ? 'Admin' : '-'}</td>
       <td style="font-size:12px;color:var(--text-muted)">${submittedTime}</td>
       <td>
         <button class="btn btn-primary btn-sm" onclick="openApprovalDetailModal('${approval.id}')" style="padding:6px 12px;font-size:11px">Review</button>
@@ -2334,7 +2466,7 @@ function renderPendingApprovals(approvals = []) {
   });
 
   if (!html) {
-    html = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No pending approvals</td></tr>';
+    html = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No pending approvals</td></tr>';
   }
   document.getElementById('pending-approvals-tbody').innerHTML = html;
 }
@@ -2345,10 +2477,14 @@ function renderApprovalHistory(approvals = []) {
     const statusLabel = approval.approval_status === 'approved' ? '✅ Approved' : '❌ Rejected';
     const approvedTime = approval.approved_at ? new Date(approval.approved_at).toLocaleDateString() : 'N/A';
 
+    const typeLabel = approval.submission_type === 'accomplishment' ? '🏆 Accomplishment' : '📋 Task';
+    const idPrefix = approval.submission_type === 'accomplishment' ? 'Acc' : 'Task';
+
     html += `<tr>
       <td>${approval.submitted_by_email || 'N/A'}</td>
       <td>${approval.practice || 'N/A'}</td>
-      <td>${truncate(approval.submission_id ? 'Task #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
+      <td><span style="font-size:11px">${typeLabel}</span></td>
+      <td>${truncate(approval.submission_id ? idPrefix + ' #' + approval.submission_id.substring(0, 8) : 'N/A', 30)}</td>
       <td style="color:var(--success);font-weight:600">${approval.saved_hours?.toFixed(1) || 0}h</td>
       <td><span style="color:${approval.approval_status === 'approved' ? 'var(--success)' : 'var(--danger)'};font-weight:600">${statusLabel}</span></td>
       <td>${approval.approved_by_name || approval.admin_approved ? 'Admin' : 'SPOC'}</td>
@@ -2357,19 +2493,21 @@ function renderApprovalHistory(approvals = []) {
   });
 
   if (!html) {
-    html = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No approval history</td></tr>';
+    html = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No approval history</td></tr>';
   }
   document.getElementById('approval-history-tbody').innerHTML = html;
 }
 
 async function approveApproval(approvalId) {
-  confirmAction('Approve this task submission?', async () => {
+  confirmAction('Approve this submission?', async () => {
     const approval = await EAS_DB.approveSubmission(approvalId, '');
     if (approval) {
-      showToast('✅ Task approved successfully', 'success');
+      const label = approval.submission_type === 'accomplishment' ? 'Accomplishment' : 'Task';
+      const action = approval.approval_status === 'approved' ? 'approved' : 'advanced to admin review';
+      showToast(`✅ ${label} ${action} successfully`, 'success');
       renderApprovals();
     } else {
-      showToast('❌ Failed to approve task', 'error');
+      showToast('❌ Failed to approve submission', 'error');
     }
   });
 }
@@ -2384,10 +2522,11 @@ function rejectApprovalModal(approvalId) {
 async function rejectApprovalWithReason(approvalId, reason) {
   const approval = await EAS_DB.rejectSubmission(approvalId, reason);
   if (approval) {
-    showToast('❌ Task rejected', 'warning');
+    const label = approval.submission_type === 'accomplishment' ? 'Accomplishment' : 'Task';
+    showToast(`❌ ${label} rejected`, 'warning');
     renderApprovals();
   } else {
-    showToast('Failed to reject task', 'error');
+    showToast('Failed to reject submission', 'error');
   }
 }
 
@@ -3785,6 +3924,8 @@ async function quickChangeRole(userId, newRole) {
   if (newRole !== 'team_lead') {
     await sb.from('team_lead_assignments').delete().eq('team_lead_id', userId);
   }
+  // Auto-sync practice_spoc when role changes to/from SPOC
+  await EAS_DB.syncPracticeSpoc(userId, newRole, user?.practice, user?.name, user?.email);
   showToast(`Role updated to ${newRole}`, 'success');
 }
 
@@ -3896,6 +4037,9 @@ async function saveUser() {
   if (role !== 'team_lead') {
     await sb.from('team_lead_assignments').delete().eq('team_lead_id', id);
   }
+
+  // Auto-sync practice_spoc when role changes to/from SPOC
+  await EAS_DB.syncPracticeSpoc(id, role, updates.practice, updates.name, document.getElementById('eu-email').value);
 
   closeModal('modal-edit-user');
   showToast('User updated successfully', 'success');
@@ -4285,6 +4429,232 @@ function exportIdeUsageCsv() {
   a.click(); URL.revokeObjectURL(url);
   showToast('CSV exported');
 }
+</script>
+
+<!-- Banner Settings Script -->
+<script>
+let _bannerConfigCache = {};
+let _bannerPinsCache = [];
+let _pinItemsCache = [];
+
+async function loadBannerConfig() {
+  const sb = getSupabaseClient();
+  const { data, error } = await sb.from('featured_banner_config').select('*').order('item_type');
+  if (error) { console.error(error.message); return; }
+  _bannerConfigCache = data || [];
+
+  const tbody = document.getElementById('banner-config-tbody');
+  if (!tbody) return;
+
+  const typeLabels = { task: 'Tasks', accomplishment: 'Accomplishments', prompt: 'Prompts', use_case: 'Use Cases' };
+  const configItems = _bannerConfigCache.filter(c => c.item_type !== 'global');
+  const globalConfig = _bannerConfigCache.find(c => c.item_type === 'global');
+
+  tbody.innerHTML = configItems.map(c => `
+    <tr>
+      <td style="font-weight:500">${typeLabels[c.item_type] || c.item_type}</td>
+      <td style="text-align:center"><input type="number" min="0" max="20" value="${c.slots}" class="form-control" style="width:70px;display:inline-block;text-align:center" data-config-type="${c.item_type}" data-field="slots"></td>
+      <td style="text-align:center">
+        <label class="toggle-switch" style="margin:0 auto">
+          <input type="checkbox" ${c.is_active ? 'checked' : ''} data-config-type="${c.item_type}" data-field="is_active">
+          <span class="toggle-slider"></span>
+        </label>
+      </td>
+    </tr>
+  `).join('') + `
+    <tr style="border-top:2px solid var(--border)">
+      <td style="font-weight:600">Total Slots</td>
+      <td style="text-align:center"><input type="number" min="1" max="30" value="${globalConfig ? globalConfig.slots : 10}" class="form-control" style="width:70px;display:inline-block;text-align:center;font-weight:600" data-config-type="global" data-field="slots"></td>
+      <td></td>
+    </tr>`;
+}
+
+async function saveBannerConfig() {
+  const sb = getSupabaseClient();
+  const rows = document.querySelectorAll('[data-config-type]');
+  const updates = {};
+
+  rows.forEach(el => {
+    const type = el.dataset.configType;
+    const field = el.dataset.field;
+    if (!updates[type]) updates[type] = {};
+    if (field === 'slots') updates[type].slots = parseInt(el.value) || 0;
+    if (field === 'is_active') updates[type].is_active = el.checked;
+  });
+
+  let success = true;
+  for (const [itemType, upd] of Object.entries(updates)) {
+    const result = await EAS_DB.updateBannerConfig(itemType, upd);
+    if (!result) success = false;
+  }
+
+  if (success) {
+    showToast('Banner configuration saved');
+    // Clear user-side cache so banner refreshes
+    localStorage.removeItem('eas_banner_selection');
+    localStorage.removeItem('eas_banner_date');
+  } else {
+    showToast('Failed to save some settings', 'error');
+  }
+}
+
+async function loadBannerPins() {
+  const sb = getSupabaseClient();
+  const { data, error } = await sb.from('featured_banner_pins')
+    .select('*, pinned_user:users!featured_banner_pins_pinned_by_fkey(name)')
+    .order('pinned_at', { ascending: false });
+  if (error) { console.error(error.message); return; }
+  _bannerPinsCache = data || [];
+
+  const container = document.getElementById('banner-pins-list');
+  if (!container) return;
+
+  if (_bannerPinsCache.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">No pinned items. Use the button above to pin an item.</div>';
+    return;
+  }
+
+  const typeLabels = { task: 'Task', accomplishment: 'AI Win', prompt: 'Prompt', use_case: 'Use Case' };
+  const typeColors = { task: 'var(--accent)', accomplishment: 'var(--success)', prompt: 'var(--purple)', use_case: 'var(--info)' };
+
+  container.innerHTML = _bannerPinsCache.map(pin => {
+    const pinnerName = pin.pinned_user?.name || 'Unknown';
+    const expiresStr = pin.expires_at ? new Date(pin.expires_at).toLocaleDateString() : 'Never';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${typeColors[pin.item_type] || 'var(--accent)'}">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;margin-bottom:4px">
+          <span class="status-badge" style="background:rgba(59,130,246,0.15);color:${typeColors[pin.item_type] || 'var(--accent)'}">${typeLabels[pin.item_type] || pin.item_type}</span>
+          <span class="status-badge" style="background:rgba(245,158,11,0.15);color:var(--warning)">${DOMPurify.sanitize(pin.pin_label)}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text-secondary)">
+          Pinned by ${DOMPurify.sanitize(pinnerName)} &middot; Expires: ${expiresStr}
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">ID: ${pin.item_id}</div>
+      </div>
+      <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px" onclick="unpinItem('${pin.id}')">Unpin</button>
+    </div>`;
+  }).join('');
+}
+
+async function unpinItem(pinId) {
+  if (!confirm('Remove this pin from the banner?')) return;
+  const result = await EAS_DB.deleteBannerPin(pinId);
+  if (result) {
+    showToast('Item unpinned');
+    localStorage.removeItem('eas_banner_selection');
+    loadBannerPins();
+  } else {
+    showToast('Failed to unpin item', 'error');
+  }
+}
+
+function openPinItemModal() {
+  document.getElementById('pin-modal-overlay').classList.remove('hidden');
+  document.getElementById('pin-item-type').value = '';
+  document.getElementById('pin-item-search').value = '';
+  document.getElementById('pin-item-id').value = '';
+  document.getElementById('pin-selected-item').textContent = '';
+  document.getElementById('pin-item-list').style.display = 'none';
+  document.getElementById('pin-label').value = 'Admin Pick';
+  document.getElementById('pin-expires').value = '';
+}
+
+function closePinModal() {
+  document.getElementById('pin-modal-overlay').classList.add('hidden');
+}
+
+async function loadPinItemList() {
+  const type = document.getElementById('pin-item-type').value;
+  if (!type) return;
+  const sb = getSupabaseClient();
+  let items = [];
+
+  if (type === 'task') {
+    const { data } = await sb.from('tasks').select('id, task_description, employee_name, practice').eq('approval_status', 'approved').order('created_at', { ascending: false }).limit(100);
+    items = (data || []).map(t => ({ id: t.id, label: `${t.task_description} — ${t.employee_name} (${t.practice})` }));
+  } else if (type === 'accomplishment') {
+    const { data } = await sb.from('accomplishments').select('id, title, practice').eq('approval_status', 'approved').order('created_at', { ascending: false }).limit(100);
+    items = (data || []).map(a => ({ id: a.id, label: `${a.title} (${a.practice})` }));
+  } else if (type === 'prompt') {
+    const { data } = await sb.from('prompt_library').select('id, prompt_text, role_label, category').eq('is_active', true).order('copy_count', { ascending: false }).limit(100);
+    items = (data || []).map(p => ({ id: p.id, label: `[${p.role_label}] ${p.category}: ${(p.prompt_text || '').substring(0, 80)}...` }));
+  } else if (type === 'use_case') {
+    const { data } = await sb.from('use_cases').select('id, name, practice').eq('is_active', true).eq('is_approved_reference', true).order('name').limit(100);
+    items = (data || []).map(u => ({ id: u.id, label: `${u.name} (${u.practice})` }));
+  }
+
+  _pinItemsCache = items;
+  renderPinItemList(items);
+}
+
+function renderPinItemList(items) {
+  const list = document.getElementById('pin-item-list');
+  list.style.display = 'block';
+  if (!items.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted)">No items found</div>';
+    return;
+  }
+  list.innerHTML = items.map(i =>
+    `<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);transition:background 0.1s" onmouseover="this.style.background='var(--bg-card-hover)'" onmouseout="this.style.background=''" onclick="selectPinItem('${i.id}', this.textContent)">${DOMPurify.sanitize(i.label)}</div>`
+  ).join('');
+}
+
+function filterPinItems() {
+  const search = (document.getElementById('pin-item-search').value || '').toLowerCase();
+  const filtered = _pinItemsCache.filter(i => i.label.toLowerCase().includes(search));
+  renderPinItemList(filtered);
+}
+
+function selectPinItem(id, label) {
+  document.getElementById('pin-item-id').value = id;
+  document.getElementById('pin-selected-item').innerHTML = `<span style="color:var(--success);font-weight:500">Selected:</span> ${DOMPurify.sanitize(label)}`;
+  document.getElementById('pin-item-list').style.display = 'none';
+}
+
+async function submitPinItem() {
+  const itemType = document.getElementById('pin-item-type').value;
+  const itemId = document.getElementById('pin-item-id').value;
+  const pinLabel = document.getElementById('pin-label').value.trim() || 'Admin Pick';
+  const expiresAt = document.getElementById('pin-expires').value || null;
+
+  if (!itemType || !itemId) {
+    showToast('Please select a content type and item', 'error');
+    return;
+  }
+
+  const result = await EAS_DB.insertBannerPin(itemType, itemId, pinLabel, expiresAt);
+  if (result) {
+    showToast('Item pinned to banner');
+    closePinModal();
+    localStorage.removeItem('eas_banner_selection');
+    loadBannerPins();
+  } else {
+    showToast('Failed to pin item (may already be pinned)', 'error');
+  }
+}
+
+// Load banner settings when page is shown
+const _origShowPage = window.showPage;
+if (typeof showPage === 'function') {
+  const _origFn = showPage;
+  window.showPage = function(page) {
+    _origFn(page);
+    if (page === 'manage-banner') {
+      loadBannerConfig();
+      loadBannerPins();
+    }
+  };
+}
+
+// Also handle nav click pattern used in admin
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.nav-item[data-page="manage-banner"]').forEach(el => {
+    el.addEventListener('click', () => {
+      loadBannerConfig();
+      loadBannerPins();
+    });
+  });
+});
 </script>
 
 </body>

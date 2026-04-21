@@ -6,6 +6,165 @@
 
 ## Changes Made
 
+### 0ad. April 17, 2026 — Block Negative Time Saved + Fix Saved Hours Calc + Accomplishments in Scoring
+
+**Three issues addressed:**
+
+1. **Task submission allowed zero/negative time saved** — Users could submit tasks where `time_with_ai >= time_without_ai`, resulting in zero or negative saved hours. This corrupted leaderboard rankings and KPI totals.
+   - **Fix:** Added validation in `saveTask()` (`index.html:4831`): blocks submission when `timeWith >= timeWithout`. Updated `initSavedHoursCalculation` (`phase8-submission.js:205`) to show actual negative values (removed `Math.max(0, ...)` clamp) with red color. Updated `updateApprovalTierDisplay` to show "cannot submit" warning for zero/negative.
+
+2. **Approval detail showed stale `saved_hours`** — The `submission_approvals.saved_hours` was set at submission time. When admin edited a task's time values, the approval `saved_hours` was never updated, causing mismatch (e.g., 20h displayed when actual task had 5h-3h=2h).
+   - **Fix:** Approval detail modal (`index.html:3097-3102`) now computes saved hours from actual task data (`time_without_ai - time_with_ai`) for tasks, and `effort_saved` for accomplishments, falling back to `approval.saved_hours` only when submission data is unavailable.
+
+3. **Accomplishments excluded from champions scoring & badges** — `computeBadges()` only considered task-based `timeSaved`. Accomplishment `effort_saved` was ignored entirely, and there were no accomplishment-specific badges.
+   - **Fix:** `computeBadges()` (`db.js:1121`) now accepts `accomplishments` (count) and `accomplishmentEffort` (total effort_saved) fields. Time Saver and Centurion badges use combined `timeSaved + accomplishmentEffort`. Two new badges added: Innovator (1+ accomplishment) and Impact Maker (3+ accomplishments). Leaderboard (`renderLeaderboard`), My Practice (`renderMyPractice`), and My Tasks (`renderMyTasks`) views all enriched with approved accomplishment data matched by employee name. Leaderboard table now has "Acc." column.
+
+**Trade-off:** Accomplishment-to-employee matching uses substring match on the `employees` text field. This works for single-employee accomplishments and comma-separated lists but could over-match if one employee's name is a substring of another's. This is acceptable given the current data.
+
+### 0ac. April 17, 2026 — Fix Inaccurate Practice Summary for SPOCs
+
+**Problems identified:**
+
+1. **`licensed_users` counted ALL copilot_users** — not filtered by `status = 'access granted'`. E.g., BFSI showed 59 but should be 57; EPS showed 6 but should be 0 (all pending).
+2. **`active_users` relied on stale `has_logged_task` boolean** — 9 users had `has_logged_task = true` but zero tasks in the DB (flag was set during Excel import but never synced). GRC showed 2 active but really 0.
+3. **"Active" definition was task-only** — users with IDE activity (`ide_days_active > 0`, recent `ide_last_active_date`) but no platform task submissions were classified as inactive. E.g., BFSI had 10+ users using Copilot in IDE but marked inactive.
+4. **`fetchInactiveMembers` used task-only logic** — same as above; the inactive members table showed IDE-active users as needing attention.
+
+**Fixes applied:**
+
+- **`get_practice_summary` RPC** — `licensed_users` now `WHERE lower(status) = 'access granted'`; `active_users` now `WHERE (EXISTS tasks OR ide_days_active > 0)`.
+- **`practice_summary` view** — dropped and recreated with same logic.
+- **`get_executive_summary` RPC** — `copilot_adoption.active_users` now uses same tasks+IDE logic instead of `has_logged_task`.
+- **Data fix** — set `has_logged_task = false` for 9 users with stale true flag (no tasks in DB).
+- **`fetchInactiveMembers` in `db.js`** — now fetches `ide_days_active` and `ide_last_active_date`; considers a user active if they have a recent task OR recent IDE activity within the cutoff period. Returns `lastActivity`, `ideDaysActive`, `ideLastActive`, `daysSinceActivity`.
+- **Inactive table UI in `index.html`** — header changed from "Last Task" to "Last Activity"; shows IDE days badge next to name; uses `daysSinceActivity` (max of task date and IDE date) for inactive duration.
+- **`001_schema.sql`** — updated practice_summary view definition to match live DB.
+
+**Before → After counts:**
+
+| Practice | Licensed (old→new) | Active (old→new) |
+|---|---|---|
+| BFSI | 59→57 | 9→15 |
+| CES | 13→13 | 3→2 |
+| EPCS | 11→9 | 3→6 |
+| EPS | 6→0 | 0→0 |
+| ERP Solutions | 86→85 | 22→23 |
+| GRC | 4→4 | 2→0 |
+
+**Migrations:** `fix_practice_summary_accurate_counts`, `fix_active_users_include_ide_activity`, `fix_executive_summary_active_users`.
+
+---
+
+### 0ab. April 17, 2026 — Fix Accomplishment Approval Workflow (Mandatory SPOC + Admin)
+
+**Problem:** Accomplishments shared the same approval routing as tasks, which meant accomplishments with < 5 saved hours were auto-approved. The business requirement is that accomplishments must **always** be reviewed by both SPOC and Admin — no auto-approval regardless of hours. Additionally, when a SPOC approved an accomplishment, it would be marked as fully approved instead of advancing to admin review.
+
+**Secondary bug:** `updateAccomplishment` called `createSubmissionApproval` with 6 arguments (passing `practice` as the 5th parameter and `false` as 6th), but the function only accepts 4 parameters — so `practice` was silently dropped, causing approval records for edited accomplishments to have `practice = null`.
+
+**Fixes applied:**
+- **`determineApprovalRouting(practice, savedHours, submissionType)`** — New 3rd parameter. Accomplishments skip the `< 5h auto-approve` check and always set `needsAdminReview = true`.
+- **`createSubmissionApproval`** — Passes `submissionType` through to `determineApprovalRouting`.
+- **`submitAccomplishmentWithApproval`** — Removed the `autoApproved` handling block; accomplishments always create an approval record.
+- **`approveSubmission` state machine** — When SPOC approves an accomplishment, `nextStatus` is always `admin_review` (not `approved`). Admin can still bypass and approve directly at any stage.
+- **`updateAccomplishment`** — Fixed the `createSubmissionApproval` call to pass 4 correct arguments: `('accomplishment', data.id, savedHours, data.practice)`.
+- **Admin UI** — Approval tables now show a "Type" column distinguishing tasks from accomplishments. Toast messages reflect the submission type and whether the action was a final approval or advancement to admin review.
+
+**Approval flow comparison:**
+
+| Submission | < 5h saved | 5–10h saved | > 10h saved |
+|---|---|---|---|
+| **Task** | Auto-approve | SPOC → Approved | SPOC → Admin → Approved |
+| **Accomplishment** | SPOC → Admin → Approved | SPOC → Admin → Approved | SPOC → Admin → Approved |
+
+**Files changed:** `js/db.js`, `src/pages/admin.html`
+
+---
+
+### 0aa. April 17, 2026 — Unify status/remarks Columns + NOT NULL Constraint
+
+**Problem:** `copilot_users` had two columns carrying the same information: `status` and `remarks`. They frequently conflicted (e.g., `status = 'access granted'` but `remarks = 'pending'`). The UI displayed `remarks` while the backend filtered on `status`.
+
+**Fixes applied:**
+- **Data normalization:** `Active` (27 rows) → `access granted`. All statuses now: `access granted` (169) or `pending` (11).
+- **Column drop:** Removed `remarks` column entirely from `copilot_users`.
+- **NOT NULL constraint:** `status` is now `NOT NULL DEFAULT 'pending'` — no more nulls possible.
+- **Code cleanup:** Removed all `remarks` references from `db.js` (insert/update/fetch), `index.html` (table render, form save/load, Excel export), `migrate.html` (import payload), and `001_schema.sql`.
+
+**Migration:** `unify_status_drop_remarks`.
+
+### 0z. April 16, 2026 — Fix Inaccurate Licensed User & Task Counts
+
+**Problem:** Dashboard KPIs showed 180 "Total Licensed Users" (counting all copilot_users regardless of status) and only 10 "Has Logged Task" (stale `has_logged_task` boolean).
+
+**Root causes:**
+1. `has_logged_task` boolean was not being synced when tasks were logged via the weekly Excel import — 29 users had tasks but were marked `false`.
+2. All statuses (`access granted`, `Active`, `pending`) were counted as "licensed" — only `access granted` (142 users) should count.
+
+**Fixes applied:**
+- **Data fix:** Updated `has_logged_task = true` for 29 users with existing tasks in `tasks` table.
+- **Schema fix:** Added `DEFAULT 'pending'` on `copilot_users.status` to prevent future NULLs. Normalized `Pending` → `pending`.
+- **Dashboard JS:** `totalUsers` now filters `copilot_users` to `status === 'access granted'` only.
+- **SQL functions/views:** Updated `practice_summary` view, `get_licensed_tool_adoption()`, and `get_executive_summary()` to filter `WHERE LOWER(status) = 'access granted'`.
+
+**Corrected metrics:** Total Licensed = 142, Has Logged Task = 23 (of licensed), Adoption = 16.2%.
+
+### 0y. April 16, 2026 — Featured Spotlight Banner + Global Likes System
+
+**Purpose:** Add a marketing-style carousel banner to the dashboard spotlighting top-performing content, plus a permanent like system across all content sections.
+
+**Approach:**
+- **Schema (MCP):** 3 new tables (`likes`, `featured_banner_config`, `featured_banner_pins`) + `v_banner_candidates` view (UNION ALL across tasks, accomplishments, prompts, use cases) + `toggle_like` RPC (SECURITY DEFINER). Migration: `sql/022_featured_banner_and_likes.sql`.
+- **Data layer (`db.js`):** 9 new functions — `fetchBannerCandidates`, `fetchBannerConfig`, `updateBannerConfig`, `fetchBannerPins`, `insertBannerPin`, `deleteBannerPin`, `toggleLike`, `fetchMyLikes`, `fetchLikeCounts`.
+- **Banner UI (`index.html`):** Spotlight carousel with ARIA `role="region"` + `aria-roledescription="carousel"`. Skeleton loader during fetch. Auto-rotation (5s) pauses on hover/focus. Manual arrows + dot indicators. Slides show type badge, title, metrics, contributor info, like button.
+- **Like buttons (global):** Heart SVG buttons on Tasks table rows, Accomplishment cards, Use Case cards, and inside banner slides. Optimistic UI with bounce animation. `handleLikeClick()` syncs all instances of the same item across page sections. Prompts reuse the existing `prompt_votes` system.
+- **Selection algorithm (client-side):** Per content type: pinned items first → sort by likes → sort by metric value. Fills slots from `featured_banner_config`. Always fills banner even with zero likes via metric fallback.
+- **Admin config (`admin.html`):** New "Banner Settings" page with slot allocation table, active toggles, pin management list, and "Pin Item" modal with searchable item picker.
+- **Cache:** `localStorage` keys (`eas_banner_selection`, `eas_banner_date`, `eas_banner_quarter`) with calendar-day reset. Cleared on quarter change.
+
+**Key decisions:**
+- **Prompts excluded from `likes` table** — `prompt_votes` already handles like/dislike for prompts, so `v_banner_candidates` joins `prompt_votes WHERE vote_type='like'` for prompt like counts. The `likes` CHECK only allows `task`, `accomplishment`, `use_case`.
+- **Lazy-loaded like data** — `loadLikeData()` runs in parallel with other non-critical boot tasks rather than blocking `fetchAllData()`.
+- **Cross-section sync** — `handleLikeClick()` uses `querySelectorAll` to find and update ALL like buttons for the same item across banner + section pages.
+- **`prefers-reduced-motion`** — disables auto-rotation, transitions, and bounce animations.
+- **SPOC pin permissions** — SPOCs can pin items and delete their own pins; admins have full pin control.
+
+**Files changed:**
+- `sql/022_featured_banner_and_likes.sql` — new migration
+- `js/db.js` — 9 new functions in Phase 12 section
+- `css/dashboard.css` — ~250 lines of carousel + like button styles
+- `src/pages/index.html` — banner HTML, like buttons in Tasks/Accomplishments/Use Cases, spotlight script block
+- `src/pages/admin.html` — Banner Settings nav item + page + pin modal + script block
+
+### 0x. April 16, 2026 — Multi-SPOC Approval per Practice
+
+**Purpose:** Allow multiple SPOCs per practice, where any SPOC in a practice can approve any task for that practice. Show actual SPOC usernames in the "Pending With" column of the employee task status grid.
+
+**Approach:**
+- **Schema:** Removed `UNIQUE(practice)` constraint from `practice_spoc` table, replaced with `UNIQUE(practice, spoc_id)` to allow multiple SPOCs per practice while preventing duplicate assignments. Added partial index on `(practice, is_active) WHERE is_active = true`.
+- **Views:** Updated `employee_task_approvals`, `pending_approvals`, and `spoc_approval_workload` with a `pending_spoc_names` column that aggregates all active SPOC names for the practice via correlated subquery (`string_agg`).
+- **JS (`db.js`):** New `getSpocsForPractice(practice)` returns array of all active SPOCs. `getSpocForPractice()` now delegates to it (returns first). `fetchPendingApprovals()` for SPOC role now matches by `practice` equality rather than `spoc_id` — any SPOC in the practice sees all pending tasks for that practice.
+- **UI (`employee-status.html`):** `getPendingWith()` reads `task.pending_spoc_names` from the view when status is `spoc_review`, displaying comma-separated SPOC names. Added `escapeHtml()` helper for XSS safety on user-supplied names.
+
+**Trade-offs:**
+- Correlated subquery in views adds minor overhead per row but avoids schema denormalization. Acceptable at current scale.
+- The `spoc_id` column on `submission_approvals` still stores one SPOC ID (the first found at submission time) for backward compatibility. Approval matching now uses practice-level logic, so this column is informational only.
+
+**Migration:** `sql/021_multi_spoc_approval.sql`
+
+### 0w. April 16, 2026 — Admin Override: Approve Any Task at Any Stage
+
+**Purpose:** Allow admin to approve tasks even if they are pending with SPOC, bypassing the normal multi-step approval flow.
+
+**Approach:**
+- Modified `approveSubmission()` in `js/db.js` to check `userRole === 'admin'` as the first branch in the state machine. When true, `nextStatus` is set directly to `'approved'` regardless of `currentStatus`.
+- No changes to `fetchPendingApprovals()` — admin already queries all pending statuses (`pending`, `admin_review`, `spoc_review`).
+- No UI changes — the Approve/Reject buttons in `admin.html` already render for every pending approval.
+- Metadata fields (`approved_by`, `approved_by_name`, `approved_at`) are populated correctly since the `nextStatus === 'approved'` block handles final approval metadata.
+
+**Trade-offs:**
+- Simple role check added to existing state machine — minimal code change, no new DB columns or RLS policies needed.
+- BRD/HLD/CODE_ARCHITECTURE unchanged — this is a business-logic-only change within the existing approval module.
+
 ### 0v. April 16, 2026 — Team Lead Role
 
 **Purpose:** Allow SPOCs to delegate scoped SPOC-like capabilities to practice contributors by assigning them as "Team Leads" over a subset of members.
